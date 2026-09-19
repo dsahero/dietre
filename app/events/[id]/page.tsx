@@ -71,9 +71,14 @@ export default async function EventDashboard({
               {event.location} · {new Date(event.date).toLocaleString()} · {event.expected_headcount} expected
             </p>
           </div>
-          <Button variant="outline" asChild>
-            <Link href={`/r/${event.id}`}>Preview guest form</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/map">Interactive Map Explorer</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/r/${event.id}`}>Preview guest form</Link>
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
