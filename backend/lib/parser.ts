@@ -1,4 +1,4 @@
-import type { DietResponse, MenuFlags, MenuItem, ParsedRules, Severity } from "@/lib/types";
+import type { DietResponse, MenuFlags, MenuItem, ParsedRules, Severity } from "@/shared/lib/types";
 
 type FlagKey =
   | "contains_pork"
