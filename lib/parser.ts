@@ -120,6 +120,11 @@ export function parseDietaryText(raw: string): ParsedRules {
 
   const allergyOrBan = (pattern: RegExp, exclude: string, forceHard = false) => {
     if (!pattern.test(text)) return;
+    const allowedHere = new RegExp(
+      `\\b${exclude.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?\\b[^\\.\\n]{0,16}\\b(fine|ok|okay|alright|allowed)\\b`,
+      "i"
+    );
+    if (allowedHere.test(text)) return;
     const windowMatch = text.match(pattern);
     const around = windowMatch
       ? text.slice(Math.max(0, (windowMatch.index ?? 0) - 40), (windowMatch.index ?? 0) + 40)

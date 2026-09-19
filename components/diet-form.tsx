@@ -34,7 +34,6 @@ export function DietForm({ eventId }: { eventId: string }) {
             id="diet"
             name="diet"
             rows={6}
-            required
             defaultValue={parsed.raw}
             placeholder="Example: Celiac, so no gluten. Dairy is fine. I prefer not-too-spicy food."
           />
