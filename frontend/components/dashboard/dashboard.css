@@ -17,7 +17,7 @@ html, body {
   padding: 0;
   background-color: var(--dash-bg);
   color: var(--dash-text);
-  font-family: var(--font-sans), Georgia, serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -25,7 +25,7 @@ html, body {
   min-height: 100vh;
   display: flex;
   background-color: var(--dash-bg);
-  font-family: var(--font-sans), Georgia, serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
 }
 
 /* Dashboard Layout with warm tactile depth and paper ambience */
@@ -38,7 +38,7 @@ html, body {
     radial-gradient(ellipse at 15% 10%, color-mix(in srgb, var(--dash-surface-hover) 65%, transparent), transparent 60%),
     radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--dash-surface) 40%, transparent), transparent 70%);
   color: var(--dash-text);
-  font-family: var(--font-sans), Georgia, serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
   position: relative;
   overflow-x: hidden;
 }
@@ -164,7 +164,7 @@ html, body {
 
 /* Hand-tuned display serif tracking, optical sizing, and ligature behavior */
 .page-title {
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: 32px;
   line-height: 1.15;
   font-weight: 700;
@@ -247,7 +247,7 @@ html, body {
 }
 
 .center-value {
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: 28px;
   font-weight: 700;
   color: var(--dash-text);
@@ -395,7 +395,7 @@ html, body {
 }
 
 .card-title {
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: 17px;
   font-weight: 700;
   color: #ffffff;
@@ -451,7 +451,7 @@ html, body {
 
 .map-canvas .leaflet-container {
   background: var(--dash-surface);
-  font-family: var(--font-sans), Georgia, serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
 }
 
 /* Compact, on-theme attribution chip instead of Leaflet's stark white
@@ -480,7 +480,7 @@ html, body {
   color: var(--dash-text);
   border: 1px solid var(--dash-border);
   border-radius: 4px;
-  font-family: var(--font-sans), Georgia, serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
   font-size: 12px;
   box-shadow: 0 4px 14px rgba(20, 12, 6, 0.3);
 }
