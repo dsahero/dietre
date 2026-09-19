@@ -207,9 +207,83 @@ export async function listMenuItems(): Promise<MenuItem[]> {
   return (await readJsonStore()).menu_items;
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+/**
+ * Keep candidate ids that still resolve to a restaurant doc (or menu_items).
+ * When the restaurants collection is empty, returns [] so seed leftovers like
+ * rest-bennys are stripped from events.
+ */
+export async function filterValidCandidateRestaurantIds(ids: string[]): Promise<string[]> {
+  if (!ids.length) return [];
+  const restaurants = await listRestaurants();
+  if (restaurants.length === 0) return [];
+  const known = new Set(restaurants.map((restaurant) => restaurant.id));
+  const menuItems = await listMenuItems();
+  for (const item of menuItems) {
+    if (item.restaurant_id) known.add(item.restaurant_id);
+  }
+  return ids.filter((id) => known.has(id));
+}
+
+function candidateIdsEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+/**
+ * Strip missing / seed candidate_restaurant_ids on one event document.
+ * No-op when already clean. Safe to call on every event read/list.
+ */
+export async function scrubEventCandidateRestaurantIds(
+  eventId: string,
+  currentIds?: string[]
+): Promise<string[]> {
+  if (!eventId) return [];
+
+  let ids = currentIds;
+  if (ids === undefined) {
+    if (useFirestore()) {
+      const doc = await getDocument<Record<string, unknown>>(COLLECTIONS.events, eventId);
+      ids = asStringArray(doc?.candidate_restaurant_ids);
+    } else {
+      // JSON DietreEvent rows do not store candidates.
+      return [];
+    }
+  }
+
+  const next = await filterValidCandidateRestaurantIds(ids);
+  if (candidateIdsEqual(ids, next)) return next;
+
+  if (useFirestore()) {
+    await patchDocument(COLLECTIONS.events, eventId, { candidate_restaurant_ids: next });
+  }
+  return next;
+}
+
+async function resolveScoreableRestaurantIds(): Promise<Set<string> | null> {
+  const restaurants = await listRestaurants();
+  // Empty restaurants store → nothing is scoreable (clear all scores).
+  if (restaurants.length === 0) return null;
+  const known = new Set(restaurants.map((restaurant) => restaurant.id));
+  const menuItems = await listMenuItems();
+  for (const item of menuItems) {
+    if (item.restaurant_id) known.add(item.restaurant_id);
+  }
+  return known;
+}
+
+
 export async function listEventsByHost(hostId: string): Promise<DietreEvent[]> {
   if (useFirestore()) {
     const docs = await queryDocuments(COLLECTIONS.events, "organizer_id", "EQUAL", hostId);
+    // One-shot hygiene: strip seed/missing candidate_restaurant_ids while listing.
+    await Promise.all(
+      docs.map((doc) =>
+        scrubEventCandidateRestaurantIds(doc.id, asStringArray((doc as Record<string, unknown>).candidate_restaurant_ids))
+      )
+    );
     return docs
       .map((doc) => docToEvent(doc.id, doc))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -223,16 +297,27 @@ export async function listEventsByHost(hostId: string): Promise<DietreEvent[]> {
 export async function getEvent(id: string): Promise<DietreEvent | null> {
   if (useFirestore()) {
     const byId = await getDocument(COLLECTIONS.events, id);
-    if (byId) return docToEvent(byId.id, byId);
+    if (byId) {
+      await scrubEventCandidateRestaurantIds(
+        byId.id,
+        asStringArray((byId as Record<string, unknown>).candidate_restaurant_ids)
+      );
+      return docToEvent(byId.id, byId);
+    }
     const byToken = await queryDocuments(COLLECTIONS.events, "link_token", "EQUAL", id);
-    return byToken[0] ? docToEvent(byToken[0].id, byToken[0]) : null;
+    if (!byToken[0]) return null;
+    await scrubEventCandidateRestaurantIds(
+      byToken[0].id,
+      asStringArray((byToken[0] as Record<string, unknown>).candidate_restaurant_ids)
+    );
+    return docToEvent(byToken[0].id, byToken[0]);
   }
   return (await readJsonStore()).events.find((event) => event.id === id) ?? null;
 }
 
 export async function createEvent(event: DietreEvent): Promise<DietreEvent> {
   if (useFirestore()) {
-    // Candidate restaurants come from live acquisition later — start empty.
+    // Never invent seed restaurant ids — candidates start empty until acquisition.
     await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, []));
     const organizer = await getDocument<{ events?: string[] }>(COLLECTIONS.organizers, event.host_id);
     if (organizer) {
@@ -271,7 +356,12 @@ export async function updateEvent(
 ): Promise<DietreEvent | null> {
   if (useFirestore()) {
     const updated = await patchDocument(COLLECTIONS.events, id, eventPatchToDoc(patch));
-    return updated ? docToEvent(id, updated) : null;
+    if (!updated) return null;
+    await scrubEventCandidateRestaurantIds(
+      id,
+      asStringArray((updated as Record<string, unknown>).candidate_restaurant_ids)
+    );
+    return docToEvent(id, updated);
   }
   let updated: DietreEvent | null = null;
   await enqueueWrite(async () => {
@@ -481,8 +571,13 @@ export async function saveRestaurantScores(
 ): Promise<void> {
   const eid = (eventId ?? scores[0]?.event_id)?.trim();
   if (!eid) return;
-  // Reject accidental cross-event writes.
-  const scoped = scores.filter((score) => score.event_id === eid);
+  // Reject accidental cross-event writes and phantom restaurant ids
+  // (e.g. seed rest-bennys after restaurants were wiped).
+  const scoreable = await resolveScoreableRestaurantIds();
+  const scoped =
+    scoreable === null
+      ? []
+      : scores.filter((score) => score.event_id === eid && scoreable.has(score.restaurant_id));
 
   if (useFirestore()) {
     const existing = await queryDocuments(COLLECTIONS.restaurant_scores, "event_id", "EQUAL", eid);

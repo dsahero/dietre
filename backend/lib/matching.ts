@@ -205,7 +205,8 @@ export async function matchEvent(input: {
   restaurants: Restaurant[];
   menuItems: MenuItem[];
 }): Promise<MatchResult> {
-  const { event, restaurants, menuItems } = input;
+  const { event, menuItems } = input;
+  const inputRestaurants = input.restaurants;
   // Never mix guests across events — only score against this event's guests.
   const responses = input.responses.filter((response) => response.event_id === event.id);
 
@@ -214,6 +215,24 @@ export async function matchEvent(input: {
     const list = itemsByRestaurant.get(item.restaurant_id) ?? [];
     list.push(item);
     itemsByRestaurant.set(item.restaurant_id, list);
+  }
+
+  // Store-backed restaurants only (caller passes listRestaurants()). Drop
+  // any accidental stubs without ids.
+  const restaurants = inputRestaurants.filter((restaurant) => Boolean(restaurant?.id));
+
+  // Wiped / empty restaurant store → clear this event's scores and return
+  // empty rankings. Never refill restaurant_scores from leftover seed ids.
+  if (restaurants.length === 0) {
+    void saveRestaurantScores([], event.id).catch((error) => {
+      console.error("restaurant_scores clear failed", error);
+    });
+    return {
+      restaurants: [],
+      zero_matches: [],
+      response_count: responses.length,
+      expected_headcount: event.expected_headcount,
+    };
   }
 
   // Empty event (no guests) → empty scores (clear cache); still surface
@@ -378,8 +397,14 @@ export async function matchEvent(input: {
 
   async function persistScores() {
     const computed_at = new Date().toISOString();
+    // Never write scores for missing restaurant ids (phantom seed leftovers).
+    const persistable = ranked.filter((row) => Boolean(row.restaurant?.id));
+    if (persistable.length === 0) {
+      await saveRestaurantScores([], event.id);
+      return;
+    }
     await saveRestaurantScores(
-      ranked.map((row) => {
+      persistable.map((row) => {
         const items = itemsByRestaurant.get(row.restaurant.id) ?? [];
         const per_guest_scores: Record<string, number> = {};
         const conflicts: Array<{ guest_id: string; hard_excludes: string[] }> = [];
