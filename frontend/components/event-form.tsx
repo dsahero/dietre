@@ -75,7 +75,7 @@ export function EventForm() {
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="location">Location in Blacksburg</Label>
+        <Label htmlFor="location">Location</Label>
         <LocationAutocomplete
           id="location"
           required

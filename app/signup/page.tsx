@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { LoginPageView } from "@/frontend/components/map-view/LoginPageView";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <Suspense fallback={null}>
-      <LoginPageView initialMode="login" />
+      <LoginPageView initialMode="signup" />
     </Suspense>
   );
 }
+

@@ -1,9 +1,7 @@
-// Real event locations now resolve through Google Places (see
-// backend/lib/placesDiscovery.ts): the host picks a live autocomplete
+// Event locations resolve through Google Places (see
+// backend/lib/placesDiscovery.ts): the host picks a worldwide autocomplete
 // suggestion and the server resolves it via the Places Details API.
-// geocodeBlacksburg/BLACKSBURG_PLACES below are the offline fallback used
-// only when PLACES_API_KEY is unset/failing, or for a `landmark:`-sentinel
-// pick made from the client's static fallback list.
+// BLACKSBURG_PLACES / geocodeBlacksburg remain for seeded demo coords only.
 export type Place = { lat: number; lng: number; label: string };
 
 export const DOWNTOWN_BLACKSBURG: Place = {

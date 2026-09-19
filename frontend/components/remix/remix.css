@@ -13,27 +13,22 @@
    ========================================================================== */
 
 .remix-outer {
-  background: #2B2118;
+  background: #FBF6EF;
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  /* No overflow set — window must be the scroll container so that:
-     1. position: sticky on .remix-section-grey-sticky works correctly
-     2. window scroll listeners in useTrackProgress / LowerFork fire
-     overflow-x: auto here creates a scoped scroll container that breaks both */
+  width: 100%;
+  overflow-x: clip;
 }
 
 /* Canvas Frame (1440px × 5717px) */
 .remix-artboard {
   position: relative;
-  width: 1440px;
-  min-width: 1440px;
+  width: 100%;
+  max-width: 1440px;
   height: 5717px;
   background: #FBF6EF;
-  /* overflow: clip removed — any value other than visible breaks position: sticky
-     on .remix-section-grey-sticky (browsers treat clip/hidden as scroll containers
-     for sticky ancestor checks). The box-shadow handles the visual depth. */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   font-family: var(--font-inter), 'Inter', sans-serif;
   color: #2B2118;
 }
@@ -46,8 +41,8 @@
 .remix-navbar {
   position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
   height: 103px;
   background: #D7531F;
   z-index: 50;
@@ -180,8 +175,8 @@
 .remix-hero-bg {
   position: absolute;
   top: 103px;
-  left: 0;
-  right: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
   height: 799px;
   background: radial-gradient(ellipse at 28.51% 66.96%, #FBF6EF 0%, #E2D6C3 75%);
 }
@@ -425,8 +420,8 @@
 
 .remix-banner-gradient {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
   top: 3408px;
   height: 824px;
   background: linear-gradient(90deg, #D7531F 54.24%, rgba(113, 44, 16, 0) 93.43%);
@@ -468,9 +463,9 @@
 
 .remix-section-cards-bg {
   position: absolute;
-  left: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
   top: 4232px;
-  width: 1440px;
   height: 810px;
   background: #F1E9DC;
 }
@@ -728,9 +723,9 @@
 
 .remix-footer {
   position: absolute;
-  left: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
   top: 5599px;
-  width: 1440px;
   height: 118px;
   background: #F1E9DC;
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { MapPin } from "lucide-react";
-import { BLACKSBURG_PLACES } from "@/shared/lib/places";
 
 interface LocationAutocompleteProps {
   id?: string;
@@ -21,11 +20,9 @@ type Suggestion = { placeId: string; mainText: string; secondaryText: string };
 
 /**
  * Real-address autocomplete backed by /api/places/autocomplete (Google
- * Places). Typing always clears any prior confirmed pick — the host must
- * click a suggestion for onChange's placeId to become non-null again.
- * Falls back to the fixed Blacksburg landmark list (with `landmark:` sentinel
- * ids the server routes to geocodeBlacksburg) when the API reports
- * `enabled: false` (no PLACES_API_KEY configured).
+ * Places). Worldwide — no city bias or landmark allowlist. Typing always
+ * clears any prior confirmed pick — the host must click a suggestion for
+ * onChange's placeId to become non-null again.
  */
 export function LocationAutocomplete({
   id,
@@ -45,19 +42,6 @@ export function LocationAutocomplete({
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listboxId = useId();
-
-  const fallbackMatches = useMemo(() => {
-    const needle = value.trim().toLowerCase();
-    const all = BLACKSBURG_PLACES.map((place) => place.label);
-    if (!needle) return all;
-    return all.filter((label) => label.toLowerCase().includes(needle));
-  }, [value]);
-
-  useEffect(() => {
-    if (placesEnabled) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the fallback-mode flag, not derivable during render
-    setSuggestions([]);
-  }, [placesEnabled]);
 
   useEffect(() => {
     if (!placesEnabled) return;
@@ -119,6 +103,7 @@ export function LocationAutocomplete({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
+<<<<<<< HEAD
   const matches: Array<{ label: string; sub?: string; id: string }> = placesEnabled
     ? suggestions.map((s) => ({
         label: s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText,
@@ -134,6 +119,14 @@ export function LocationAutocomplete({
           id: s.placeId,
         }))
       : fallbackMatches.map((label) => ({ label, id: `landmark:${label}` }));
+=======
+  const matches: Array<{ label: string; sub?: string; id: string }> = suggestions.map((s) => ({
+    label: s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText,
+    sub: s.secondaryText,
+    id: s.placeId,
+  }));
+  const typedEnough = value.trim().length >= 2;
+>>>>>>> 0c13aa0ec83735377184870251f4a80d86b436fe
 
   const pick = (match: { label: string; id: string }) => {
     onChange(match.label, match.id);
@@ -185,7 +178,7 @@ export function LocationAutocomplete({
         className={inputClassName}
       />
 
-      {isOpen && (loading || matches.length > 0) && (
+      {isOpen && (loading || matches.length > 0 || typedEnough) && (
         <ul
           id={listboxId}
           role="listbox"
@@ -211,6 +204,11 @@ export function LocationAutocomplete({
           ))}
           {loading && matches.length === 0 && (
             <li className="px-3 py-1.5 text-sm font-serif text-[var(--dash-text-muted)]">Searching…</li>
+          )}
+          {!loading && typedEnough && matches.length === 0 && (
+            <li className="px-3 py-1.5 text-sm font-serif text-[var(--dash-text-muted)]">
+              {placesEnabled ? "No matching addresses." : "Address search is unavailable. Try again in a moment."}
+            </li>
           )}
         </ul>
       )}
