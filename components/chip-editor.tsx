@@ -128,22 +128,22 @@ function ChipGroup({
           </Badge>
         ))}
       </div>
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onAdd(draft);
-        }}
-      >
+      <div className="flex gap-2">
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onAdd(draft);
+            }
+          }}
           placeholder={variant === "hard" ? "Add an exclude, e.g. sesame" : "Add a preference, e.g. spicy"}
         />
-        <Button type="submit" variant="outline">
+        <Button type="button" variant="outline" onClick={() => onAdd(draft)}>
           Add
         </Button>
-      </form>
+      </div>
     </div>
   );
 }
