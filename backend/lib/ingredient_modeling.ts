@@ -1,12 +1,12 @@
 /*
- * Menu text → MenuItem[] pipeline.
+ * Menu text → RawMenuItem[] pipeline (page content only).
  *
- * 1. Gemini parses the combined menu text into structured items
- *    (name, price, description, explicit ingredients).
- * 2. Items WITH listed ingredients → high confidence, flag directly.
- * 3. Items WITHOUT ingredients → Spoonacular recipe search → probabilistic
- *    ingredient modeling based on frequency across matching recipes.
- * 4. EXCLUDE_TO_FLAGS from parser.ts sets MenuFlags from ingredient list.
+ * 1. Gemini parses combined menu text into structured items
+ *    (name, price, description, explicit ingredients from the text).
+ * 2. Export is ground truth only — no flags, confidence, or estimates.
+ * 3. rawItemsToMenuItems() converts to app MenuItem[] when needed later.
+ * 4. enrichMenuItems() (optional, later) fills missing ingredients via
+ *    Spoonacular / Gemini guess.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -124,16 +124,22 @@ const INGREDIENT_TO_FLAGS: Record<string, FlagKey[]> = {
 // Step 1: Gemini parses menu text → raw items
 // ---------------------------------------------------------------------------
 
-interface RawParsedItem {
+/**
+ * Ground-truth item as listed on the page/PDF — no flags, confidence, or estimates.
+ */
+export type RawMenuItem = {
+  id: string;
+  restaurant_id: string;
   name: string;
   price: number | null;
   description: string;
+  /** Ingredients explicitly present in the name or description text only. */
   ingredients: string[];
-}
+};
 
 async function parseMenuTextToItems(
   menuText: string,
-): Promise<RawParsedItem[]> {
+): Promise<Omit<RawMenuItem, "id" | "restaurant_id">[]> {
   if (!geminiModel || !menuText.trim()) return [];
 
   const prompt = `Parse this restaurant menu text into structured items.
@@ -161,12 +167,21 @@ Rules:
     const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(jsonText);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item: unknown): item is RawParsedItem =>
-        item != null &&
-        typeof item === "object" &&
-        typeof (item as Record<string, unknown>).name === "string",
-    );
+    return parsed
+      .filter(
+        (item: unknown): item is Omit<RawMenuItem, "id" | "restaurant_id"> =>
+          item != null &&
+          typeof item === "object" &&
+          typeof (item as Record<string, unknown>).name === "string",
+      )
+      .map((item) => ({
+        name: item.name,
+        price: typeof item.price === "number" ? item.price : null,
+        description: typeof item.description === "string" ? item.description : "",
+        ingredients: Array.isArray(item.ingredients)
+          ? item.ingredients.filter((s): s is string => typeof s === "string")
+          : [],
+      }));
   } catch (err) {
     console.error("Gemini menu parse failed:", err instanceof Error ? err.message : err);
     return [];
@@ -326,11 +341,11 @@ Example: ["chicken", "flour", "egg", "butter"]`;
 }
 
 // ---------------------------------------------------------------------------
-// Public API: menu text → MenuItem[]
+// Public API: menu text → RawMenuItem[] (page content only)
 // ---------------------------------------------------------------------------
 
 export interface ItemModelingResult {
-  items: MenuItem[];
+  items: RawMenuItem[];
   stats: {
     total: number;
     withIngredients: number;
@@ -339,51 +354,64 @@ export interface ItemModelingResult {
 }
 
 /**
- * Parse menu text → MenuItem[] using ONLY what's explicitly in the text.
- * No guessing, no Spoonacular, no Gemini ingredient estimation.
- * Items with ingredients listed → high confidence + flags set.
- * Items without → low confidence, empty ingredients, no flags.
+ * Parse menu text → RawMenuItem[] using ONLY what's explicitly in the text.
+ * No flags, confidence, guessing, or Spoonacular.
  */
 export async function modelMenuItems(
   restaurantId: string,
   menuText: string,
 ): Promise<ItemModelingResult> {
-  const rawItems = await parseMenuTextToItems(menuText);
-  console.log(`[${restaurantId}] parsed ${rawItems.length} menu items from text`);
+  const parsed = await parseMenuTextToItems(menuText);
+  console.log(`[${restaurantId}] parsed ${parsed.length} menu items from text`);
 
-  const items: MenuItem[] = [];
+  const items: RawMenuItem[] = [];
   let idCounter = 1;
   let withIngredients = 0;
 
-  for (const raw of rawItems) {
-    const hasExplicit = raw.ingredients.length > 0;
-    if (hasExplicit) {
+  for (const raw of parsed) {
+    if (raw.ingredients.length > 0) {
       withIngredients++;
       console.log(`  [explicit] ${raw.name}: ${raw.ingredients.join(", ")}`);
     }
-
-    const flags = hasExplicit ? ingredientsToFlags(raw.ingredients) : {};
 
     items.push({
       id: `${restaurantId}-${idCounter++}`,
       restaurant_id: restaurantId,
       name: raw.name,
+      price: raw.price,
       description: raw.description,
-      estimated_ingredients: raw.ingredients,
-      flags,
-      confidence: hasExplicit ? "high" : "low",
-      price: raw.price ?? 0,
+      ingredients: raw.ingredients,
     });
   }
 
   return {
     items,
     stats: {
-      total: rawItems.length,
+      total: parsed.length,
       withIngredients,
-      withoutIngredients: rawItems.length - withIngredients,
+      withoutIngredients: parsed.length - withIngredients,
     },
   };
+}
+
+/**
+ * Convert raw page items into app MenuItem[] (flags + confidence).
+ * Still uses only explicit ingredients — no estimation.
+ */
+export function rawItemsToMenuItems(rawItems: RawMenuItem[]): MenuItem[] {
+  return rawItems.map((raw) => {
+    const hasExplicit = raw.ingredients.length > 0;
+    return {
+      id: raw.id,
+      restaurant_id: raw.restaurant_id,
+      name: raw.name,
+      description: raw.description,
+      estimated_ingredients: raw.ingredients,
+      flags: hasExplicit ? ingredientsToFlags(raw.ingredients) : {},
+      confidence: hasExplicit ? ("high" as Confidence) : ("low" as Confidence),
+      price: raw.price ?? 0,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -400,9 +428,9 @@ export interface EnrichmentResult {
 }
 
 /**
- * Second pass: for items with confidence "low" (no explicit ingredients),
- * try Spoonacular recipe matching → probabilistic ingredients, or fall back
- * to Gemini guessing. Call this AFTER modelMenuItems when you want estimation.
+ * Second pass: for items with no explicit ingredients, try Spoonacular
+ * recipe matching → probabilistic ingredients, or fall back to Gemini guess.
+ * Call AFTER rawItemsToMenuItems when you want estimation.
  */
 export async function enrichMenuItems(
   items: MenuItem[],
@@ -416,7 +444,6 @@ export async function enrichMenuItems(
 
     let ingredients: string[] = [];
 
-    // Try Spoonacular first
     if (spoonacularKey) {
       const profile = await spoonacularIngredientProfile(item.name);
       if (profile.length > 0) {
@@ -430,7 +457,6 @@ export async function enrichMenuItems(
       }
     }
 
-    // Fallback: Gemini guess
     if (ingredients.length === 0) {
       ingredients = await geminiGuessIngredients(item.name);
       if (ingredients.length > 0) {

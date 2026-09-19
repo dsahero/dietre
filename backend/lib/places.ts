@@ -162,14 +162,14 @@ async function main() {
   const { promises: fs } = await import("fs");
   const path = await import("path");
 
-  // Collect all structured data for export
+  // Collect all structured data for export (raw page content only)
   const allRestaurants: {
     id: string;
     name: string;
     website: string;
     menuUrls: { kind: string; label: string; url: string }[];
   }[] = [];
-  const allMenuItems: import("@/shared/lib/types").MenuItem[] = [];
+  const allMenuItems: import("@/backend/lib/ingredient_modeling").RawMenuItem[] = [];
 
   console.log("\n========== MENU TEXT + ITEM PARSING ==========");
   for (const job of jobs) {
@@ -201,20 +201,16 @@ async function main() {
       `${stats.withIngredients} with ingredients, ${stats.withoutIngredients} without`,
     );
     for (const item of items.slice(0, 10)) {
-      const flagList = Object.entries(item.flags)
-        .filter(([, v]) => v)
-        .map(([k]) => k)
-        .join(", ");
       console.log(
-        `  ${item.name} — $${item.price} [${item.confidence}]` +
-        `\n    ingredients: ${item.estimated_ingredients.join(", ") || "(none)"}` +
-        `\n    flags: ${flagList || "(none)"}`,
+        `  ${item.name} — ${item.price != null ? `$${item.price}` : "(no price)"}` +
+        `\n    description: ${item.description || "(none)"}` +
+        `\n    ingredients: ${item.ingredients.join(", ") || "(none)"}`,
       );
     }
     if (items.length > 10) console.log(`  ... +${items.length - 10} more items`);
   }
 
-  // Write structured output to .data/menus.json
+  // Write raw page-content output to .data/menus.json
   const dataDir = path.join(process.cwd(), ".data");
   await fs.mkdir(dataDir, { recursive: true });
 
@@ -225,8 +221,8 @@ async function main() {
     stats: {
       restaurants_found: allRestaurants.length,
       total_items: allMenuItems.length,
-      high_confidence: allMenuItems.filter((i) => i.confidence === "high").length,
-      low_confidence: allMenuItems.filter((i) => i.confidence === "low").length,
+      with_ingredients: allMenuItems.filter((i) => i.ingredients.length > 0).length,
+      without_ingredients: allMenuItems.filter((i) => i.ingredients.length === 0).length,
     },
   };
 
@@ -235,7 +231,7 @@ async function main() {
   console.log(`\n========== EXPORTED ==========`);
   console.log(`Wrote ${outPath}`);
   console.log(`  ${output.stats.restaurants_found} restaurants, ${output.stats.total_items} items`);
-  console.log(`  ${output.stats.high_confidence} high-conf, ${output.stats.low_confidence} low-conf`);
+  console.log(`  ${output.stats.with_ingredients} with ingredients, ${output.stats.without_ingredients} without`);
 
   await closeBrowser();
 }
