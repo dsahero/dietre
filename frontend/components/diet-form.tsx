@@ -16,10 +16,13 @@ export function DietForm({ eventId }: { eventId: string }) {
 
   if (submitted.ok) {
     return (
-      <div className="rounded-xl border bg-card p-6 text-center">
-        <p className="font-heading text-2xl">You’re in, anonymously.</p>
-        <p className="mt-2 text-muted-foreground">
-          The host sees your rules and whether restaurants can cover you. Not your name — there isn’t one.
+      <div className="rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-8 text-center shadow-xs">
+        <span className="ink-stamp inline-block px-2.5 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)] mb-3">
+          Manifest Registered
+        </span>
+        <p className="font-heading text-2xl text-[var(--dash-text)] font-bold">You&apos;re in, anonymously.</p>
+        <p className="mt-2 text-xs text-[var(--dash-text-muted)] font-serif italic max-w-sm mx-auto leading-relaxed">
+          The host sees your dietary parameters and whether restaurants can safely accommodate you. Zero names attached.
         </p>
       </div>
     );
@@ -27,22 +30,23 @@ export function DietForm({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-6">
-      <form action={parseAction} method="post" className="space-y-4">
+      <form action={parseAction} method="post" className="space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-2xs">
         <div className="space-y-2">
-          <Label htmlFor="diet">What do you eat?</Label>
+          <Label htmlFor="diet" className="font-heading text-sm font-bold text-[var(--dash-text)]">What can or can&apos;t you eat?</Label>
           <Textarea
             id="diet"
             name="diet"
-            rows={6}
+            rows={5}
             defaultValue={parsed.raw}
-            placeholder="Example: Celiac, so no gluten. Dairy is fine. I prefer not-too-spicy food."
+            placeholder="Example: Celiac disease, so strictly zero gluten. Dairy and eggs are fine. Prefer lighter, fresh plates."
+            className="font-serif text-sm rounded-xs border-[var(--dash-border)] bg-[var(--dash-surface)] focus:border-[var(--dash-accent)] text-[var(--dash-text)] shadow-2xs"
           />
-          <p className="text-xs text-muted-foreground">
-            Allergies, religion, vegan/vegetarian, and dislikes all belong here. We’ll turn this into chips you can edit.
+          <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">
+            Food allergies, religious laws (halal/kosher), medical needs, and dislikes. We&apos;ll parse them into reviewable items.
           </p>
         </div>
-        <Button type="submit" disabled={parsing}>
-          {parsing ? "Reading that…" : "Parse into chips"}
+        <Button type="submit" disabled={parsing} className="rounded-xs bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white font-heading font-semibold text-xs tracking-wider uppercase px-5 py-2.5 cursor-pointer shadow-xs">
+          {parsing ? "Analyzing ingredients…" : "Parse into dietary manifest"}
         </Button>
       </form>
 
@@ -89,7 +93,7 @@ function SubmitChips({
   const [rules, setRules] = useState(initialRules);
 
   return (
-    <form action={action} method="post" className="space-y-6 rounded-xl border bg-card p-4">
+    <form action={action} method="post" className="space-y-6 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-2xs">
       <input type="hidden" name="event_id" value={eventId} />
       <input type="hidden" name="raw_text" value={raw} />
       <input type="hidden" name="hard_excludes" value={JSON.stringify(rules.hard_excludes)} />
@@ -97,19 +101,20 @@ function SubmitChips({
       <input type="hidden" name="severity" value={rules.severity} />
       <ChipEditor rules={rules} onChange={setRules} />
       <div className="space-y-2">
-        <Label htmlFor="contact-email">Optional contact email</Label>
+        <Label htmlFor="contact-email" className="font-heading text-sm font-semibold text-[var(--dash-text)]">Optional follow-up email</Label>
         <Input
           id="contact-email"
           name="contact_email"
           type="email"
-          placeholder="Only if the host should be able to follow up"
+          placeholder="Only if you wish to allow follow-up"
+          className="font-serif text-sm rounded-xs border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text)] shadow-2xs"
         />
-        <p className="text-xs text-muted-foreground">
-          Skip this unless you want a note when nothing on the menu works. Still no name field.
+        <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">
+          Optional. Provided solely in case candidate caterers cannot guarantee your allergy safety.
         </p>
       </div>
-      <Button type="submit" disabled={submitting}>
-        {submitting ? "Submitting…" : "Submit anonymously"}
+      <Button type="submit" disabled={submitting} className="rounded-xs bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white font-heading font-semibold text-xs tracking-wider uppercase px-5 py-2.5 cursor-pointer shadow-xs">
+        {submitting ? "Registering manifest…" : "Submit anonymously to table"}
       </Button>
     </form>
   );

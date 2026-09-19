@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Sparkles } from 'lucide-react';
+import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Stamp } from 'lucide-react';
 import { EventDetails } from '../types';
 
 export interface EventEditPatch {
@@ -55,38 +55,41 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
       aria-modal="true"
       aria-labelledby="modal-headline"
     >
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="animate-in fade-in zoom-in-95 relative z-10 my-auto flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-2xl duration-200">
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--dash-border)] bg-[var(--dash-surface)] px-6 py-4">
+      <div className="animate-in fade-in zoom-in-95 relative z-10 my-auto flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-2xl duration-200">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--dash-border)] bg-[var(--dash-bg)] px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--dash-accent)]/40 bg-[var(--dash-accent)]/20 text-[var(--dash-accent-soft)]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-accent)]">
               <Calendar className="h-4 w-4" />
             </div>
-            <h2 id="modal-headline" className="text-lg font-bold tracking-tight text-white">
-              Edit Event Details
-            </h2>
+            <div>
+              <h2 id="modal-headline" className="font-heading text-base font-bold tracking-tight text-[var(--dash-text)]">
+                Edit Event Ledger
+              </h2>
+              <p className="font-serif italic text-xs text-[var(--dash-text-muted)]">Update parameters for guest invitation &amp; restaurant matching</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--dash-text-muted)] transition-colors hover:bg-[var(--dash-surface-hover)] hover:text-white cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] transition-colors hover:bg-[var(--dash-border)] hover:text-[var(--dash-text)] cursor-pointer"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 space-y-5 overflow-y-auto p-6">
+        <form onSubmit={handleSubmit} className="flex-1 space-y-4 overflow-y-auto p-6 font-serif">
           {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-[#ef4444]/40 bg-[#ef4444]/15 p-3 text-xs text-[#f87171]">
+            <div className="flex items-center gap-2 rounded-xs border border-[#ef4444]/40 bg-[#ef4444]/15 p-3 text-xs text-[#c24134]">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="event-name-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+            <label htmlFor="event-name-input" className="mb-1 block font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
               Event Name
             </label>
             <input
@@ -95,34 +98,34 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-4 py-2.5 text-sm text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
+              className="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3.5 py-2 font-serif text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
             />
           </div>
 
           <div>
-            <label htmlFor="event-address-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
-              Location
+            <label htmlFor="event-address-input" className="mb-1 block font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
+              Location / Gathering Area
             </label>
             <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[var(--dash-accent-soft)]" />
+              <MapPin className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--dash-accent)]" />
               <input
                 type="text"
                 id="event-address-input"
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
+                className="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-9 pr-3.5 font-serif text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="event-radius-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+              <label htmlFor="event-radius-input" className="mb-1 block font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Radius (miles)
               </label>
               <div className="relative">
-                <Navigation className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#38bdf8]" />
+                <Navigation className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--dash-accent)]" />
                 <input
                   type="number"
                   id="event-radius-input"
@@ -131,17 +134,17 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
                   max={30}
                   value={radiusMiles}
                   onChange={(e) => setRadiusMiles(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2.5 pl-10 pr-4 text-sm text-white transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
+                  className="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-9 pr-3.5 font-mono text-sm text-[var(--dash-text)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="event-headcount-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+              <label htmlFor="event-headcount-input" className="mb-1 block font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Expected Headcount
               </label>
               <div className="relative">
-                <Users className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#38bdf8]" />
+                <Users className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--dash-accent)]" />
                 <input
                   type="number"
                   id="event-headcount-input"
@@ -149,25 +152,25 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
                   min={1}
                   value={expectedHeadcount}
                   onChange={(e) => setExpectedHeadcount(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2.5 pl-10 pr-4 text-sm text-white transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
+                  className="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-9 pr-3.5 font-mono text-sm text-[var(--dash-text)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
-              <DollarSign className="h-3.5 w-3.5 text-[#22c55e]" />
+            <label className="mb-1 flex items-center gap-1.5 font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
+              <DollarSign className="h-3.5 w-3.5 text-[#16a34a]" />
               Budget Range
             </label>
-            <div className="inline-flex w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-1 text-sm">
+            <div className="inline-flex w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] p-1 text-xs">
               {BUDGET_OPTIONS.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setMaxBudget(option)}
-                  className={`flex-1 rounded-lg py-1.5 font-semibold transition-all cursor-pointer ${
-                    maxBudget === option ? 'bg-[var(--dash-accent)] text-white shadow-sm' : 'text-[var(--dash-text-muted)] hover:text-white'
+                  className={`flex-1 rounded-xs py-1.5 font-mono font-bold tracking-wider transition-all cursor-pointer ${
+                    maxBudget === option ? 'border border-[var(--dash-border)] bg-[var(--dash-accent)] text-white shadow-2xs' : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
                   }`}
                 >
                   {option}
@@ -176,19 +179,17 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
-          <div className="space-y-2 border-t border-[var(--dash-border)] pt-5">
+          <div className="space-y-2 border-t border-[var(--dash-border)] pt-4">
             <label
               htmlFor="event-limitations-input"
-              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]"
+              className="flex items-center gap-1.5 font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]"
             >
-              <ListChecks className="h-3.5 w-3.5 text-[var(--dash-accent-soft)]" />
+              <ListChecks className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
               Limitations &amp; Venue Requirements
             </label>
-            <p className="text-[11px] leading-relaxed text-[var(--dash-text-muted)]">
+            <p className="font-serif italic text-[11px] leading-relaxed text-[var(--dash-text-muted)]">
               Accessibility, noise, timing, venue-level dietary requirements — anything that isn&apos;t a per-guest
-              response. Saving this asks Gemini to break it into a checklist and check candidate restaurants against
-              it; a specific radius or budget mentioned here will fill in those fields above if you haven&apos;t
-              already changed them.
+              response. Saving this asks Gemini to check candidate restaurants against this criteria.
             </p>
             <textarea
               id="event-limitations-input"
@@ -196,15 +197,15 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
               value={limitations}
               onChange={(e) => setLimitations(e.target.value)}
               placeholder="e.g. Wheelchair-accessible entrance required. Vegan entrée must be available. Keep it under 5 miles."
-              className="w-full resize-y rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-4 py-2.5 text-sm text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
+              className="w-full resize-y rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3.5 py-2 font-serif text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
             />
             {eventDetails.limitationsChecklist.length > 0 && (
-              <div className="space-y-1.5 rounded-xl border border-dashed border-[#eab308]/40 bg-[#eab308]/5 p-3">
-                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#facc15]">
-                  <Sparkles className="h-3 w-3" />
-                  Current AI-extracted checklist
+              <div className="space-y-1.5 rounded-xs border border-dashed border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
+                <span className="flex items-center gap-1.5 font-heading text-[10px] font-bold uppercase tracking-wider text-[var(--dash-accent)]">
+                  <Stamp className="h-3 w-3" />
+                  Checklist on file
                 </span>
-                <ul className="space-y-1 text-xs text-[var(--dash-text-soft)]">
+                <ul className="space-y-1 font-serif text-xs text-[var(--dash-text)]">
                   {eventDetails.limitationsChecklist.map((item) => (
                     <li key={item.id}>• {item.label}</li>
                   ))}
@@ -213,20 +214,20 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-[var(--dash-border)] pt-3">
+          <div className="flex items-center justify-end gap-3 border-t border-[var(--dash-border)] pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--dash-text-muted)] transition-colors hover:bg-[var(--dash-border)] hover:text-white cursor-pointer"
+              className="rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] px-4 py-2 font-heading text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)] transition-colors hover:bg-[var(--dash-border)] hover:text-[var(--dash-text)] cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-[var(--dash-accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--dash-accent)]/20 transition-all hover:bg-[var(--dash-accent-soft)] active:bg-[var(--dash-accent-deep)] disabled:opacity-60 cursor-pointer"
+              className="flex items-center gap-2 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-accent)] px-5 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition-all hover:opacity-95 disabled:opacity-60 cursor-pointer"
             >
-              <Check className="h-4 w-4" /> {saving ? 'Saving…' : 'Save Changes'}
+              <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Ledger Changes'}
             </button>
           </div>
         </form>

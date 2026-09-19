@@ -176,7 +176,7 @@ export const MapTab: React.FC<MapTabProps> = ({
   }, [inRange]);
 
   return (
-    <div className="flex h-[720px] overflow-hidden rounded-2xl border border-[var(--dash-border)]" id="map-tab-container">
+    <div className="flex h-[720px] overflow-hidden rounded-sm border border-[var(--dash-border)]" id="map-tab-container">
       {/* Locations sidebar */}
       {isSidebarOpen && (
         <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-r border-[var(--dash-border)] bg-[var(--dash-surface)] sm:w-80">
@@ -195,9 +195,9 @@ export const MapTab: React.FC<MapTabProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveFilter(null)}
-                className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs transition-colors ${
+                className={`cursor-pointer rounded-sm px-2.5 py-1 text-xs transition-colors ${
                   activeFilter === null
-                    ? 'bg-[var(--dash-accent)] font-semibold text-white shadow-xs'
+                    ? 'bg-[var(--dash-accent)] font-semibold text-[var(--dash-bg)] shadow-xs'
                     : 'bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:bg-[var(--dash-surface-hover)]'
                 }`}
               >
@@ -208,9 +208,9 @@ export const MapTab: React.FC<MapTabProps> = ({
                   key={tier}
                   type="button"
                   onClick={() => setActiveFilter(activeFilter === tier ? null : tier)}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition-colors ${
+                  className={`flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs transition-colors ${
                     activeFilter === tier
-                      ? 'bg-[var(--dash-accent)] font-semibold text-white shadow-xs'
+                      ? 'bg-[var(--dash-accent)] font-semibold text-[var(--dash-bg)] shadow-xs'
                       : 'bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:bg-[var(--dash-surface-hover)]'
                   }`}
                 >
@@ -235,7 +235,7 @@ export const MapTab: React.FC<MapTabProps> = ({
                     key={restaurant.id}
                     type="button"
                     onClick={() => selectRestaurant(restaurant)}
-                    className={`flex w-full cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 text-left transition-all ${
+                    className={`flex w-full cursor-pointer items-start gap-2.5 rounded-sm border p-2.5 text-left transition-all ${
                       isSelected
                         ? 'border-[var(--dash-accent)] bg-[var(--dash-surface)] shadow-md ring-2 ring-[var(--dash-accent)]/30'
                         : 'border-[var(--dash-border)] bg-[var(--dash-bg)] hover:border-[var(--dash-border)] hover:bg-[var(--dash-surface)]'
@@ -246,11 +246,11 @@ export const MapTab: React.FC<MapTabProps> = ({
                       style={{ backgroundColor: TIER_COLOR[tier] }}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-bold text-white">{restaurant.name}</div>
+                      <div className="truncate text-xs font-bold text-[var(--dash-text)]">{restaurant.name}</div>
                       <div className="truncate text-[11px] text-[var(--dash-text-muted)]">{restaurant.cuisine}</div>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span
-                          className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white"
+                          className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium text-[var(--dash-bg)]"
                           style={{ backgroundColor: TIER_COLOR[tier] }}
                         >
                           {restaurant.matchPercentage}%
@@ -282,7 +282,7 @@ export const MapTab: React.FC<MapTabProps> = ({
               type="button"
               onClick={() => setIsSidebarOpen((prev) => !prev)}
               aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-              className="cursor-pointer rounded-lg p-1.5 text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
+              className="cursor-pointer rounded-sm p-1.5 text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -298,20 +298,20 @@ export const MapTab: React.FC<MapTabProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search restaurants..."
-              className="w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] py-1.5 pl-8 pr-3 text-xs text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
+              className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] py-1.5 pl-8 pr-3 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
             />
           </div>
         </div>
 
         <div ref={containerRef} className="absolute inset-0 z-0" />
 
-        <div className="absolute bottom-5 right-5 z-[900] flex flex-col gap-1.5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 p-1.5 shadow-lg backdrop-blur-md">
+        <div className="absolute bottom-5 right-5 z-[900] flex flex-col gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 p-1.5 shadow-lg backdrop-blur-md">
           <button
             type="button"
             onClick={() => mapRef.current?.zoomIn()}
             title="Zoom in"
             aria-label="Zoom in"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -320,7 +320,7 @@ export const MapTab: React.FC<MapTabProps> = ({
             onClick={() => mapRef.current?.zoomOut()}
             title="Zoom out"
             aria-label="Zoom out"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
@@ -330,13 +330,13 @@ export const MapTab: React.FC<MapTabProps> = ({
             onClick={() => mapRef.current?.setView([event.lat, event.lng], 13, { animate: true })}
             title="Recenter on event"
             aria-label="Recenter on event"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
           >
             <Compass className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="absolute bottom-5 left-5 z-[900] flex flex-wrap items-center gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 px-3.5 py-2 text-xs shadow-lg backdrop-blur-md">
+        <div className="absolute bottom-5 left-5 z-[900] flex flex-wrap items-center gap-3 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 px-3.5 py-2 text-xs shadow-lg backdrop-blur-md">
           <span className="flex items-center gap-1.5 text-[var(--dash-text-soft)]">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#b8744b' }} />
             Event

@@ -33,7 +33,7 @@ import type { DietreEvent, MatchResult, DietResponse } from '@/shared/lib/types'
 import {
   Pencil,
   MapPin,
-  Sparkles,
+  Stamp,
   Users,
   PieChart,
   ArrowUpDown,
@@ -175,8 +175,8 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
   return (
     <div className="dashboard-layout" id="dashboard-layout" data-theme={hostTheme}>
       {showNotification && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-[var(--dash-accent)]/60 bg-[var(--dash-surface-raised)] px-4 py-2.5 text-xs text-white shadow-2xl duration-200 animate-in slide-in-from-bottom-3">
-          <Sparkles className="h-4 w-4 text-[var(--dash-accent-soft)]" />
+        <div className="tilt-slight fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-sm border border-[var(--dash-accent)]/60 bg-[var(--dash-surface-raised)] px-4 py-2.5 text-xs text-[var(--dash-text)] shadow-2xl duration-200 animate-in slide-in-from-bottom-3">
+          <Stamp className="h-4 w-4 shrink-0 text-[var(--dash-accent-soft)]" />
           <span>{showNotification}</span>
         </div>
       )}
@@ -196,20 +196,20 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
         <header className="main-header">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+              <div className="mb-2 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--dash-text-muted)]">
                 <span>EVENT</span>
                 <span>•</span>
-                <span className="text-[var(--dash-accent-soft)]">
+                <span className="text-[var(--dash-accent)] font-bold">
                   {activeNavId === 'shortlisted'
                     ? 'SHORTLISTED VENUES'
                     : activeNavId === 'responses'
-                      ? 'ANONYMOUS RESPONSES'
+                      ? 'GUEST RESPONSES'
                       : activeNavId === 'map'
                         ? 'VENUE MAP'
                         : 'VENUE MATCHING'}
                 </span>
               </div>
-              <h1 className="page-title text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              <h1 className="page-title font-heading text-2xl font-bold tracking-tight text-[var(--dash-text)] sm:text-3xl">
                 {eventDetails.name}
               </h1>
             </div>
@@ -217,32 +217,32 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
             <button
               type="button"
               onClick={() => setIsEditModalOpen(true)}
-              className="group flex items-center gap-2.5 self-start rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-4 py-2.5 text-[var(--dash-text-soft)] shadow-md transition-all hover:border-[var(--dash-accent)]/60 hover:bg-[var(--dash-surface-hover)] hover:text-white active:scale-98 cursor-pointer"
+              className="group flex items-center gap-2.5 self-start rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-4 py-2.5 text-[var(--dash-text-soft)] shadow-xs transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] active:scale-98 cursor-pointer"
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--dash-accent)]/20 text-[var(--dash-accent-soft)] transition-colors group-hover:bg-[var(--dash-accent)] group-hover:text-white">
+              <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--dash-accent)]/15 text-[var(--dash-accent)] transition-colors group-hover:bg-[var(--dash-accent)] group-hover:text-white">
                 <Pencil className="h-3.5 w-3.5" />
               </div>
-              <span className="text-sm font-semibold tracking-wide">Edit event details</span>
+              <span className="font-heading text-sm font-semibold tracking-wide">Edit event details</span>
             </button>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3.5 rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="mt-5 flex flex-col gap-3.5 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="flex flex-wrap items-center gap-2.5 text-xs text-[var(--dash-text-soft)]">
-              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-1.5">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--dash-accent-soft)]" />
-                <span className="font-semibold text-white">{eventDetails.address}</span>
+              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--dash-accent)]" />
+                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.address}</span>
               </div>
-              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-1.5">
-                <span>Budget:</span>
-                <span className="font-semibold text-white">{eventDetails.maxBudget}</span>
+              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
+                <span className="text-[var(--dash-text-muted)] font-serif">Budget:</span>
+                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.maxBudget}</span>
               </div>
-              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-1.5">
-                <span>Radius:</span>
-                <span className="font-semibold text-white">{eventDetails.maxDistanceRadius}</span>
+              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
+                <span className="text-[var(--dash-text-muted)] font-serif">Radius:</span>
+                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.maxDistanceRadius}</span>
               </div>
-              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-1.5">
-                <span>Expected:</span>
-                <span className="font-semibold text-white">{eventDetails.expectedHeadcount}</span>
+              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
+                <span className="text-[var(--dash-text-muted)] font-serif">Expected:</span>
+                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</span>
               </div>
             </div>
           </div>
@@ -281,17 +281,17 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
               </div>
 
               {responses.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[var(--dash-border)] bg-[var(--dash-surface)] p-10 text-center">
-                  <h3 className="mb-1 text-base font-bold text-white">No responses yet</h3>
-                  <p className="mx-auto max-w-md text-xs text-[var(--dash-text-muted)]">
-                    Share the guest link above. Restaurant rankings appear once the first response comes in.
+                <div className="rounded-md border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-10 text-center shadow-xs">
+                  <h3 className="mb-1 font-heading text-lg font-bold text-[var(--dash-text)]">No responses yet</h3>
+                  <p className="mx-auto max-w-md text-xs text-[var(--dash-text-muted)] font-serif italic">
+                    Share the guest intake link above. Restaurant rankings appear once the first response is recorded.
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="space-y-3" id="overview-chart-container">
                     <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="flex items-center gap-2 text-xs font-semibold text-[var(--dash-text-soft)]">
+                      <span className="flex items-center gap-2 text-xs font-semibold text-[var(--dash-text-soft)] font-serif">
                         <PieChart className="h-3.5 w-3.5 text-[#eab308]" />
                         Guest constraint breakdown ({responses.length} responses)
                       </span>
@@ -302,18 +302,18 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                     </section>
                   </div>
 
-                  <div className="flex flex-col gap-3 border-t border-[var(--dash-border)] pt-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-lg font-bold tracking-tight text-white">
+                  <div className="flex flex-col gap-3 border-t border-[var(--dash-border)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="font-heading text-xl font-bold tracking-tight text-[var(--dash-text)]">
                       Candidate Restaurants ({sortedRestaurants.length})
                     </h2>
 
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <div className="inline-flex rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5">
+                      <div className="inline-flex rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => setRestaurantLayout('side_scroll')}
-                          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-semibold transition-all cursor-pointer ${
-                            restaurantLayout === 'side_scroll' ? 'bg-[var(--dash-accent)] text-white' : 'text-[var(--dash-text-muted)] hover:text-white'
+                          className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
+                            restaurantLayout === 'side_scroll' ? 'bg-[var(--dash-accent)] text-white shadow-2xs' : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
                           }`}
                         >
                           <MoveHorizontal className="h-3.5 w-3.5" /> Side Scroll
@@ -321,8 +321,8 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                         <button
                           type="button"
                           onClick={() => setRestaurantLayout('stacked')}
-                          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-semibold transition-all cursor-pointer ${
-                            restaurantLayout === 'stacked' ? 'bg-[var(--dash-accent)] text-white' : 'text-[var(--dash-text-muted)] hover:text-white'
+                          className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
+                            restaurantLayout === 'stacked' ? 'bg-[var(--dash-accent)] text-white shadow-2xs' : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
                           }`}
                         >
                           <Layers className="h-3.5 w-3.5" /> Stacked
@@ -330,12 +330,12 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                       </div>
 
                       {restaurantLayout === 'side_scroll' && (
-                        <div className="flex items-center gap-1 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5">
+                        <div className="flex items-center gap-1 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5 shadow-2xs">
                           <button
                             type="button"
                             onClick={() => handleScrollRestaurants('left')}
                             aria-label="Scroll restaurants left"
-                            className="rounded-lg p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/20 hover:text-white cursor-pointer"
+                            className="rounded-sm p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </button>
@@ -343,7 +343,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                             type="button"
                             onClick={() => handleScrollRestaurants('right')}
                             aria-label="Scroll restaurants right"
-                            className="rounded-lg p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/20 hover:text-white cursor-pointer"
+                            className="rounded-sm p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
                           >
                             <ChevronRight className="h-4 w-4" />
                           </button>
@@ -351,30 +351,30 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                       )}
 
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="mr-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+                        <span className="mr-1 flex items-center gap-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
                           <ArrowUpDown className="h-3 w-3 text-[var(--dash-accent)]" /> Sort:
                         </span>
                         <button
                           type="button"
                           onClick={() => setSortBy('best_fit')}
-                          className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-semibold transition-all cursor-pointer ${
+                          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-heading text-xs font-semibold transition-all cursor-pointer ${
                             sortBy === 'best_fit'
-                              ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)] text-white'
-                              : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border)] hover:text-white'
+                              ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)] text-white shadow-xs'
+                              : 'border-[var(--dash-border)] bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
                           }`}
                         >
-                          <Users className="h-3.5 w-3.5 text-[#4ade80]" /> Best Fit
+                          <Users className="h-3.5 w-3.5 text-[#22c55e]" /> Best Fit
                         </button>
                         <button
                           type="button"
                           onClick={() => setSortBy('closest')}
-                          className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-semibold transition-all cursor-pointer ${
+                          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-heading text-xs font-semibold transition-all cursor-pointer ${
                             sortBy === 'closest'
-                              ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)] text-white'
-                              : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border)] hover:text-white'
+                              ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)] text-white shadow-xs'
+                              : 'border-[var(--dash-border)] bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
                           }`}
                         >
-                          <MapPin className="h-3.5 w-3.5 text-[#38bdf8]" /> Closest
+                          <MapPin className="h-3.5 w-3.5 text-[var(--dash-accent)]" /> Closest
                         </button>
                       </div>
                     </div>

@@ -14,7 +14,7 @@ export type ThemeName = "dark" | "light";
  * Alert, …) — which read the separate shadcn token set, not --dash-* —
  * switch in lockstep with the same toggle instead of needing their own.
  */
-export function useThemeToggle(storageKey: string, defaultTheme: ThemeName = "dark"): [ThemeName, () => void] {
+export function useThemeToggle(storageKey: string, defaultTheme: ThemeName = "light"): [ThemeName, () => void] {
   const [theme, setTheme] = useState<ThemeName>(defaultTheme);
 
   const applyTheme = useCallback((next: ThemeName) => {

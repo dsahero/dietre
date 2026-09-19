@@ -27,36 +27,88 @@
  * under a different localStorage key, so a host's choice never affects
  * what a guest sees and vice versa, even though both read these same
  * tokens.
+ *
+ * The bare `:root` block is the cardstock/terracotta look — that is the
+ * product's actual default identity (a printed banquet ledger, not a dark
+ * SaaS dashboard), so it renders on first paint with no JS/toggle needed.
+ * `[data-theme="dark"]` is the deliberate secondary "leather ledger at
+ * night" mode, opted into via the toggle.
  */
 :root {
-  --dash-bg: #1a1210;
-  --dash-surface: #201512;
-  --dash-surface-raised: #271a17;
-  --dash-surface-hover: #33201b;
-  --dash-border: #352520;
-  --dash-border-strong: #5a4239;
-  --dash-text: #ffffff;
-  --dash-text-soft: #ded3cd;
-  --dash-text-muted: #9b8b84;
-  --dash-accent: #b8744b;
-  --dash-accent-soft: #d88c5e;
-  --dash-accent-deep: #733f20;
+  --dash-bg: #ece0c9;
+  --dash-surface: #f8f1e2;
+  --dash-surface-raised: #fbf6ea;
+  --dash-surface-hover: #efe1c4;
+  --dash-border: #d9c39e;
+  --dash-border-strong: #b99a6c;
+  --dash-text: #3a2415;
+  --dash-text-soft: #5c4128;
+  --dash-text-muted: #8a6d4d;
+  --dash-accent: #b9502a;
+  --dash-accent-soft: #8f4020;
+  --dash-accent-deep: #9c4a26;
 }
 
-:root[data-theme="light"] {
-  --dash-bg: #f7f2ea;
-  --dash-surface: #ffffff;
-  --dash-surface-raised: #faf5ef;
-  --dash-surface-hover: #f0e6da;
-  --dash-border: #e5d8c8;
-  --dash-border-strong: #cbb59c;
-  --dash-text: #2b1c14;
-  --dash-text-soft: #4a382c;
-  --dash-text-muted: #8a7566;
-  --dash-accent: #b8744b;
-  --dash-accent-soft: #8a5636;
-  --dash-accent-deep: #a6653e;
+:root[data-theme="dark"] {
+  --dash-bg: #1e1410;
+  --dash-surface: #251712;
+  --dash-surface-raised: #2e1c15;
+  --dash-surface-hover: #3a2418;
+  --dash-border: #4a2f22;
+  --dash-border-strong: #6b4530;
+  --dash-text: #f4e9dc;
+  --dash-text-soft: #e0cec0;
+  --dash-text-muted: #a68d7c;
+  --dash-accent: #c1592f;
+  --dash-accent-soft: #e08a54;
+  --dash-accent-deep: #7d3318;
 }
+
+/*
+ * Tactile "human craft" utilities — a small, deliberately non-generic set
+ * of primitives used to keep the interface feeling like physical paper and
+ * ink rather than a glossy template: a stamped-ink badge, a torn/deckle
+ * edge for section seams, faint fibrous paper grain, and understated
+ * off-square rotations for cards that should feel placed by hand rather
+ * than snapped to a grid. See DIETRE design notes for the full rationale —
+ * the point is never to be symmetrical, glowing, or glassy.
+ */
+.ink-stamp {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  position: relative;
+}
+
+.paper-grain {
+  position: relative;
+}
+.paper-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.deckle-divider {
+  border: none;
+  height: 10px;
+  background: repeating-linear-gradient(
+    -65deg,
+    var(--dash-border) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.6;
+}
+
+.tilt-left { transform: rotate(-1.1deg); }
+.tilt-right { transform: rotate(1.4deg); }
+.tilt-slight { transform: rotate(0.6deg); }
 
 @theme inline {
   --color-background: var(--background);
@@ -126,7 +178,12 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  /* Kept small and squared-off on purpose — a large, uniform border-radius
+     across every card/button/modal is one of the strongest "generic AI
+     template" tells. This single token drives Tailwind's whole rounded-*
+     scale (see --radius-* below), so dropping it here reads everywhere as
+     a flatter, cut-cardstock edge instead of a bubbly SaaS pill. */
+  --radius: 0.25rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);

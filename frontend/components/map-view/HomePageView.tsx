@@ -8,7 +8,7 @@ import {
   MapPin,
   Shield,
   ArrowRight,
-  Sparkles,
+  Stamp,
   Compass,
   BarChart3,
   LogIn,
@@ -134,8 +134,8 @@ export function HomePageView() {
           transition={{ duration: 0.7, ease: 'easeOut' }}
           className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center my-auto py-12 space-y-6"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--dash-surface-raised)]/15 border border-[#DFAB62]/30 backdrop-blur-sm text-xs font-semibold text-[#FFDEC9]">
-            <Sparkles className="w-3.5 h-3.5 text-[#DFAB62]" />
+          <div className="ink-stamp tilt-left inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-[#FFDEC9]">
+            <Stamp className="w-3.5 h-3.5 text-[#DFAB62]" />
             <span>When2meet for catering</span>
           </div>
 

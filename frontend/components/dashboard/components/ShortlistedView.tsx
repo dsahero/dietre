@@ -25,18 +25,18 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
   return (
     <div className="space-y-6" id="shortlisted-view-container">
       {/* Header Banner */}
-      <div className="p-5 rounded-2xl bg-[var(--dash-surface)] border border-[var(--dash-border)] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-5 rounded-md bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-8 h-8 rounded-lg bg-[#22c55e]/20 border border-[#22c55e]/40 flex items-center justify-center text-[#22c55e]">
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <div className="w-8 h-8 rounded-sm bg-[#22c55e]/15 border border-[#22c55e]/30 flex items-center justify-center text-[#22c55e] shadow-2xs">
               <Bookmark className="w-4 h-4 fill-[#22c55e]" />
             </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
+            <h2 className="font-heading text-xl font-bold text-[var(--dash-text)] tracking-tight">
               Shortlisted Venues ({shortlistedRestaurants.length})
             </h2>
           </div>
-          <p className="text-xs text-[var(--dash-text-muted)]">
-            Venues flagged for final event contract review and tasting consideration.
+          <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">
+            Venues flagged for final banquet contract review and tasting consultation.
           </p>
         </div>
 
@@ -44,7 +44,7 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
           <button
             type="button"
             onClick={onExploreMore}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--dash-surface-raised)] hover:bg-[var(--dash-border)] text-[var(--dash-text-soft)] hover:text-white border border-[var(--dash-border)] transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-heading font-semibold bg-[var(--dash-surface)] hover:bg-[var(--dash-surface-hover)] text-[var(--dash-text-soft)] hover:text-[var(--dash-text)] border border-[var(--dash-border)] transition-all cursor-pointer shadow-2xs"
           >
             <UtensilsCrossed className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
             <span>Browse All Candidates</span>
@@ -66,16 +66,16 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
           ))}
         </section>
       ) : (
-        <div className="p-12 text-center rounded-2xl bg-[var(--dash-surface)] border border-dashed border-[var(--dash-border)]">
-          <Bookmark className="w-12 h-12 text-[var(--dash-text-muted)] mx-auto mb-3" />
-          <h3 className="text-base font-bold text-white mb-1">No Venues Shortlisted Yet</h3>
-          <p className="text-xs text-[var(--dash-text-muted)] max-w-md mx-auto mb-5">
-            You can flag candidate restaurants from the Overview page by clicking &ldquo;+ Shortlist&rdquo; on any venue card.
+        <div className="p-12 text-center rounded-md bg-[var(--dash-surface-raised)] border border-dashed border-[var(--dash-border-strong)] shadow-xs">
+          <Bookmark className="w-10 h-10 text-[var(--dash-text-muted)] mx-auto mb-3 opacity-60" />
+          <h3 className="font-heading text-lg font-bold text-[var(--dash-text)] mb-1">No Venues Shortlisted Yet</h3>
+          <p className="text-xs text-[var(--dash-text-muted)] font-serif italic max-w-md mx-auto mb-5">
+            You can bookmark candidate restaurants from the Overview ledger by clicking &ldquo;+ Shortlist&rdquo; on any venue card.
           </p>
           <button
             type="button"
             onClick={onExploreMore}
-            className="px-5 py-2.5 rounded-xl bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] text-white text-xs font-semibold shadow-lg shadow-[var(--dash-accent)]/20 transition-all"
+            className="px-5 py-2.5 rounded-sm bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white text-xs font-heading font-semibold uppercase tracking-wider shadow-xs transition-all cursor-pointer"
           >
             Explore Candidate Restaurants
           </button>

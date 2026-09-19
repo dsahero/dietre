@@ -21,18 +21,21 @@ export default async function ResponderPage({
       <ModeBanner />
       <SiteHeader quiet />
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-medium tracking-wide text-primary uppercase">Anonymous guest form</p>
-          <ParticipantThemeToggle />
+        <div className="paper-grain relative rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 sm:p-7 shadow-[0_4px_16px_rgba(25,12,6,0.12)] mb-8">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <span className="ink-stamp px-2 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)]">
+              Confidential Guest Manifest
+            </span>
+            <ParticipantThemeToggle />
+          </div>
+          <h1 className="font-heading mt-2 text-3xl font-bold text-[var(--dash-text)]">{event.name}</h1>
+          <p className="mt-1.5 text-xs text-[var(--dash-text-muted)] font-serif">
+            {event.location} · {new Date(event.date).toLocaleDateString()}
+          </p>
+          <div className="mt-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-xs text-[var(--dash-text-soft)] font-serif leading-relaxed">
+            <strong className="text-[var(--dash-text)]">Zero names on file.</strong> DietRe records what you cannot eat, not who you are. Email is strictly optional and only used if the host has nothing that works for you.
+          </div>
         </div>
-        <h1 className="font-heading mt-2 text-3xl">{event.name}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {event.location} · {new Date(event.date).toLocaleString()}
-        </p>
-        <p className="mt-4 mb-8 rounded-lg bg-secondary/80 p-3 text-sm">
-          There is no name field. dietre stores what you cannot eat, not who you are. Email is optional and only used if
-          the host has nothing that works.
-        </p>
         <DietForm eventId={event.id} />
       </main>
     </div>

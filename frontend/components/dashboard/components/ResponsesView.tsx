@@ -10,11 +10,11 @@ interface ResponsesViewProps {
 const severityBadge = (severity: GuestResponse['severity']) => {
   switch (severity) {
     case 'high':
-      return 'bg-[#ef4444]/20 text-[#f87171] border-[#ef4444]/40';
+      return 'bg-[#ef4444]/15 text-[#c24134] border-[#ef4444]/40';
     case 'medium':
-      return 'bg-[#f59e0b]/20 text-[#fbbf24] border-[#f59e0b]/40';
+      return 'bg-[#f59e0b]/15 text-[#b45309] border-[#f59e0b]/40';
     default:
-      return 'bg-[#38bdf8]/20 text-[#7dd3fc] border-[#38bdf8]/40';
+      return 'bg-[#38bdf8]/15 text-[#0284c7] border-[#38bdf8]/40';
   }
 };
 
@@ -54,41 +54,41 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
     <div className="space-y-6" id="responses-view-container">
       {/* KPI Stats Row */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4" id="responses-kpi-row">
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
-          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)]">
+        <div className="rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-4 shadow-2xs">
+          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)] font-mono uppercase tracking-wider">
             <span>Responses In</span>
             <Users className="h-4 w-4 text-[var(--dash-accent)]" />
           </div>
-          <div className="text-2xl font-bold tracking-tight text-white">{stats.total}</div>
+          <div className="font-heading text-2xl font-bold tracking-tight text-[var(--dash-text)]">{stats.total}</div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
-          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)]">
+        <div className="rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-4 shadow-2xs">
+          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)] font-mono uppercase tracking-wider">
             <span>Zero-Match Guests</span>
             <ShieldAlert className="h-4 w-4 text-[#ef4444]" />
           </div>
-          <div className="text-2xl font-bold tracking-tight text-[#f87171]">{stats.zeroMatch}</div>
+          <div className="font-heading text-2xl font-bold tracking-tight text-[#c24134]">{stats.zeroMatch}</div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
-          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)]">
+        <div className="rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-4 shadow-2xs">
+          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)] font-mono uppercase tracking-wider">
             <span>High-Constraint</span>
             <Flame className="h-4 w-4 text-[#f59e0b]" />
           </div>
-          <div className="text-2xl font-bold tracking-tight text-[#fbbf24]">{stats.high}</div>
+          <div className="font-heading text-2xl font-bold tracking-tight text-[#b45309]">{stats.high}</div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
-          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)]">
+        <div className="rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-4 shadow-2xs">
+          <div className="mb-1 flex items-center justify-between text-xs text-[var(--dash-text-muted)] font-mono uppercase tracking-wider">
             <span>Left Contact Email</span>
-            <Mail className="h-4 w-4 text-[#38bdf8]" />
+            <Mail className="h-4 w-4 text-[var(--dash-accent)]" />
           </div>
-          <div className="text-2xl font-bold tracking-tight text-[#7dd3fc]">{stats.withContact}</div>
+          <div className="font-heading text-2xl font-bold tracking-tight text-[var(--dash-text)]">{stats.withContact}</div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col items-stretch justify-between gap-3 rounded-2xl border border-[var(--dash-surface-hover)] bg-[var(--dash-surface)] p-3.5 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-stretch justify-between gap-3 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3.5 sm:flex-row sm:items-center shadow-2xs">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[var(--dash-text-muted)]" />
           <input
@@ -96,18 +96,18 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by guest token or rule text (e.g. peanuts, kosher, vegan)..."
-            className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-10 pr-4 text-xs text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
+            className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] py-2 pl-10 pr-4 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] font-serif transition-colors focus:border-[var(--dash-accent)] focus:outline-none shadow-2xs"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs sm:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 font-mono text-xs sm:pb-0">
           <button
             type="button"
             onClick={() => setActiveCategory('all')}
-            className={`whitespace-nowrap rounded-lg border px-3 py-1.5 font-medium transition-all ${
+            className={`whitespace-nowrap rounded-xs border px-3 py-1.5 font-bold uppercase tracking-wider transition-all cursor-pointer shadow-2xs ${
               activeCategory === 'all'
-                ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)] text-white'
-                : 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-muted)] hover:text-white'
+                ? 'border-[var(--dash-border)] bg-[var(--dash-accent)] text-white'
+                : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
             }`}
           >
             All ({responses.length})
@@ -115,10 +115,10 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
           <button
             type="button"
             onClick={() => setActiveCategory('zero-match')}
-            className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-medium transition-all ${
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xs border px-3 py-1.5 font-bold uppercase tracking-wider transition-all cursor-pointer shadow-2xs ${
               activeCategory === 'zero-match'
-                ? 'border-[#ef4444]/60 bg-[#ef4444]/20 text-[#f87171]'
-                : 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-muted)] hover:text-[#f87171]'
+                ? 'border-[#ef4444]/60 bg-[#ef4444]/20 text-[#c24134]'
+                : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[#c24134]'
             }`}
           >
             <ShieldAlert className="h-3 w-3 text-[#ef4444]" />
@@ -127,10 +127,10 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
           <button
             type="button"
             onClick={() => setActiveCategory('high')}
-            className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-medium transition-all ${
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xs border px-3 py-1.5 font-bold uppercase tracking-wider transition-all cursor-pointer shadow-2xs ${
               activeCategory === 'high'
-                ? 'border-[#f59e0b]/60 bg-[#f59e0b]/20 text-[#fbbf24]'
-                : 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-muted)] hover:text-[#fbbf24]'
+                ? 'border-[#f59e0b]/60 bg-[#f59e0b]/20 text-[#b45309]'
+                : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[#b45309]'
             }`}
           >
             <Flame className="h-3 w-3 text-[#f59e0b]" />
@@ -139,45 +139,45 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
           <button
             type="button"
             onClick={() => setActiveCategory('contact')}
-            className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-medium transition-all ${
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xs border px-3 py-1.5 font-bold uppercase tracking-wider transition-all cursor-pointer shadow-2xs ${
               activeCategory === 'contact'
-                ? 'border-[#38bdf8]/60 bg-[#38bdf8]/20 text-[#7dd3fc]'
-                : 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-muted)] hover:text-[#7dd3fc]'
+                ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]'
+                : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
             }`}
           >
-            <Mail className="h-3 w-3 text-[#38bdf8]" />
-            Has Contact
+            <Mail className="h-3 w-3 text-[var(--dash-accent)]" />
+            Has Contact ({stats.withContact})
           </button>
         </div>
       </div>
 
       {/* Responses Table */}
       <div
-        className="overflow-hidden rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-xl"
+        className="overflow-hidden rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] shadow-xs"
         id="responses-table-card"
       >
         <div className="flex items-center justify-between border-b border-[var(--dash-border)] bg-[var(--dash-surface)] px-6 py-4">
           <div>
-            <h3 className="text-base font-bold tracking-tight text-white">Anonymous Guest Responses</h3>
-            <p className="mt-0.5 text-xs text-[var(--dash-text-muted)]">
-              Every guest is identified only by a rotating token — never a name. Click a row to see their
-              own words and the full parsed rule set.
+            <h3 className="font-heading text-lg font-bold tracking-tight text-[var(--dash-text)]">Guest Responses</h3>
+            <p className="mt-0.5 text-xs text-[var(--dash-text-muted)] font-serif italic">
+              Each guest is identified by a manifest token. Click a row to see their
+              exact submitted words and parsed ingredient rules.
             </p>
           </div>
-          <span className="rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1 text-xs font-semibold text-[var(--dash-text-muted)]">
+          <span className="font-mono text-[10.5px] rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-2.5 py-1 font-semibold text-[var(--dash-text-muted)]">
             Showing {filtered.length} of {responses.length}
           </span>
         </div>
 
         {responses.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-[var(--dash-text-muted)]">
-            No responses yet. Share the guest link to start collecting anonymous dietary rules.
+          <div className="px-6 py-10 text-center text-xs text-[var(--dash-text-muted)] font-serif italic">
+            No responses recorded yet. Share the confidential guest link to begin collecting dietary profiles.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left" id="responses-table">
               <thead>
-                <tr className="border-b border-[var(--dash-border)] bg-[var(--dash-bg)] text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
+                <tr className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] text-[10.5px] font-mono font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
                   <th className="px-6 py-3.5">Guest</th>
                   <th className="px-4 py-3.5">Hard Restrictions</th>
                   <th className="px-4 py-3.5">Soft Preferences</th>
@@ -185,27 +185,27 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                   <th className="px-6 py-3.5 text-right">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--dash-surface-raised)] text-xs">
+              <tbody className="divide-y divide-[var(--dash-border)] text-xs">
                 {filtered.map((response) => (
                   <tr
                     key={response.id}
                     onClick={() => onSelectResponse(response)}
-                    className="group cursor-pointer transition-colors hover:bg-[var(--dash-surface-raised)]"
+                    className="group cursor-pointer transition-colors hover:bg-[var(--dash-surface-hover)]"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-white group-hover:text-[var(--dash-accent-soft)]">
+                        <span className="font-mono font-semibold text-[var(--dash-text)] group-hover:text-[var(--dash-accent)]">
                           {response.token}
                         </span>
                         <span
-                          className={`rounded border px-1.5 py-0.2 text-[9.5px] font-bold uppercase ${severityBadge(
+                          className={`rounded-xs border px-1.5 py-0.2 font-mono text-[9px] font-bold uppercase ${severityBadge(
                             response.severity
                           )}`}
                         >
                           {response.severity}
                         </span>
                         {response.hasZeroMatch && (
-                          <span className="flex items-center gap-1 rounded-full border border-[#ef4444]/40 bg-[#ef4444]/15 px-1.5 py-0.2 text-[9.5px] font-bold uppercase text-[#f87171]">
+                          <span className="flex items-center gap-1 rounded-xs border border-[#ef4444]/40 bg-[#ef4444]/15 px-1.5 py-0.2 font-mono text-[9px] font-bold uppercase text-[#c24134]">
                             <ShieldAlert className="h-2.5 w-2.5" /> No match
                           </span>
                         )}
@@ -216,28 +216,28 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                       {response.hardExcludes.length > 0 ? (
                         <div className="space-y-1">
                           {response.hardExcludes.slice(0, 2).map((rule, i) => (
-                            <div key={i} className="flex items-center gap-1.5 truncate text-[11.5px] text-[#fca5a5]" title={rule}>
-                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#ef4444]" />
+                            <div key={i} className="flex items-center gap-1.5 truncate font-mono text-[11.5px] font-bold text-[#c24134]" title={rule}>
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-xs bg-[#ef4444]" />
                               <span className="truncate">{rule}</span>
                             </div>
                           ))}
                           {response.hardExcludes.length > 2 && (
-                            <span className="text-[10px] text-[#e0a4a4]">
+                            <span className="font-mono text-[10px] font-semibold text-[#b91c1c]">
                               +{response.hardExcludes.length - 2} more
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-[11px] italic text-[var(--dash-text-muted)]">None reported</span>
+                        <span className="font-serif text-[11px] italic text-[var(--dash-text-muted)]">None reported</span>
                       )}
                     </td>
 
                     <td className="max-w-[220px] px-4 py-4">
-                      <div className="truncate text-[11.5px] text-[var(--dash-text-soft)]" title={response.softPreferences.join(', ')}>
+                      <div className="truncate font-serif text-[11.5px] text-[var(--dash-text-soft)]" title={response.softPreferences.join(', ')}>
                         {response.softPreferences[0] || 'No stated preference'}
                       </div>
                       {response.softPreferences[1] && (
-                        <div className="mt-0.5 truncate text-[11px] text-[var(--dash-text-muted)]">
+                        <div className="mt-0.5 truncate font-serif text-[11px] text-[var(--dash-text-muted)]">
                           {response.softPreferences[1]}
                         </div>
                       )}
@@ -245,12 +245,12 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
 
                     <td className="px-4 py-4">
                       {response.contactEmail ? (
-                        <div className="flex items-center gap-1.5 text-xs text-[var(--dash-text-soft)]">
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#22c55e]" />
+                        <div className="flex items-center gap-1.5 font-serif text-xs text-[var(--dash-text)]">
+                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#16a34a]" />
                           <span>Provided</span>
                         </div>
                       ) : (
-                        <span className="text-[11px] italic text-[var(--dash-text-muted)]">Not provided</span>
+                        <span className="font-serif text-[11px] italic text-[var(--dash-text-muted)]">Not provided</span>
                       )}
                     </td>
 
@@ -261,7 +261,7 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                           e.stopPropagation();
                           onSelectResponse(response);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1 text-xs font-semibold text-[var(--dash-text-soft)] transition-all group-hover:border-[var(--dash-accent)] group-hover:bg-[var(--dash-accent)] group-hover:text-white"
+                        className="inline-flex items-center gap-1 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)] shadow-2xs transition-all group-hover:border-[var(--dash-accent)] group-hover:bg-[var(--dash-accent)] group-hover:text-white"
                       >
                         <span>View</span>
                         <ChevronRight className="h-3.5 w-3.5" />

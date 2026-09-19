@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
-import { MapPin, DollarSign, Sparkles, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -53,7 +53,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
   return (
     <div
-      className="content-card relative group border border-transparent transition-all duration-200 hover:border-[var(--dash-border-strong)] cursor-pointer"
+      className="content-card relative group border border-transparent transition-all duration-200 hover:-translate-y-0.5 hover:rotate-[-0.3deg] hover:border-[var(--dash-border-strong)] cursor-pointer"
       onClick={() => onClickDetails?.(restaurant)}
     >
       {/* Left thumbnail with procedural texture */}
@@ -81,7 +81,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
             <span />
           )}
           <span
-            className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold backdrop-blur-sm ${getMatchBadgeStyle(
+            className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
               restaurant.matchPercentage
             )}`}
           >
@@ -115,8 +115,8 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       <div className="card-details relative min-w-0 flex-1 overflow-hidden py-3 px-4 sm:px-5">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--dash-border)]/70 pb-2 text-xs">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]">
-              <Sparkles className="h-3.5 w-3.5 text-[#eab308]" />
+            <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]">
+              <Hash className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
               Match Details
             </span>
             {restaurant.hasUnconfirmedItems && (
@@ -127,11 +127,11 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] p-0.5">
+            <div className="flex items-center gap-1 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] p-0.5">
               <button
                 type="button"
                 onClick={(e) => scrollDetails('left', e)}
-                className="rounded p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/20 hover:text-white cursor-pointer"
+                className="rounded-xs p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
                 aria-label="Scroll details left"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
@@ -139,7 +139,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               <button
                 type="button"
                 onClick={(e) => scrollDetails('right', e)}
-                className="rounded p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/20 hover:text-white cursor-pointer"
+                className="rounded-xs p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
                 aria-label="Scroll details right"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -153,10 +153,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   e.stopPropagation();
                   onToggleShortlist(restaurant.id);
                 }}
-                className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer ${
+                className={`rounded-sm border px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
                   isShortlisted
-                    ? 'border-[#22c55e]/40 bg-[#22c55e]/20 text-[#4ade80]'
-                    : 'border-[var(--dash-surface-hover)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border-strong)] hover:text-white'
+                    ? 'border-[#22c55e]/40 bg-[#22c55e]/20 text-[#22c55e]'
+                    : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
                 }`}
               >
                 {isShortlisted ? '✓ Shortlisted' : '+ Shortlist'}
