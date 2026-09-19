@@ -1,0 +1,804 @@
+/*
+ * remix.css — Pixel-perfect styles for the Remix dietre landing page.
+ * All class names are prefixed with "remix-" to avoid collisions with the
+ * existing dashboard/app styles.
+ *
+ * The artboard is a fixed-width 1440px canvas that is horizontally centred
+ * and scales via CSS transform on smaller viewports so the full design is
+ * always visible. Body-level overflow-x is set on the wrapper, not globally.
+ */
+
+/* ==========================================================================
+   OUTER WRAPPER — centres and optionally scales the 1440px artboard
+   ========================================================================== */
+
+.remix-outer {
+  background: #2B2118;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  /* No overflow set — window must be the scroll container so that:
+     1. position: sticky on .remix-section-grey-sticky works correctly
+     2. window scroll listeners in useTrackProgress / LowerFork fire
+     overflow-x: auto here creates a scoped scroll container that breaks both */
+}
+
+/* Canvas Frame (1440px × 5717px) */
+.remix-artboard {
+  position: relative;
+  width: 1440px;
+  min-width: 1440px;
+  height: 5717px;
+  background: #FBF6EF;
+  /* overflow: clip removed — any value other than visible breaks position: sticky
+     on .remix-section-grey-sticky (browsers treat clip/hidden as scroll containers
+     for sticky ancestor checks). The box-shadow handles the visual depth. */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  color: #2B2118;
+}
+
+/* ==========================================================================
+   SECTION 1: HEADER & HERO
+   ========================================================================== */
+
+/* Top Navigation Bar */
+.remix-navbar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 103px;
+  background: #D7531F;
+  z-index: 50;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Logo Mark */
+.remix-logo-box {
+  position: absolute;
+  left: 23px;
+  top: 21px;
+  width: 62px;
+  height: 62px;
+  background: #E2D6C3;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.remix-logo-text {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 62px;
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 39px;
+  line-height: 1;
+  text-align: center;
+  color: #D7531F;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.remix-logo-fork {
+  position: absolute;
+  left: 6px;
+  top: 39px;
+  width: 110px;
+  height: 16.5px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Nav Links */
+.remix-nav-link {
+  position: absolute;
+  top: 41px;
+  width: 158px;
+  height: 20px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 24px;
+  color: #E2D6C3;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.remix-nav-link:hover {
+  opacity: 0.85;
+}
+
+.remix-nav-link-1 { left: 175px; }
+.remix-nav-link-2 { left: 415px; }
+.remix-nav-link-3 { left: 655px; }
+.remix-nav-link-4 { left: 895px; }
+
+/* Nav Buttons */
+.remix-btn-signup-nav {
+  position: absolute;
+  left: 1164px;
+  top: 26px;
+  width: 114px;
+  height: 52px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 52px;
+  text-align: center;
+  color: #000000;
+  text-decoration: none;
+  display: block;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.remix-btn-signup-nav:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.remix-btn-login-nav {
+  position: absolute;
+  left: 1308px;
+  top: 26px;
+  width: 114px;
+  height: 52px;
+  background: #C9B79C;
+  border-radius: 12px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 52px;
+  text-align: center;
+  color: #000000;
+  text-decoration: none;
+  display: block;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.remix-btn-login-nav:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* Hero Background Radial Gradient */
+.remix-hero-bg {
+  position: absolute;
+  top: 103px;
+  left: 0;
+  right: 0;
+  height: 799px;
+  background: radial-gradient(ellipse at 28.51% 66.96%, #FBF6EF 0%, #E2D6C3 75%);
+}
+
+/* Hero Brand Lockup (Wordmark + Tagline) */
+.remix-hero-brand-lockup {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 335px;
+  width: 630px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  user-select: none;
+}
+
+.remix-hero-brand-title {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.remix-hero-wordmark-svg {
+  width: 630px;
+  height: auto;
+  display: block;
+  color: #D7531F;
+}
+
+/* Tagline */
+.remix-hero-tagline {
+  margin-top: 18px;
+  width: 100%;
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 62.5px;
+  line-height: 1.15;
+  letter-spacing: 0.005em;
+  word-spacing: 0.03em;
+  text-align: center;
+  white-space: nowrap;
+  color: #2B2118;
+  font-variation-settings: 'opsz' 144, 'WONK' 1;
+}
+
+/* ==========================================================================
+   SECTION 2: FEATURES / ORBITAL GRAPHIC & PINNED SCROLL CARD
+   ========================================================================== */
+
+/* Pinned Scrollytelling Track */
+.remix-section-grey-track {
+  position: absolute;
+  left: 0;
+  top: 760px;
+  width: 1440px;
+  height: 2600px;
+  z-index: 2;
+}
+
+/* Sticky Stage */
+.remix-section-grey-sticky {
+  position: sticky;
+  top: 30px;
+  left: 0;
+  width: 1440px;
+  height: 940px;
+}
+
+/* Dark Rounded Container */
+.remix-card-dark {
+  position: absolute;
+  left: 368px;
+  top: 35px;
+  width: 1019px;
+  height: 805px;
+  background: #6B6055;
+  border-radius: 25px;
+  z-index: 2;
+}
+
+/* Sequential Text Container */
+.remix-grey-text-sequence-container {
+  position: absolute;
+  left: 699px;
+  top: 100px;
+  width: 620px;
+  height: 600px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.remix-grey-text-slide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+}
+
+.remix-card-dark-title {
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 72px;
+  line-height: 88px;
+  text-decoration-line: underline;
+  text-decoration-color: #FFFFFF;
+  text-underline-offset: 8px;
+  color: #FFFFFF;
+  margin-bottom: 24px;
+}
+
+.remix-card-dark-body {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 36px;
+  color: #FFFFFF;
+}
+
+/* Concentric Decorative Discs (Plate) */
+.remix-ellipse-1 {
+  position: absolute;
+  left: -383px;
+  top: -118px;
+  width: 1034px;
+  height: 1034px;
+  border-radius: 50%;
+  background: #D9D9D9;
+  filter: drop-shadow(15px 15px 4px rgba(0, 0, 0, 0.25));
+  z-index: 3;
+}
+
+.remix-ellipse-2 {
+  position: absolute;
+  left: -211px;
+  top: 54px;
+  width: 690px;
+  height: 690px;
+  border-radius: 50%;
+  background: linear-gradient(247.63deg, #A9A9A9 11.05%, #F2F2F2 88.79%);
+  z-index: 3;
+}
+
+.remix-ellipse-3 {
+  position: absolute;
+  left: -188px;
+  top: 77px;
+  width: 644px;
+  height: 644px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 79.43% 30.67%, #F2F2F2 0%, #A9A9A9 100%);
+  z-index: 3;
+}
+
+/* Plate Pattern Wrapper */
+.remix-plate-pattern-wrapper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 940px;
+  transform-origin: 134px 399px !important;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.remix-path21-node {
+  position: absolute;
+  width: 355.59px;
+  height: 341.24px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.remix-p21-1 {
+  left: -354.46px;
+  top: 454.09px;
+  transform: matrix(-0.2588, 0.9659, 0.9659, 0.2588, 0, 0);
+}
+
+.remix-p21-2 {
+  left: -3.66px;
+  top: 610.28px;
+  transform: matrix(0.7071, 0.7071, 0.7071, -0.7071, 0, 0);
+}
+
+.remix-p21-3 {
+  left: 307.01px;
+  top: 384.57px;
+  transform: matrix(0.9659, -0.2588, -0.2588, -0.9659, 0, 0);
+}
+
+.remix-p21-4 {
+  left: 266.87px;
+  top: 2.67px;
+  transform: matrix(0.2588, -0.9659, -0.9659, -0.2588, 0, 0);
+}
+
+.remix-p21-5 {
+  left: -83.93px;
+  top: -153.51px;
+  transform: matrix(-0.7071, -0.7071, -0.7071, 0.7071, 0, 0);
+}
+
+.remix-p21-6 {
+  left: -394.60px;
+  top: 72.20px;
+  transform: matrix(-0.9659, 0.2588, 0.2588, 0.9659, 0, 0);
+}
+
+/* Fork Upper Container (over the plate) */
+.remix-fork-upper {
+  position: absolute;
+  left: -50px;
+  top: 65px;
+  width: 220px;
+  height: 820px;
+  z-index: 5;
+}
+
+/* ==========================================================================
+   SECTION 3: IMAGE BANNER + GRADIENT OVERLAY
+   ========================================================================== */
+
+.remix-banner-image {
+  position: absolute;
+  left: 418px;
+  top: 3407px;
+  width: 1022px;
+  height: 825px;
+  background: #B3866A url('https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
+}
+
+.remix-banner-gradient {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3408px;
+  height: 824px;
+  background: linear-gradient(90deg, #D7531F 54.24%, rgba(113, 44, 16, 0) 93.43%);
+}
+
+.remix-banner-title {
+  position: absolute;
+  left: 56px;
+  top: 3468px;
+  width: 623px;
+  height: 90px;
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 72px;
+  line-height: 88px;
+  color: #FFFFFF;
+  z-index: 2;
+}
+
+.remix-banner-body {
+  position: absolute;
+  left: 58px;
+  top: 3580px;
+  width: 580px;
+  height: 506px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 36px;
+  color: #FFFFFF;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   SECTION 4: THREE-COLUMN CARDS & SECTION FORK
+   ========================================================================== */
+
+.remix-section-cards-bg {
+  position: absolute;
+  left: 0;
+  top: 4232px;
+  width: 1440px;
+  height: 810px;
+  background: #F1E9DC;
+}
+
+.remix-section-cards-title {
+  position: absolute;
+  left: 56px;
+  top: 4279px;
+  width: 623px;
+  height: 109px;
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 96px;
+  line-height: 118px;
+  color: #D7531F;
+}
+
+.remix-section-cards-divider {
+  position: absolute;
+  left: 58px;
+  top: 4388px;
+  width: 560px;
+  height: 0px;
+  border: 3px solid #E2D6C3;
+}
+
+.remix-section-cards-subtitle {
+  position: absolute;
+  left: 58px;
+  top: 4409px;
+  width: 694px;
+  height: 116px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 29px;
+  color: #6B6055;
+}
+
+/* Lower Fork Container */
+.remix-fork-lower {
+  position: absolute;
+  left: 1156px;
+  top: 3730px;
+  width: 220px;
+  height: 820px;
+  z-index: 3;
+}
+
+/* Card Panels */
+.remix-feature-card {
+  box-sizing: border-box;
+  position: absolute;
+  top: 4545px;
+  width: 404px;
+  height: 428px;
+  background: #FFFFFF;
+  border: 5px solid #E2D6C3;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.remix-feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.remix-card-col-1 { left: 56px; }
+.remix-card-col-2 { left: 518px; }
+.remix-card-col-3 { left: 980px; }
+
+/* Card Icons */
+.remix-card-icon-container-1 {
+  position: absolute;
+  left: 93px;
+  top: 4593px;
+  width: 74px;
+  height: 59px;
+  display: flex;
+  align-items: center;
+}
+
+.remix-card-icon-container-2 {
+  position: absolute;
+  left: 557px;
+  top: 4593px;
+  width: 59px;
+  height: 59px;
+  display: flex;
+  align-items: center;
+}
+
+.remix-card-icon-container-3 {
+  position: absolute;
+  left: 1021px;
+  top: 4590px;
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+}
+
+/* Card Titles */
+.remix-card-title {
+  position: absolute;
+  top: 4681px;
+  width: 207px;
+  height: 39px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 39px;
+  color: #D7531F;
+}
+
+.remix-card-title-1 { left: 93px; }
+.remix-card-title-2 { left: 557px; }
+.remix-card-title-3 { left: 1021px; }
+
+/* Card Paragraphs */
+.remix-card-text {
+  position: absolute;
+  width: 317px;
+  height: 335px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 29px;
+  color: #6B6055;
+}
+
+.remix-card-text-1 { left: 96px; top: 4732px; }
+.remix-card-text-2 { left: 561px; top: 4732px; }
+.remix-card-text-3 { left: 1021px; top: 4736px; }
+
+/* ==========================================================================
+   SECTION 5: CALL TO ACTION
+   ========================================================================== */
+
+.remix-cta-card {
+  position: absolute;
+  left: 133px;
+  top: 5137px;
+  width: 1174px;
+  height: 368px;
+  background: #D7531F;
+  box-shadow: 14px 14px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 25px;
+}
+
+.remix-cta-heading {
+  position: absolute;
+  left: 174px;
+  right: 174px;
+  top: 5205px;
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 60px;
+  text-align: center;
+  color: #FFFFFF;
+}
+
+.remix-cta-subheading {
+  position: absolute;
+  left: 148px;
+  right: 148px;
+  top: 5282px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 26px;
+  text-align: center;
+  color: #FFFFFF;
+}
+
+/* CTA Button - Sign Up */
+.remix-cta-btn-signup {
+  position: absolute;
+  left: 417px;
+  top: 5375px;
+  width: 271px;
+  height: 82px;
+  background: #FFFFFF;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-decoration: none;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.remix-cta-btn-signup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.18);
+}
+
+.remix-cta-btn-text-signup {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 30px;
+  color: #2B2118;
+}
+
+/* CTA Button - Log In */
+.remix-cta-btn-login {
+  position: absolute;
+  left: 792px;
+  top: 5375px;
+  width: 231px;
+  height: 82px;
+  background: #C9B79C;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-decoration: none;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.remix-cta-btn-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.18);
+}
+
+.remix-cta-btn-text-login {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 30px;
+  color: #2B2118;
+}
+
+/* ==========================================================================
+   SECTION 6: FOOTER
+   ========================================================================== */
+
+.remix-footer {
+  position: absolute;
+  left: 0;
+  top: 5599px;
+  width: 1440px;
+  height: 118px;
+  background: #F1E9DC;
+}
+
+/* Footer Brand Badge */
+.remix-footer-logo-box {
+  position: absolute;
+  left: 24px;
+  top: 31px;
+  width: 62px;
+  height: 62px;
+  background: #D7531F;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.remix-footer-logo-text {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 62px;
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 39px;
+  line-height: 1;
+  text-align: center;
+  color: #F1E9DC;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.remix-footer-logo-fork {
+  position: absolute;
+  left: 6px;
+  top: 39px;
+  width: 110px;
+  height: 16.5px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Footer Links */
+.remix-footer-link {
+  position: absolute;
+  top: 49px;
+  width: 158px;
+  height: 20px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 29px;
+  text-align: center;
+  color: #A69884;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.remix-footer-link:hover {
+  color: #D7531F;
+}
+
+.remix-footer-link-top    { left: 908px; }
+.remix-footer-link-signup { left: 1088px; }
+.remix-footer-link-login  { left: 1268px; }
+

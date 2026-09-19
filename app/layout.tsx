@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Lora, Geist_Mono, Fraunces } from "next/font/google";
+import { Lora, Geist_Mono, Fraunces, Inter } from "next/font/google";
 import { TooltipProvider } from "@/frontend/components/ui/tooltip";
 import "@/frontend/styles/globals.css";
 
@@ -31,6 +31,14 @@ const displaySerif = Fraunces({
   axes: ["opsz", "SOFT", "WONK"],
 });
 
+// Inter is loaded for the remix landing page which references 'Inter', sans-serif
+// in its CSS. Using next/font avoids a CSS @import that would break PostCSS ordering.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "dietre — When2meet for catering",
   description:
@@ -41,7 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${bodySerif.variable} ${geistMono.variable} ${displaySerif.variable} h-full antialiased`}
+      className={`${bodySerif.variable} ${geistMono.variable} ${displaySerif.variable} ${inter.variable} antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <TooltipProvider>{children}</TooltipProvider>
