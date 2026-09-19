@@ -27,7 +27,7 @@ export default async function ResponderPage({
         <div className="paper-grain relative rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 sm:p-7 shadow-[0_4px_16px_rgba(25,12,6,0.12)] mb-6">
           <div className="flex items-start justify-between gap-3 mb-2">
             <span className="ink-stamp px-2 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)]">
-              Guest Dietary Intake
+              Concierge
             </span>
             <ParticipantThemeToggle />
           </div>
@@ -36,7 +36,7 @@ export default async function ResponderPage({
             {event.location} · {new Date(event.date).toLocaleDateString()}
           </p>
           <div className="mt-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-xs text-[var(--dash-text-soft)] font-serif leading-relaxed">
-            Choose your preferred intake method below: converse with the <strong>Concierge Chatbot</strong> or use the <strong>Direct Form</strong>. We&apos;ll record your requirements so the host can find catering that accommodates you safely.
+            Talk with <strong>Concierge</strong> below. We&apos;ll record your requirements so the host can find catering that accommodates you safely.
           </div>
         </div>
         <ParticipantView eventId={event.id} eventName={event.name} hostName={hostName} />

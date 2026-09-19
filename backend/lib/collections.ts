@@ -7,6 +7,7 @@ import type {
   MenuItem,
   ParsedRules,
   Restaurant,
+  Severity,
 } from "@/shared/lib/types";
 
 export type GeoJsonPoint = { type: "Point"; coordinates: [number, number] };
@@ -245,6 +246,12 @@ export function eventPatchToDoc(
   return data;
 }
 
+export function guestConfidence(severity: Severity): number {
+  if (severity === "high") return 0.95;
+  if (severity === "medium") return 0.75;
+  return 0.5;
+}
+
 export function responseToGuest(response: DietResponse): Record<string, unknown> {
   const event_id = response.event_id?.trim();
   if (!event_id) {
@@ -259,11 +266,23 @@ export function responseToGuest(response: DietResponse): Record<string, unknown>
       ? { complex_restrictions: response.parsed_rules.complex_restrictions }
       : {}),
   };
+  const restrictions = parsed_rules.complex_restrictions ?? [];
+  const preferences = parsed_rules.soft_preferences ?? [];
   return {
     event_id,
+    guest_id: response.id,
+    anon_token: response.id,
+    name: response.guest_name ?? null,
     guest_name: response.guest_name ?? null,
     raw_text: response.raw_text,
     parsed_rules,
+    hard_excludes,
+    restrictions,
+    preferences,
+    // Hard excludes only — soft prefs stay on parsed_rules; never global.
+    preference_vector: hard_excludes,
+    confidence: guestConfidence(response.parsed_rules.severity),
+    conflict_followups: [],
     contact_email: response.contact_email ?? null,
     submitted_at: response.submitted_at,
   };
@@ -275,11 +294,21 @@ export function docToResponse(id: string, doc: Record<string, unknown>): DietRes
   // Prefer parsed_rules.hard_excludes; fall back to preference_vector so older
   // guest docs still yield event-scoped excludes for matching.
   const hardFromRules = asStringArray(parsed.hard_excludes);
+  const hardFromDoc = asStringArray(doc.hard_excludes);
   const hard_excludes =
-    hardFromRules.length > 0 ? hardFromRules : asStringArray(doc.preference_vector);
-  const complex = asStringArray(parsed.complex_restrictions);
+    hardFromRules.length > 0
+      ? hardFromRules
+      : hardFromDoc.length > 0
+        ? hardFromDoc
+        : asStringArray(doc.preference_vector);
+  const complexFromRules = asStringArray(parsed.complex_restrictions);
+  const complex =
+    complexFromRules.length > 0 ? complexFromRules : asStringArray(doc.restrictions);
+  const prefsFromRules = asStringArray(parsed.soft_preferences);
+  const soft_preferences =
+    prefsFromRules.length > 0 ? prefsFromRules : asStringArray(doc.preferences);
   return {
-    id: asString(doc.id, id),
+    id: asString(doc.guest_id, asString(doc.id, id)),
     event_id: asString(doc.event_id),
     guest_name:
       typeof doc.guest_name === "string"
@@ -290,7 +319,7 @@ export function docToResponse(id: string, doc: Record<string, unknown>): DietRes
     raw_text: asString(doc.raw_text, asString(doc.transcript)),
     parsed_rules: {
       hard_excludes,
-      soft_preferences: asStringArray(parsed.soft_preferences),
+      soft_preferences,
       complex_restrictions: complex.length > 0 ? complex : undefined,
       severity: severity === "high" || severity === "medium" ? severity : "low",
     },
