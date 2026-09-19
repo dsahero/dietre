@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ParsedRules } from "@/shared/lib/types";
-import { Send, Bot, User, Loader2, CheckCircle2 } from "lucide-react";
+import { Send, Loader2, CheckCircle2 } from "lucide-react";
 
 type Message = {
   role: "user" | "assistant";
@@ -15,7 +15,7 @@ interface JoinEventChatProps {
   hostName: string;
 }
 
-export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatProps) {
+export function JoinEventChat({ eventId }: JoinEventChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,12 +28,11 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
   const inputRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
 
-  // Kick off the conversation on mount
   useEffect(() => {
     if (started.current) return;
     started.current = true;
     void sendMessage("__START__", []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -64,12 +63,24 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
       });
 
       const data = (await res.json()) as {
-        reply: string;
+        reply?: string;
+        error?: string;
         guestName?: string;
         parsedRules?: ParsedRules;
         contactEmail?: string;
         done?: boolean;
       };
+
+      if (!res.ok || !data.reply) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: data.error ?? "Intake chat is unavailable right now. Please try again later.",
+          },
+        ]);
+        return;
+      }
 
       const assistantMsg: Message = { role: "assistant", text: data.reply };
       const updatedHistory = [...newHistory, assistantMsg];
@@ -79,13 +90,12 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
         setPendingRules(data.parsedRules);
         setPendingEmail(data.contactEmail);
         if (data.guestName) setPendingName(data.guestName);
-        // Auto-submit
         await submitResponse(data.parsedRules, data.contactEmail, updatedHistory, data.guestName);
       }
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: "Sorry, something went wrong. Please try again!" },
+        { role: "assistant", text: "Sorry, something went wrong. Please try again." },
       ]);
     } finally {
       setLoading(false);
@@ -143,150 +153,119 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-sm border border-[#22c55e]/20 bg-[#22c55e]/5 py-14 px-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#22c55e]/15">
-          <CheckCircle2 className="h-7 w-7 text-[#4ade80]" />
-        </div>
-        <h2 className="font-heading text-xl text-[var(--dash-text)]">
-          {pendingName ? `Thank you, ${pendingName}` : "On the manifest"}
+      <div className="paper-grain rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] px-7 py-10 text-center shadow-[0_4px_12px_rgba(25,12,6,0.08)]">
+        <CheckCircle2 className="mx-auto mb-4 h-8 w-8 text-[var(--dash-accent)]" />
+        <h2 className="font-heading text-2xl text-[var(--dash-text)]">
+          {pendingName ? `Thank you, ${pendingName}` : "You're all set"}
         </h2>
-        <p className="max-w-xs text-sm text-[var(--dash-text-muted)]">
-          Your response has been recorded. The host will use it to select a restaurant that
+        <p className="mx-auto mt-2 max-w-sm font-serif text-sm leading-relaxed text-[var(--dash-text-muted)]">
+          Your dietary notes are with the host. They&apos;ll use them to choose a restaurant that
           works for the table.
         </p>
-        {pendingRules && (pendingRules.hard_excludes.length > 0 || (pendingRules.complex_restrictions && pendingRules.complex_restrictions.length > 0)) && (
-          <div className="tilt-slight mt-2 w-full max-w-xs rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-5 py-4 text-left font-mono text-[11px] text-[var(--dash-text-soft)]">
-            <p className="mb-2 border-b border-dashed border-[var(--dash-border)] pb-1.5 uppercase tracking-wider text-[var(--dash-accent-soft)]">
-              {pendingName ? `Guest manifest — ${pendingName}` : "Guest manifest"}
-            </p>
-            {pendingRules.hard_excludes.length > 0 && (
-              <p className="uppercase">
-                Hard excludes: <span className="text-[var(--dash-text)]">{pendingRules.hard_excludes.join(", ")}</span>
-              </p>
-            )}
-            {pendingRules.complex_restrictions && pendingRules.complex_restrictions.length > 0 && (
-              <p className="mt-1 uppercase text-[#b45309]">
-                Complex rules: <span className="text-[var(--dash-text)]">{pendingRules.complex_restrictions.join("; ")}</span>
-              </p>
-            )}
-            {pendingRules.soft_preferences.length > 0 && (
-              <p className="mt-1 uppercase">
-                Soft likes: <span className="text-[var(--dash-text)]">{pendingRules.soft_preferences.join(", ")}</span>
-              </p>
-            )}
-            <p className="mt-1 uppercase">
-              Severity: <span className="text-[var(--dash-text)]">{pendingRules.severity}</span>
-            </p>
-            {pendingEmail && (
-              <p className="mt-1 uppercase">
-                Contact: <span className="text-[var(--dash-text)] lowercase">{pendingEmail}</span>
-              </p>
-            )}
-          </div>
-        )}
-        {pendingRules && pendingRules.hard_excludes.length === 0 && (!pendingRules.complex_restrictions || pendingRules.complex_restrictions.length === 0) && (
-          <div className="tilt-slight mt-2 w-full max-w-xs rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-5 py-3 font-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)]">
-            No restrictions on file
-          </div>
-        )}
-        {submitError && (
-          <p className="text-xs text-[#f87171]">{submitError}</p>
-        )}
+        {pendingRules &&
+          (pendingRules.hard_excludes.length > 0 ||
+            (pendingRules.complex_restrictions && pendingRules.complex_restrictions.length > 0) ||
+            pendingRules.soft_preferences.length > 0) && (
+            <div className="mx-auto mt-6 max-w-sm border-t border-[var(--dash-border)] pt-5 text-left">
+              {pendingRules.hard_excludes.length > 0 && (
+                <p className="font-serif text-sm text-[var(--dash-text-soft)]">
+                  <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-accent)]">
+                    Must avoid
+                  </span>
+                  <br />
+                  {pendingRules.hard_excludes.join(", ")}
+                </p>
+              )}
+              {pendingRules.complex_restrictions && pendingRules.complex_restrictions.length > 0 && (
+                <p className="mt-3 font-serif text-sm text-[var(--dash-text-soft)]">
+                  <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-accent)]">
+                    Prep notes
+                  </span>
+                  <br />
+                  {pendingRules.complex_restrictions.join("; ")}
+                </p>
+              )}
+              {pendingRules.soft_preferences.length > 0 && (
+                <p className="mt-3 font-serif text-sm text-[var(--dash-text-soft)]">
+                  <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-[var(--dash-accent)]">
+                    Prefer
+                  </span>
+                  <br />
+                  {pendingRules.soft_preferences.join(", ")}
+                </p>
+              )}
+              {pendingEmail && (
+                <p className="mt-3 font-serif text-sm text-[var(--dash-text-muted)]">{pendingEmail}</p>
+              )}
+            </div>
+          )}
+        {submitError && <p className="mt-4 text-xs text-[#b45309]">{submitError}</p>}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] shadow-xs overflow-hidden" style={{ minHeight: 440 }}>
-      {/* Ledger header */}
-      <div className="px-4 py-2.5 bg-[var(--dash-surface)] border-b border-[var(--dash-border)] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-xs bg-[var(--dash-accent)] animate-pulse" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--dash-text-muted)]">
-            Banquet Intake Ledger
-          </span>
-        </div>
-        <span className="ink-stamp px-1.5 py-0.2 text-[8.5px] font-bold text-[var(--dash-accent-soft)]">
-          Live Session
-        </span>
-      </div>
-
-      {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4" style={{ maxHeight: 480 }}>
+    <div className="flex flex-col">
+      <div className="max-h-[min(520px,55vh)] space-y-6 overflow-y-auto px-1 py-2">
         {messages.length === 0 && !loading && (
-          <div className="flex items-center justify-center h-32 font-serif italic text-[var(--dash-text-muted)] text-sm">
-            Opening banquet intake conversation…
-          </div>
+          <p className="font-serif italic text-sm text-[var(--dash-text-muted)]">Starting…</p>
         )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex gap-3 items-start ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-          >
-            {/* Avatar Stamp */}
-            <div
-              className={`shrink-0 flex items-center justify-center font-mono text-[9px] font-bold uppercase rounded-sm px-1.5 py-1 mt-0.5 border ${
-                msg.role === "assistant"
-                  ? "bg-[var(--dash-surface)] border-[var(--dash-border-strong)] text-[var(--dash-accent)] shadow-2xs"
-                  : "bg-[var(--dash-accent)] border-[var(--dash-accent-deep)] text-white shadow-2xs"
-              }`}
-            >
-              {msg.role === "assistant" ? "CONCIERGE" : "YOU"}
+        {messages.map((msg, i) =>
+          msg.role === "assistant" ? (
+            <div key={i} className="max-w-[36rem]">
+              <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-accent)]">
+                Concierge
+              </p>
+              <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-[var(--dash-text)]">
+                {msg.text}
+              </p>
             </div>
-
-            {/* Note Slip */}
-            <div
-              className={`rounded-sm px-4 py-3 text-[14px] leading-relaxed max-w-[82%] whitespace-pre-wrap font-serif shadow-2xs ${
-                msg.role === "assistant"
-                  ? "bg-[var(--dash-surface)] text-[var(--dash-text)] border border-[var(--dash-border)] border-l-3 border-l-[var(--dash-accent)]"
-                  : "bg-[var(--dash-accent)] text-white border border-[var(--dash-accent-deep)]"
-              }`}
-            >
-              {msg.text}
+          ) : (
+            <div key={i} className="flex justify-end">
+              <div className="max-w-[85%]">
+                <p className="mb-1.5 text-right font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-text-muted)]">
+                  You
+                </p>
+                <p className="whitespace-pre-wrap rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-4 py-2.5 text-right font-serif text-[15px] leading-relaxed text-[var(--dash-text)]">
+                  {msg.text}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
 
         {loading && (
-          <div className="flex gap-3 items-start">
-            <div className="shrink-0 flex items-center justify-center font-mono text-[9px] font-bold uppercase rounded-sm px-1.5 py-1 bg-[var(--dash-surface)] border border-[var(--dash-border-strong)] text-[var(--dash-accent)] shadow-2xs mt-0.5">
-              CONCIERGE
-            </div>
-            <div className="rounded-sm bg-[var(--dash-surface)] border border-[var(--dash-border)] border-l-3 border-l-[var(--dash-accent)] px-4 py-3 shadow-2xs flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 text-[var(--dash-accent)] animate-spin" />
-              <span className="font-serif italic text-xs text-[var(--dash-text-muted)]">Taking dietary notes…</span>
-            </div>
+          <div className="flex items-center gap-2 text-[var(--dash-text-muted)]">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--dash-accent)]" />
+            <span className="font-serif italic text-sm">Writing…</span>
           </div>
         )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-[var(--dash-border)] p-3 flex gap-2 bg-[var(--dash-surface)]">
+      <div className="mt-6 flex items-end gap-2 border-t border-[var(--dash-border)] pt-4">
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={loading ? "Recording dietary notes…" : "Type your dietary reply here…"}
+          placeholder={loading ? "One moment…" : "Your reply…"}
           disabled={loading}
-          className="flex-1 rounded-sm bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] px-4 py-2.5 text-sm text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] font-serif focus:outline-none focus:border-[var(--dash-accent)] transition-colors disabled:opacity-50 shadow-2xs"
+          className="min-w-0 flex-1 border-0 border-b border-[var(--dash-border-strong)] bg-transparent px-0 py-2.5 font-serif text-[15px] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:border-[var(--dash-accent)] focus:outline-none disabled:opacity-50"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={loading || !input.trim()}
-          className="shrink-0 px-4 h-10 rounded-sm bg-[var(--dash-accent)] text-white font-heading font-semibold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-all hover:bg-[var(--dash-accent-deep)] active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
-          aria-label="Send message"
+          className="mb-0.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xs bg-[var(--dash-accent)] text-white transition-colors hover:bg-[var(--dash-accent-deep)] disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Send"
         >
-          <span>Send</span>
-          <Send className="w-3.5 h-3.5" />
+          <Send className="h-4 w-4" />
         </button>
       </div>
     </div>
   );
 }
-

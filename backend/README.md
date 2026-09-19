@@ -7,7 +7,7 @@ Library used by the Next.js `app/` routes and server components. Not a standalon
 | Env | Store |
 | --- | --- |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` plus API key, service account, or `FIRESTORE_EMULATOR_HOST` | Firestore collections `organizers`, `events`, `guests`, `restaurants`, `menu_items`, `restaurant_scores` |
-| none of the above | `.data/store.json` |
+| none of the above | `.data/store.json` (starts empty — no placeholder restaurants/menus/guests) |
 
 Credentials (first match wins for writes):
 
@@ -16,6 +16,14 @@ Credentials (first match wins for writes):
 3. `NEXT_PUBLIC_FIREBASE_API_KEY` alone (only works with open rules)
 
 Also read (optional): `GEMINI_API_KEY`, `PLACES_API_KEY`, `AUTH_SECRET`.
+
+**No auto-seed.** `restaurants` / `menu_items` stay empty until acquisition writes them; `guests` only from submit/parse (always with `event_id`; `preference_vector` / `parsed_rules` stored on that guest); `restaurant_scores` only from live `matchEvent` for that event (empty guests → clear that event’s scores; **empty restaurants → delete every `restaurant_scores` doc**, list-all + delete, not only query-by-`event_id`). Optional demo load: set `DIETRE_SEED=1` and call `seedDemoDataIfEnabled()` — no-ops when `SEED_RESTAURANTS` is empty (never runs on API hit by itself).
+
+`saveRestaurantScores` refuses phantom ids: a score is written only when the restaurant exists in `restaurants` (or has `menu_items`). If `restaurants` is empty, the entire `restaurant_scores` collection is wiped.
+
+Event `candidate_restaurant_ids` never invent seed venues. New events start with `[]`. On event get / update / list-by-host, `scrubEventCandidateRestaurantIds` drops ids that no longer resolve (or clears all candidates when `restaurants` is empty). **Old events** that still list seed ids like `rest-bennys` are cleaned on the next read/list; you can also call `scrubEventCandidateRestaurantIds(eventId)` once after a Firestore wipe.
+
+`listResponses(eventId)` / `listRestaurantScores(eventId)` query by `event_id` only. `matchEvent` scores store-backed restaurants against those guests alone.
 
 Organizer auth: Firebase Auth ID token (`firebaseToken` on `POST /api/auth/login`) when the frontend has `NEXT_PUBLIC_FIREBASE_*`. Mock email/password hosts otherwise (`password_hash` on `organizers`).
 

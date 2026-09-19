@@ -15,7 +15,7 @@ export async function extractLimitationsChecklist(text: string): Promise<Limitat
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
     const prompt = `A host organizing a catered event wrote these limitations/requirements in their own words:
 "${text}"
 
@@ -47,7 +47,7 @@ export async function suggestEventDetailsFromLimitations(
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
     const prompt = `A host wrote these event limitations/requirements: "${text}"
 
 If — and only if — the text explicitly states a search radius in miles, or a budget level, extract them. Do not guess or infer from vague language.
@@ -87,7 +87,7 @@ export async function evaluateRestaurantsAgainstChecklist(
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
     const checklistText = checklist.map((item) => `- ${item.id}: ${item.label}`).join("\n");
     const restaurantsText = restaurants

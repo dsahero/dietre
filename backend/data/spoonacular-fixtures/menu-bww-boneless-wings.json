@@ -1,0 +1,74 @@
+[
+  {
+    "id": 900001,
+    "title": "Boneless Wings - Plain",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900002,
+    "title": "Boneless Wings, Mango Habanero",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900003,
+    "title": "Boneless Wings - Lemon Pepper",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900004,
+    "title": "Boneless Wings - Honey BBQ",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900005,
+    "title": "Boneless Wings - Teriyaki",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900006,
+    "title": "Boneless Wings, Sweet BBQ",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900007,
+    "title": "Boneless Wings, Desert Heat",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  },
+  {
+    "id": 900008,
+    "title": "Boneless Wings, Bourbon Honey Mustard",
+    "restaurantChain": "Buffalo Wild Wings",
+    "badges": [],
+    "breadcrumbs": ["chicken wing", "chickens", "poultry", "meat"],
+    "generatedText": null,
+    "price": null
+  }
+]
