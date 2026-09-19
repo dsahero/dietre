@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { DEMO_EVENT_ID } from "@/backend/data/seed";
 import { getSession } from "@/backend/lib/auth";
 import { getEvent, listMenuItems, listResponses, listRestaurants, updateEvent } from "@/backend/lib/db";
+import {
+  evaluateRestaurantsAgainstChecklist,
+  extractLimitationsChecklist,
+  suggestEventDetailsFromLimitations,
+} from "@/backend/lib/limitations";
 import { matchEvent } from "@/backend/lib/matching";
 import { geocodeBlacksburg } from "@/shared/lib/places";
-import type { BudgetRange } from "@/shared/lib/types";
+import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
 export async function GET(
   _request: Request,
@@ -36,7 +41,7 @@ export async function GET(
     listRestaurants(),
     listMenuItems(),
   ]);
-  const match = matchEvent({ event, responses, restaurants, menuItems });
+  const match = await matchEvent({ event, responses, restaurants, menuItems });
   return NextResponse.json({
     event,
     responses: responses.map((response, index) => ({
@@ -75,6 +80,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     radius?: number;
     budget_range?: BudgetRange;
     expected_headcount?: number;
+    limitations?: string;
   };
 
   const patch: Parameters<typeof updateEvent>[1] = {};
@@ -110,6 +116,57 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return NextResponse.json({ error: "Expected headcount must be at least 1." }, { status: 400 });
     }
     patch.expected_headcount = expected_headcount;
+  }
+
+  // Limitations text drives three things, in order: (1) a Gemini-extracted
+  // checklist, saved alongside the text; (2) auto-filled radius/budget —
+  // but only for fields the host left matching the event's current value,
+  // never overriding something they explicitly just typed in this same
+  // save; (3) a one-time evaluation of every candidate restaurant against
+  // the checklist, cached on the event so it isn't recomputed on every
+  // dashboard load. All Gemini-only — with no GEMINI_API_KEY, the text is
+  // still saved verbatim, just without the analysis.
+  if (body.limitations !== undefined) {
+    const limitations = body.limitations.trim();
+    patch.limitations = limitations;
+
+    if (limitations && limitations !== (event.limitations ?? "").trim()) {
+      const [checklist, suggestions] = await Promise.all([
+        extractLimitationsChecklist(limitations),
+        suggestEventDetailsFromLimitations(limitations),
+      ]);
+      patch.limitations_checklist = checklist;
+
+      if (suggestions.radius !== undefined && (body.radius === undefined || body.radius === event.radius)) {
+        patch.radius = suggestions.radius;
+      }
+      if (
+        suggestions.budget_range !== undefined &&
+        (body.budget_range === undefined || body.budget_range === event.budget_range)
+      ) {
+        patch.budget_range = suggestions.budget_range;
+      }
+
+      if (checklist.length > 0) {
+        const [restaurants, menuItems] = await Promise.all([listRestaurants(), listMenuItems()]);
+        const menuItemsByRestaurant = new Map<string, MenuItem[]>();
+        for (const item of menuItems) {
+          const list = menuItemsByRestaurant.get(item.restaurant_id) ?? [];
+          list.push(item);
+          menuItemsByRestaurant.set(item.restaurant_id, list);
+        }
+        patch.checklist_notes_by_restaurant = await evaluateRestaurantsAgainstChecklist(
+          checklist,
+          restaurants,
+          menuItemsByRestaurant
+        );
+      } else {
+        patch.checklist_notes_by_restaurant = {};
+      }
+    } else if (!limitations) {
+      patch.limitations_checklist = [];
+      patch.checklist_notes_by_restaurant = {};
+    }
   }
 
   const updated = await updateEvent(id, patch);

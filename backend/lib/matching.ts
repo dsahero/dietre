@@ -1,6 +1,8 @@
 import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
-import { isItemSafeForResponse, severityWeight } from "@/backend/lib/parser";
+import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, severityWeight } from "@/backend/lib/parser";
+import { getResponseJudgments, saveResponseJudgments } from "@/backend/lib/db";
 import type {
+  AiItemJudgment,
   DietResponse,
   DietreEvent,
   MatchResult,
@@ -15,18 +17,51 @@ function anonymousLabel(index: number, severity: DietResponse["parsed_rules"]["s
   return `${band} guest ${index + 1}`;
 }
 
-export function matchEvent(input: {
+// Gemini judgments are cached per response (see backend/lib/db.ts) — a
+// dashboard reload never re-pays for the same call. Only computed when
+// GEMINI_API_KEY is configured; otherwise every response falls back to the
+// existing rule-based flag/ingredient matching untouched.
+async function resolveJudgments(
+  responses: DietResponse[],
+  menuItems: MenuItem[]
+): Promise<Map<string, Record<string, AiItemJudgment> | null>> {
+  const entries = await Promise.all(
+    responses.map(async (response) => {
+      const cached = await getResponseJudgments(response.id);
+      if (cached) return [response.id, cached] as const;
+
+      const computed = await judgeResponseAgainstMenuWithGemini(response, menuItems);
+      if (computed) await saveResponseJudgments(response.id, computed);
+      return [response.id, computed] as const;
+    })
+  );
+  return new Map(entries);
+}
+
+export async function matchEvent(input: {
   event: DietreEvent;
   responses: DietResponse[];
   restaurants: Restaurant[];
   menuItems: MenuItem[];
-}): MatchResult {
+}): Promise<MatchResult> {
   const { event, responses, restaurants, menuItems } = input;
   const itemsByRestaurant = new Map<string, MenuItem[]>();
   for (const item of menuItems) {
     const list = itemsByRestaurant.get(item.restaurant_id) ?? [];
     list.push(item);
     itemsByRestaurant.set(item.restaurant_id, list);
+  }
+
+  const judgmentsByResponse = await resolveJudgments(responses, menuItems);
+
+  // Gemini's read wins when available (it can catch compound rules like
+  // "no mixing meat and dairy" that a flag/keyword match can't express);
+  // otherwise fall back to the existing rule-based check untouched.
+  function isSafe(item: MenuItem, response: DietResponse): { safe: boolean; uncertain: boolean } {
+    const judgments = judgmentsByResponse.get(response.id);
+    const judgment = judgments?.[item.id];
+    if (judgment) return { safe: judgment.safe, uncertain: judgment.uncertain };
+    return isItemSafeForResponse(item, response);
   }
 
   const maxPrice = priceLevelFromBudget(event.budget_range);
@@ -45,7 +80,7 @@ export function matchEvent(input: {
         const covered: string[] = [];
         let uncertain = false;
         for (const response of responses) {
-          const result = isItemSafeForResponse(item, response);
+          const result = isSafe(item, response);
           if (result.safe) {
             covered.push(response.id);
             if (result.uncertain) uncertain = true;
@@ -57,7 +92,7 @@ export function matchEvent(input: {
       .sort((a, b) => b.covered_response_ids.length - a.covered_response_ids.length);
 
     for (const response of responses) {
-      const hasSafe = items.some((item) => isItemSafeForResponse(item, response).safe);
+      const hasSafe = items.some((item) => isSafe(item, response).safe);
       if (hasSafe) {
         coveredWeight += severityWeight(response.parsed_rules.severity);
         coveredIds.push(response.id);

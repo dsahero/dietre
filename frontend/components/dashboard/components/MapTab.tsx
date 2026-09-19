@@ -3,11 +3,14 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Compass, Filter, Info, Menu, Search, ZoomIn, ZoomOut } from 'lucide-react';
 import { RestaurantCardData } from '../types';
+import { RestaurantDetailContent } from './RestaurantDetailContent';
 
 interface MapTabProps {
   event: { name: string; lat: number; lng: number; radiusMiles: number };
   restaurants: RestaurantCardData[];
-  onSelectRestaurant: (restaurant: RestaurantCardData) => void;
+  shortlistedIds: string[];
+  onToggleShortlist: (id: string) => void;
+  onSelectResponse: (responseId: string) => void;
 }
 
 type MatchTier = 'strong' | 'partial' | 'weak' | 'outside';
@@ -33,7 +36,13 @@ function tierFor(restaurant: RestaurantCardData): MatchTier {
   return 'weak';
 }
 
-export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRestaurant }) => {
+export const MapTab: React.FC<MapTabProps> = ({
+  event,
+  restaurants,
+  shortlistedIds,
+  onToggleShortlist,
+  onSelectResponse,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
@@ -42,6 +51,7 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<MatchTier | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailRestaurant, setDetailRestaurant] = useState<RestaurantCardData | null>(null);
 
   // Only venues within the event radius plus a reasonable buffer, so the
   // map isn't cluttered with places nobody could realistically travel to.
@@ -63,8 +73,8 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
 
   const selectRestaurant = (restaurant: RestaurantCardData) => {
     setSelectedId(restaurant.id);
+    setDetailRestaurant(restaurant);
     mapRef.current?.panTo([restaurant.lat, restaurant.lng], { animate: true });
-    onSelectRestaurant(restaurant);
   };
 
   // Initialize the map once.
@@ -157,7 +167,6 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
       });
       layer.addLayer(marker);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectRestaurant is stable enough for this sync effect
   }, [visible, selectedId]);
 
   const filterCounts = useMemo(() => {
@@ -167,20 +176,17 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
   }, [inRange]);
 
   return (
-    <div
-      className="flex h-[720px] overflow-hidden rounded-2xl border border-[#352520]"
-      id="map-tab-container"
-    >
+    <div className="flex h-[720px] overflow-hidden rounded-2xl border border-[var(--dash-border)]" id="map-tab-container">
       {/* Locations sidebar */}
       {isSidebarOpen && (
-        <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-r border-[#352520] bg-[#1c1310] sm:w-80">
-          <div className="border-b border-[#352520] bg-[#231a17] p-4">
+        <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-r border-[var(--dash-border)] bg-[var(--dash-surface)] sm:w-80">
+          <div className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
             <div className="mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#cca152]">
-                <Filter className="h-3.5 w-3.5 text-[#b8744b]" />
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]">
+                <Filter className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
                 Match Quality
               </span>
-              <span className="rounded-full border border-[#3d2a23] bg-[#170f0e] px-2 py-0.5 text-[11px] font-medium text-[#cfc1ba]">
+              <span className="rounded-full border border-[var(--dash-border)] bg-[var(--dash-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--dash-text-soft)]">
                 {visible.length} shown
               </span>
             </div>
@@ -191,8 +197,8 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
                 onClick={() => setActiveFilter(null)}
                 className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs transition-colors ${
                   activeFilter === null
-                    ? 'bg-[#b8744b] font-semibold text-white shadow-xs'
-                    : 'bg-[#2a1d19] text-[#cfc1ba] hover:bg-[#382621]'
+                    ? 'bg-[var(--dash-accent)] font-semibold text-white shadow-xs'
+                    : 'bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:bg-[var(--dash-surface-hover)]'
                 }`}
               >
                 All ({inRange.length})
@@ -204,8 +210,8 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
                   onClick={() => setActiveFilter(activeFilter === tier ? null : tier)}
                   className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition-colors ${
                     activeFilter === tier
-                      ? 'bg-[#b8744b] font-semibold text-white shadow-xs'
-                      : 'bg-[#2a1d19] text-[#cfc1ba] hover:bg-[#382621]'
+                      ? 'bg-[var(--dash-accent)] font-semibold text-white shadow-xs'
+                      : 'bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:bg-[var(--dash-surface-hover)]'
                   }`}
                 >
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: TIER_COLOR[tier] }} />
@@ -217,7 +223,7 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
 
           <div className="flex-1 space-y-2 overflow-y-auto p-3">
             {visible.length === 0 ? (
-              <div className="p-6 text-center text-xs text-[#8e7e78]">
+              <div className="p-6 text-center text-xs text-[var(--dash-text-muted)]">
                 No restaurants match the current filter or search.
               </div>
             ) : (
@@ -231,8 +237,8 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
                     onClick={() => selectRestaurant(restaurant)}
                     className={`flex w-full cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 text-left transition-all ${
                       isSelected
-                        ? 'border-[#b8744b] bg-[#231a17] shadow-md ring-2 ring-[#b8744b]/30'
-                        : 'border-[#352520] bg-[#1a1210] hover:border-[#4a342b] hover:bg-[#201512]'
+                        ? 'border-[var(--dash-accent)] bg-[var(--dash-surface)] shadow-md ring-2 ring-[var(--dash-accent)]/30'
+                        : 'border-[var(--dash-border)] bg-[var(--dash-bg)] hover:border-[var(--dash-border)] hover:bg-[var(--dash-surface)]'
                     }`}
                   >
                     <span
@@ -241,7 +247,7 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
                     />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-bold text-white">{restaurant.name}</div>
-                      <div className="truncate text-[11px] text-[#9b8b84]">{restaurant.cuisine}</div>
+                      <div className="truncate text-[11px] text-[var(--dash-text-muted)]">{restaurant.cuisine}</div>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span
                           className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white"
@@ -249,7 +255,7 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
                         >
                           {restaurant.matchPercentage}%
                         </span>
-                        <span className="font-mono text-[10px] text-[#8e7e78]">{restaurant.distanceMiles} mi</span>
+                        <span className="font-mono text-[10px] text-[var(--dash-text-muted)]">{restaurant.distanceMiles} mi</span>
                       </div>
                     </div>
                   </button>
@@ -258,9 +264,9 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
             )}
           </div>
 
-          <div className="border-t border-[#352520] bg-[#201512] p-3 text-[11px] text-[#9b8b84]">
+          <div className="border-t border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-[11px] text-[var(--dash-text-muted)]">
             <div className="flex items-start gap-1.5">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#b8744b]" />
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--dash-accent)]" />
               <p className="leading-snug">Click a card or a pin to open its full match details.</p>
             </div>
           </div>
@@ -270,42 +276,42 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
       {/* Map area */}
       <div className="relative flex-1">
         {/* Top bar */}
-        <div className="absolute inset-x-0 top-0 z-[900] flex items-center justify-between gap-3 border-b border-[#352520] bg-[#1c1210]/95 px-4 py-2.5 backdrop-blur-md">
+        <div className="absolute inset-x-0 top-0 z-[900] flex items-center justify-between gap-3 border-b border-[var(--dash-border)] bg-[var(--dash-surface)]/95 px-4 py-2.5 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => setIsSidebarOpen((prev) => !prev)}
               aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-              className="cursor-pointer rounded-lg p-1.5 text-[#cfc1ba] transition-colors hover:bg-[#2c1d18] hover:text-white"
+              className="cursor-pointer rounded-lg p-1.5 text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
             >
               <Menu className="h-4 w-4" />
             </button>
-            <span className="text-xs text-[#9b8b84]">
+            <span className="text-xs text-[var(--dash-text-muted)]">
               {inRange.length} restaurant{inRange.length === 1 ? '' : 's'} near {event.name}
             </span>
           </div>
 
           <div className="relative w-40 sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#786a63]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--dash-text-muted)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search restaurants..."
-              className="w-full rounded-lg border border-[#3a2822] bg-[#170f0e] py-1.5 pl-8 pr-3 text-xs text-white placeholder-[#786a63] transition-colors focus:border-[#b8744b] focus:outline-none"
+              className="w-full rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] py-1.5 pl-8 pr-3 text-xs text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
             />
           </div>
         </div>
 
         <div ref={containerRef} className="absolute inset-0 z-0" />
 
-        <div className="absolute bottom-5 right-5 z-[900] flex flex-col gap-1.5 rounded-xl border border-[#3a2822] bg-[#1c1210]/95 p-1.5 shadow-lg backdrop-blur-md">
+        <div className="absolute bottom-5 right-5 z-[900] flex flex-col gap-1.5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 p-1.5 shadow-lg backdrop-blur-md">
           <button
             type="button"
             onClick={() => mapRef.current?.zoomIn()}
             title="Zoom in"
             aria-label="Zoom in"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[#cfc1ba] transition-colors hover:bg-[#2c1d18] hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -314,34 +320,48 @@ export const MapTab: React.FC<MapTabProps> = ({ event, restaurants, onSelectRest
             onClick={() => mapRef.current?.zoomOut()}
             title="Zoom out"
             aria-label="Zoom out"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[#cfc1ba] transition-colors hover:bg-[#2c1d18] hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
-          <div className="mx-1 h-px bg-[#3a2822]" />
+          <div className="mx-1 h-px bg-[var(--dash-border)]" />
           <button
             type="button"
             onClick={() => mapRef.current?.setView([event.lat, event.lng], 13, { animate: true })}
             title="Recenter on event"
             aria-label="Recenter on event"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[#cfc1ba] transition-colors hover:bg-[#2c1d18] hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-white"
           >
             <Compass className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="absolute bottom-5 left-5 z-[900] flex flex-wrap items-center gap-3 rounded-xl border border-[#3a2822] bg-[#1c1210]/95 px-3.5 py-2 text-xs shadow-lg backdrop-blur-md">
-          <span className="flex items-center gap-1.5 text-[#cfc1ba]">
+        <div className="absolute bottom-5 left-5 z-[900] flex flex-wrap items-center gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 px-3.5 py-2 text-xs shadow-lg backdrop-blur-md">
+          <span className="flex items-center gap-1.5 text-[var(--dash-text-soft)]">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#b8744b' }} />
             Event
           </span>
           {(Object.keys(TIER_LABEL) as MatchTier[]).map((tier) => (
-            <span key={tier} className="flex items-center gap-1.5 text-[#cfc1ba]">
+            <span key={tier} className="flex items-center gap-1.5 text-[var(--dash-text-soft)]">
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: TIER_COLOR[tier] }} />
               {TIER_LABEL[tier]}
             </span>
           ))}
         </div>
+
+        {/* Side panel — same content as the full modal, docked beside the map instead of covering the screen */}
+        {detailRestaurant && (
+          <div className="animate-in slide-in-from-right fade-in absolute inset-y-0 right-0 z-[1000] flex w-full max-w-md flex-col overflow-hidden border-l border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-2xl duration-200">
+            <RestaurantDetailContent
+              restaurant={detailRestaurant}
+              isShortlisted={shortlistedIds.includes(detailRestaurant.id)}
+              onToggleShortlist={onToggleShortlist}
+              onClose={() => setDetailRestaurant(null)}
+              onSelectResponse={onSelectResponse}
+              compact
+            />
+          </div>
+        )}
       </div>
     </div>
   );

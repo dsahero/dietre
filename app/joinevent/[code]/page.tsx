@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getEvent, getHost } from "@/backend/lib/db";
 import { JoinEventChat } from "@/frontend/components/join-event-chat";
+import { ParticipantThemeToggle } from "@/frontend/components/participant-theme-toggle";
 import { UtensilsCrossed, MapPin, CalendarDays, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -32,67 +33,70 @@ export default async function JoinEventPage({
   });
 
   return (
-    <div className="min-h-screen bg-[#1a1210] text-white">
+    <div className="min-h-screen bg-[var(--dash-bg)] text-[var(--dash-text)]">
       {/* Top brand bar */}
-      <header className="border-b border-[#2a1e1a] bg-[#160f0d] px-6 py-3">
-        <div className="mx-auto flex max-w-xl items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#d98b58] via-[#b8744b] to-[#733f20]">
-            <UtensilsCrossed className="h-4 w-4 text-white" />
+      <header className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] px-6 py-3">
+        <div className="mx-auto flex max-w-xl items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--dash-accent-soft)] via-[var(--dash-accent)] to-[var(--dash-accent-deep)]">
+              <UtensilsCrossed className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-sm font-bold tracking-wider text-[var(--dash-text)] font-heading">
+              dietre
+            </span>
           </div>
-          <span className="text-sm font-bold tracking-wider text-white uppercase font-serif">
-            DietRe
-          </span>
+          <ParticipantThemeToggle />
         </div>
       </header>
 
       <main className="mx-auto max-w-xl px-4 py-10">
         {/* Invite card */}
-        <div className="mb-8 rounded-2xl border border-[#3a2822] bg-[#231a17] p-6">
+        <div className="mb-8 rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6">
           {/* Invite header */}
-          <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#b8744b]">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--dash-accent)]">
             You&apos;re invited
           </div>
-          <h1 className="text-2xl font-bold text-white leading-snug">
+          <h1 className="text-2xl font-bold text-[var(--dash-text)] leading-snug">
             {firstName} invited you to
           </h1>
-          <h2 className="mt-1 text-3xl font-bold text-[#d88c5e] leading-tight">
+          <h2 className="mt-1 text-3xl font-bold text-[var(--dash-accent-soft)] leading-tight">
             {event.name}
           </h2>
 
           {/* Event details */}
-          <div className="mt-5 flex flex-col gap-2 text-sm text-[#a0928c]">
+          <div className="mt-5 flex flex-col gap-2 text-sm text-[var(--dash-text-muted)]">
             <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 shrink-0 text-[#b8744b]" />
+              <CalendarDays className="h-4 w-4 shrink-0 text-[var(--dash-accent)]" />
               <span>
-                <span className="font-medium text-[#ddd6d2]">{dateStr}</span> at {timeStr}
+                <span className="font-medium text-[var(--dash-text-soft)]">{dateStr}</span> at {timeStr}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 shrink-0 text-[#b8744b]" />
-              <span className="font-medium text-[#ddd6d2]">{event.location}</span>
+              <MapPin className="h-4 w-4 shrink-0 text-[var(--dash-accent)]" />
+              <span className="font-medium text-[var(--dash-text-soft)]">{event.location}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 shrink-0 text-[#b8744b]" />
+              <Users className="h-4 w-4 shrink-0 text-[var(--dash-accent)]" />
               <span>
                 Expecting around{" "}
-                <span className="font-medium text-[#ddd6d2]">{event.expected_headcount} people</span>
+                <span className="font-medium text-[var(--dash-text-soft)]">{event.expected_headcount} people</span>
               </span>
             </div>
           </div>
 
           {/* Privacy note */}
-          <div className="mt-5 rounded-xl border border-[#2d1e19] bg-[#1a1210] px-4 py-3 text-xs text-[#8e7e78] leading-relaxed">
-            🔒 <strong className="text-[#a0928c]">100% anonymous.</strong> We only collect what you
+          <div className="mt-5 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-4 py-3 text-xs text-[var(--dash-text-muted)] leading-relaxed">
+            🔒 <strong className="text-[var(--dash-text-muted)]">100% anonymous.</strong> We only collect what you
             can&apos;t eat — never your name. The host sees dietary rules, not identities.
           </div>
         </div>
 
         {/* Chat section */}
         <div className="mb-3 flex items-center gap-2 px-1">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#d98b58] via-[#b8744b] to-[#733f20]">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[var(--dash-accent-soft)] via-[var(--dash-accent)] to-[var(--dash-accent-deep)]">
             <UtensilsCrossed className="h-3 w-3 text-white" />
           </div>
-          <p className="text-sm font-semibold text-[#ded3cd]">
+          <p className="text-sm font-semibold text-[var(--dash-text-soft)]">
             Chat with our AI to share your dietary needs
           </p>
         </div>
@@ -103,8 +107,8 @@ export default async function JoinEventPage({
           hostName={hostName}
         />
 
-        <p className="mt-4 text-center text-[11px] text-[#5a4a44]">
-          Powered by Gemini · Responses are anonymous · DietRe never identifies you
+        <p className="mt-4 text-center text-[11px] text-[var(--dash-text-muted)]">
+          Powered by Gemini · Responses are anonymous · dietre never identifies you
         </p>
       </main>
     </div>

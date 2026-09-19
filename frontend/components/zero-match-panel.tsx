@@ -49,34 +49,34 @@ export function ZeroMatchPanel({ alerts }: { alerts: ZeroMatchAlert[] }) {
       >
         <div className="overflow-hidden">
           <div className="px-4 pb-4 space-y-3 border-t border-[#ef4444]/15">
-            <p className="pt-3 text-xs text-[#a0928c]">
+            <p className="pt-3 text-xs text-[var(--dash-text-muted)]">
               Labels stay anonymous. Email appears only if that guest opted in for follow-up.
             </p>
             <ul className="space-y-2">
               {alerts.map((alert) => (
                 <li
                   key={alert.response_id}
-                  className="rounded-lg border border-[#ef4444]/20 bg-[#1a1210]/70 p-3 text-foreground"
+                  className="rounded-lg border border-[#ef4444]/20 bg-[var(--dash-bg)]/70 p-3 text-[var(--dash-text)]"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-sm text-white">{alert.anonymous_label}</p>
+                    <p className="font-medium text-sm text-[var(--dash-text)]">{alert.anonymous_label}</p>
                     <Badge variant="destructive">{alert.severity}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-[#a0928c]">
+                  <p className="mt-1 text-xs text-[var(--dash-text-muted)]">
                     Hard excludes:{" "}
-                    <span className="text-[#ddd6d2]">
+                    <span className="text-[var(--dash-text-soft)]">
                       {alert.hard_excludes.length ? alert.hard_excludes.join(", ") : "none recorded"}
                     </span>
                   </p>
                   {alert.contact_email ? (
-                    <p className="mt-1 text-xs text-[#a0928c]">
+                    <p className="mt-1 text-xs text-[var(--dash-text-muted)]">
                       Optional contact:{" "}
-                      <a className="underline text-[#d88c5e]" href={`mailto:${alert.contact_email}`}>
+                      <a className="underline text-[var(--dash-accent-soft)]" href={`mailto:${alert.contact_email}`}>
                         {alert.contact_email}
                       </a>
                     </p>
                   ) : (
-                    <p className="mt-1 text-xs text-[#6b5f5b]">No email on file. Do not try to identify this person.</p>
+                    <p className="mt-1 text-xs text-[var(--dash-text-muted)]">No email on file. Do not try to identify this person.</p>
                   )}
                 </li>
               ))}

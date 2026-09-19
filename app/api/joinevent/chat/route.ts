@@ -21,7 +21,7 @@ export type ChatResponse = {
   done?: boolean;
 };
 
-const SYSTEM_PROMPT = `You are a friendly, warm dietary intake assistant for DietRe — a catering tool that anonymously collects guest dietary needs for events.
+const SYSTEM_PROMPT = `You are a friendly, warm dietary intake assistant for dietre — a catering tool that anonymously collects guest dietary needs for events.
 
 Your job is to have a SHORT, friendly conversation to collect the guest's dietary needs, then confirm them. Follow this exact flow:
 
