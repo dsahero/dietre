@@ -30,7 +30,6 @@ type Suggestion = { placeId: string; mainText: string; secondaryText: string };
 export function LocationAutocomplete({
   id,
   value,
-  placeId: _placeId,
   onChange,
   placeholder,
   required,
@@ -56,6 +55,7 @@ export function LocationAutocomplete({
 
   useEffect(() => {
     if (placesEnabled) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the fallback-mode flag, not derivable during render
     setSuggestions([]);
   }, [placesEnabled]);
 
@@ -64,6 +64,7 @@ export function LocationAutocomplete({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const needle = value.trim();
     if (needle.length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the debounced query, not derivable during render
       setSuggestions([]);
       setLoading(false);
       return;
