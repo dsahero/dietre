@@ -221,8 +221,9 @@ export async function matchEvent(input: {
   // any accidental stubs without ids.
   const restaurants = inputRestaurants.filter((restaurant) => Boolean(restaurant?.id));
 
-  // Wiped / empty restaurant store → clear this event's scores and return
-  // empty rankings. Never refill restaurant_scores from leftover seed ids.
+  // Wiped / empty restaurant store → hard-clear restaurant_scores (entire
+  // collection via saveRestaurantScores) and return empty rankings. Never
+  // write score docs when restaurants.length === 0.
   if (restaurants.length === 0) {
     void saveRestaurantScores([], event.id).catch((error) => {
       console.error("restaurant_scores clear failed", error);

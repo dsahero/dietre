@@ -90,6 +90,7 @@ export function backendLabel(): "firestore" | "local-json" {
  * Optional demo seed for local demos only. Never called automatically.
  * Set DIETRE_SEED=1 and invoke explicitly (e.g. a one-off script) to load
  * backend/data/seed.ts into Firestore or the JSON store.
+ * No-ops when SEED_RESTAURANTS is empty (placeholder data was gutted).
  */
 export async function seedDemoDataIfEnabled(): Promise<boolean> {
   if (process.env.DIETRE_SEED !== "1") return false;
@@ -101,6 +102,8 @@ export async function seedDemoDataIfEnabled(): Promise<boolean> {
     SEED_MENU_ITEMS,
     SEED_RESTAURANTS,
   } = await import("@/backend/data/seed");
+  if (SEED_RESTAURANTS.length === 0) return false;
+
   const { menuItemToDoc, restaurantToDoc } = await import("@/backend/lib/collections");
 
   if (useFirestore()) {
@@ -564,6 +567,10 @@ export async function listRestaurantScores(eventId: string): Promise<RestaurantS
 /**
  * Replace all restaurant_scores for one event. Pass an empty array to clear
  * (empty event / no guests → empty scores). Never mixes scores across events.
+ *
+ * When the restaurants collection is empty, wipe **every** restaurant_scores
+ * document (list-all + delete). Query-by-event_id alone can miss leftover
+ * docs (wrong/missing event_id, or console junk like `{event}__rest-bennys`).
  */
 export async function saveRestaurantScores(
   scores: RestaurantScoreDoc[],
@@ -574,10 +581,27 @@ export async function saveRestaurantScores(
   // Reject accidental cross-event writes and phantom restaurant ids
   // (e.g. seed rest-bennys after restaurants were wiped).
   const scoreable = await resolveScoreableRestaurantIds();
-  const scoped =
-    scoreable === null
-      ? []
-      : scores.filter((score) => score.event_id === eid && scoreable.has(score.restaurant_id));
+
+  // Empty restaurants → hard-clear the entire scores collection.
+  if (scoreable === null) {
+    if (useFirestore()) {
+      const all = await listDocuments(COLLECTIONS.restaurant_scores);
+      for (const doc of all) {
+        await deleteDocument(COLLECTIONS.restaurant_scores, doc.id);
+      }
+    } else {
+      await enqueueWrite(async () => {
+        const store = await readJsonStore();
+        store.restaurant_scores = [];
+        await persistJson(store);
+      });
+    }
+    return;
+  }
+
+  const scoped = scores.filter(
+    (score) => score.event_id === eid && scoreable.has(score.restaurant_id)
+  );
 
   if (useFirestore()) {
     const existing = await queryDocuments(COLLECTIONS.restaurant_scores, "event_id", "EQUAL", eid);
