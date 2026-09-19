@@ -1,32 +1,10 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { LogoutButton } from "@/components/logout-button";
 import { Button } from "@/components/ui/button";
-import type { HostSession } from "@/lib/types";
+import { getSession } from "@/lib/auth";
 
-type MeResponse = {
-  host: HostSession | null;
-};
-
-export function SiteHeader({ quiet = false }: { quiet?: boolean }) {
-  const router = useRouter();
-  const [host, setHost] = useState<HostSession | null | undefined>(undefined);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data: MeResponse) => setHost(data.host))
-      .catch(() => setHost(null));
-  }, []);
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setHost(null);
-    router.push("/");
-    router.refresh();
-  }
+export async function SiteHeader({ quiet = false }: { quiet?: boolean }) {
+  const host = quiet ? null : await getSession();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur">
@@ -50,9 +28,7 @@ export function SiteHeader({ quiet = false }: { quiet?: boolean }) {
                 <Button size="sm" asChild>
                   <Link href="/events/new">New event</Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  Sign out
-                </Button>
+                <LogoutButton />
               </>
             ) : (
               <Button size="sm" asChild>
