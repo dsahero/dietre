@@ -1,6 +1,6 @@
 import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
 import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, severityWeight } from "@/backend/lib/parser";
-import { getResponseJudgments, saveResponseJudgments } from "@/backend/lib/db";
+import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores } from "@/backend/lib/db";
 import type {
   AiItemJudgment,
   DietResponse,
@@ -127,6 +127,55 @@ export async function matchEvent(input: {
     if (b.coverage_pct !== a.coverage_pct) return b.coverage_pct - a.coverage_pct;
     return a.distance_miles - b.distance_miles;
   });
+
+  const rawlsianOrder = [...ranked].sort((a, b) => {
+    const aMin = a.total_responses === 0 ? 1 : a.covered_count === a.total_responses ? 1 : a.coverage_pct;
+    const bMin = b.total_responses === 0 ? 1 : b.covered_count === b.total_responses ? 1 : b.coverage_pct;
+    if (aMin !== bMin) return bMin - aMin;
+    return b.weighted_coverage_pct - a.weighted_coverage_pct;
+  });
+  const utilitarianRank = new Map(ranked.map((row, index) => [row.restaurant.id, index + 1]));
+  const rawlsianRank = new Map(rawlsianOrder.map((row, index) => [row.restaurant.id, index + 1]));
+
+  void persistScores().catch((error) => {
+    console.error("restaurant_scores cache write failed", error);
+  });
+
+  async function persistScores() {
+    const computed_at = new Date().toISOString();
+    await saveRestaurantScores(
+      ranked.map((row) => {
+        const items = itemsByRestaurant.get(row.restaurant.id) ?? [];
+        const per_guest_scores: Record<string, number> = {};
+        const conflicts: Array<{ guest_id: string; hard_excludes: string[] }> = [];
+        for (const response of responses) {
+          const covered = items.some((item) => isSafe(item, response).safe);
+          per_guest_scores[response.id] = covered ? 1 : 0;
+          if (!covered) {
+            conflicts.push({ guest_id: response.id, hard_excludes: response.parsed_rules.hard_excludes });
+          }
+        }
+        const values = Object.values(per_guest_scores);
+        return {
+          event_id: event.id,
+          restaurant_id: row.restaurant.id,
+          per_guest_scores,
+          group_scores: {
+            utilitarian: row.weighted_coverage_pct / 100,
+            rawlsian_min: values.length === 0 ? 1 : Math.min(...values),
+          },
+          conflicts,
+          ranks: {
+            utilitarian: utilitarianRank.get(row.restaurant.id) ?? 0,
+            rawlsian: rawlsianRank.get(row.restaurant.id) ?? 0,
+          },
+          coverage_pct: row.coverage_pct,
+          weighted_coverage_pct: row.weighted_coverage_pct,
+          computed_at,
+        };
+      })
+    );
+  }
 
   const zero_matches: ZeroMatchAlert[] = responses
     .map((response, index) => ({ response, index }))

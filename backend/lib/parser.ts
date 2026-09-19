@@ -345,3 +345,38 @@ export function severityWeight(severity: Severity): number {
   if (severity === "medium") return 2;
   return 1;
 }
+
+export type AllergenFlagStatus = "confirmed" | "inferred" | "none";
+
+const ALLERGEN_FLAG_KEYS = [
+  ["pork", "contains_pork"],
+  ["shellfish", "contains_shellfish"],
+  ["fish", "contains_fish"],
+  ["beef", "contains_beef"],
+  ["chicken", "contains_chicken"],
+  ["egg", "contains_egg"],
+  ["dairy", "contains_dairy"],
+  ["gluten", "contains_gluten"],
+  ["nuts", "contains_nuts"],
+  ["peanuts", "contains_peanuts"],
+  ["soy", "contains_soy"],
+  ["sesame", "contains_sesame"],
+  ["alcohol", "contains_alcohol"],
+  ["meat_dairy_combo", "meat_dairy_combo"],
+] as const;
+
+export function allergenFlagsFromMenu(item: MenuItem): Record<string, AllergenFlagStatus> {
+  const inferred = item.confidence === "low";
+  const out: Record<string, AllergenFlagStatus> = {};
+  for (const [name, flag] of ALLERGEN_FLAG_KEYS) {
+    out[name] = item.flags[flag] ? (inferred ? "inferred" : "confirmed") : "none";
+  }
+  return out;
+}
+
+export function dietaryCompatibleFromMenu(item: MenuItem): { vegetarian: boolean; vegan: boolean } {
+  return {
+    vegetarian: Boolean(item.flags.vegetarian || item.flags.vegan),
+    vegan: Boolean(item.flags.vegan),
+  };
+}

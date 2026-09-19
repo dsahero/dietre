@@ -67,6 +67,10 @@ export function verifyPassword(password: string, stored: string | undefined): bo
 }
 
 export function decodeFirebaseJwt(token: string): { uid: string; email?: string; name?: string } | null {
+  // Kept synchronous because /api/auth/login calls this inline. Signature
+  // verification needs a network round-trip (Google certs / accounts:lookup),
+  // so this checks payload shape, expiry, and audience when the Firebase
+  // project id is configured. Firebase UID is the organizers/{uid} doc id.
   try {
     const parts = token.split(".");
     if (parts.length < 2) return null;
@@ -75,9 +79,22 @@ export function decodeFirebaseJwt(token: string): { uid: string; email?: string;
       sub?: string;
       email?: string;
       name?: string;
+      exp?: number;
+      aud?: string;
+      iss?: string;
     };
     const uid = payload.user_id || payload.sub;
     if (!uid) return null;
+    if (typeof payload.exp === "number" && payload.exp * 1000 < Date.now() - 30_000) {
+      return null;
+    }
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (projectId && payload.aud && payload.aud !== projectId) {
+      return null;
+    }
+    if (projectId && payload.iss && payload.iss !== `https://securetoken.google.com/${projectId}`) {
+      return null;
+    }
     return { uid, email: payload.email, name: payload.name };
   } catch {
     return null;
