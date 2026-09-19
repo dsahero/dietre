@@ -7,7 +7,9 @@ import {
   extractLimitationsChecklist,
   suggestEventDetailsFromLimitations,
 } from "@/backend/lib/limitations";
-import { matchEvent } from "@/backend/lib/restaurant_matching";
+import { matchEvent } from "@/backend/lib/matching";
+import { resolvePlace } from "@/backend/lib/placesDiscovery";
+import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
 import { geocodeBlacksburg } from "@/shared/lib/places";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
@@ -77,6 +79,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const body = (await request.json()) as {
     name?: string;
     location?: string;
+    place_id?: string;
     radius?: number;
     budget_range?: BudgetRange;
     expected_headcount?: number;
@@ -84,6 +87,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   };
 
   const patch: Parameters<typeof updateEvent>[1] = {};
+  let locationChanged = false;
   if (body.name !== undefined) {
     const name = body.name.trim();
     if (!name) return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
@@ -92,10 +96,40 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (body.location !== undefined) {
     const location = body.location.trim();
     if (!location) return NextResponse.json({ error: "Location can't be empty." }, { status: 400 });
-    const place = geocodeBlacksburg(location);
+    const place_id = body.place_id?.trim();
+    if (!place_id) {
+      return NextResponse.json(
+        { error: "Pick a location from the suggestions before saving." },
+        { status: 400 }
+      );
+    }
+
+    locationChanged = location !== event.location;
+    if (locationChanged) {
+      let lat: number;
+      let lng: number;
+      let googlePlaceId: string | null = null;
+      if (place_id.startsWith("landmark:")) {
+        const place = geocodeBlacksburg(place_id.slice("landmark:".length));
+        lat = place.lat;
+        lng = place.lng;
+      } else {
+        const resolved = await resolvePlace(place_id);
+        if (resolved) {
+          lat = resolved.lat;
+          lng = resolved.lng;
+          googlePlaceId = place_id;
+        } else {
+          const place = geocodeBlacksburg(location);
+          lat = place.lat;
+          lng = place.lng;
+        }
+      }
+      patch.lat = lat;
+      patch.lng = lng;
+      patch.google_place_id = googlePlaceId;
+    }
     patch.location = location;
-    patch.lat = place.lat;
-    patch.lng = place.lng;
   }
   if (body.radius !== undefined) {
     const radius = Number(body.radius);
@@ -170,5 +204,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   const updated = await updateEvent(id, patch);
+
+  if (locationChanged && updated) {
+    const radiusForDiscovery = patch.radius ?? updated.radius;
+    discoverAndUpsertRestaurants({ lat: updated.lat, lng: updated.lng }, radiusForDiscovery).catch(() => {});
+  }
+
   return NextResponse.json({ event: updated });
 }

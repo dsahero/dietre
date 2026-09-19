@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Stamp } from 'lucide-react';
 import { EventDetails } from '../types';
+import { LocationAutocomplete } from '@/frontend/components/location-autocomplete';
 
 export interface EventEditPatch {
   name: string;
   address: string;
+  place_id: string | null;
   radiusMiles: number;
   maxBudget: '$' | '$$' | '$$$';
   expectedHeadcount: number;
@@ -25,6 +27,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
   // only need to run once per open.
   const [name, setName] = useState(eventDetails.name);
   const [address, setAddress] = useState(eventDetails.address);
+  const [placeId, setPlaceId] = useState<string | null>(eventDetails.placeId ?? null);
   const [radiusMiles, setRadiusMiles] = useState(eventDetails.radiusMiles);
   const [maxBudget, setMaxBudget] = useState(eventDetails.maxBudget);
   const [expectedHeadcount, setExpectedHeadcount] = useState(eventDetails.expectedHeadcount);
@@ -39,7 +42,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
     setSaving(true);
     setError(null);
     try {
-      await onSave({ name, address, radiusMiles, maxBudget, expectedHeadcount, limitations });
+      await onSave({ name, address, place_id: placeId, radiusMiles, maxBudget, expectedHeadcount, limitations });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save event details.');
@@ -106,17 +109,23 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             <label htmlFor="event-address-input" className="mb-1 block font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
               Location / Gathering Area
             </label>
-            <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--dash-accent)]" />
-              <input
-                type="text"
-                id="event-address-input"
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-9 pr-3.5 font-serif text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
-              />
-            </div>
+            <LocationAutocomplete
+              id="event-address-input"
+              required
+              value={address}
+              placeId={placeId}
+              onChange={(value, nextPlaceId) => {
+                setAddress(value);
+                setPlaceId(nextPlaceId);
+              }}
+              icon={<MapPin className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--dash-accent)]" />}
+              inputClassName="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-9 pr-3.5 font-serif text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
+            />
+            {address.trim() && !placeId && (
+              <p className="mt-1 font-serif text-[11px] italic text-[var(--dash-text-muted)]">
+                Pick a suggestion from the dropdown to confirm this location.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -224,7 +233,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || (Boolean(address.trim()) && !placeId)}
               className="flex items-center gap-2 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-accent)] px-5 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition-all hover:opacity-95 disabled:opacity-60 cursor-pointer"
             >
               <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Ledger Changes'}

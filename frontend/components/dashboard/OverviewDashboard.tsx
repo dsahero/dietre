@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useRef, type ReactNode } from 'react';
+import React, { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
 import { Sidebar } from './components/Sidebar';
@@ -20,6 +20,7 @@ const MapTab = nextDynamic(() => import('./components/MapTab').then((mod) => mod
 });
 import { ZeroMatchPanel } from '@/frontend/components/zero-match-panel';
 import { useThemeToggle, HOST_THEME_STORAGE_KEY } from '@/frontend/lib/use-theme-toggle';
+import { useIsMobile } from '@/frontend/lib/use-is-mobile';
 import {
   toEventDetails,
   toGuestResponses,
@@ -76,6 +77,16 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
 
   const [activeNavId, setActiveNavId] = useState<string>('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const isMobile = useIsMobile(880);
+  // On a phone the sidebar can't share the row with content at a usable
+  // width, so it defaults closed there (see the drawer/backdrop treatment
+  // in dashboard.css) and re-collapses itself if the window is resized
+  // down to phone width while it happens to be open — full-screen content
+  // is the point of "minimizing the menu," not just an initial default.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the viewport, not derivable during render
+    if (isMobile) setIsSidebarCollapsed(true);
+  }, [isMobile]);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
   const [selectedResponse, setSelectedResponse] = useState<GuestResponse | null>(null);
@@ -151,6 +162,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
       body: JSON.stringify({
         name: patch.name,
         location: patch.address,
+        place_id: patch.place_id,
         radius: patch.radiusMiles,
         budget_range: patch.maxBudget,
         expected_headcount: patch.expectedHeadcount,

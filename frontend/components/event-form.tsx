@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BLACKSBURG_PLACES } from "@/shared/lib/places";
 import { Alert, AlertDescription, AlertTitle } from "@/frontend/components/ui/alert";
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select";
+import { LocationAutocomplete } from "@/frontend/components/location-autocomplete";
 import type { BudgetRange } from "@/shared/lib/types";
 
 export function EventForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [date, setDate] = useState("2026-10-04T18:00");
-  const [location, setLocation] = useState("Squires Student Center");
+  const [location, setLocation] = useState("");
+  const [placeId, setPlaceId] = useState<string | null>(null);
   const [radius, setRadius] = useState("2");
   const [budget, setBudget] = useState<BudgetRange>("$$");
   const [headcount, setHeadcount] = useState("120");
@@ -33,6 +34,7 @@ export function EventForm() {
           name,
           date,
           location,
+          place_id: placeId,
           radius: Number(radius),
           budget_range: budget,
           expected_headcount: Number(headcount),
@@ -74,19 +76,21 @@ export function EventForm() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="location">Location in Blacksburg</Label>
-        <Input
+        <LocationAutocomplete
           id="location"
           required
           value={location}
-          onChange={(event) => setLocation(event.target.value)}
-          placeholder="Squires Student Center"
-          list="blacksburg-places"
+          placeId={placeId}
+          onChange={(value, nextPlaceId) => {
+            setLocation(value);
+            setPlaceId(nextPlaceId);
+          }}
+          placeholder="Start typing an address…"
+          inputClassName="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
         />
-        <datalist id="blacksburg-places">
-          {BLACKSBURG_PLACES.map((place) => (
-            <option key={place.label} value={place.label} />
-          ))}
-        </datalist>
+        {location.trim() && !placeId && (
+          <p className="text-xs text-muted-foreground">Pick a suggestion from the dropdown to confirm this location.</p>
+        )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -122,7 +126,7 @@ export function EventForm() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <Button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy || !placeId}>
         {busy ? "Creating…" : "Create event and get a share link"}
       </Button>
     </form>

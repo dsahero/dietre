@@ -71,19 +71,6 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-6">
-          {/* Guest's own words — always shown as the source of truth, never replaced by the AI's read */}
-          <div className="rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs">
-            <div className="mb-2.5 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
-                <MessageSquare className="h-3.5 w-3.5" />
-              </div>
-              <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">In their own words</h3>
-            </div>
-            <p className="whitespace-pre-wrap rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3.5 font-serif text-sm leading-relaxed text-[var(--dash-text)]">
-              {response.rawText}
-            </p>
-          </div>
-
           {/* Hard restrictions */}
           <div className="rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs">
             <div className="mb-3 flex items-center justify-between border-b border-[var(--dash-border)] pb-2.5">
@@ -181,6 +168,19 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
                 No preferences reported.
               </div>
             )}
+          </div>
+
+          {/* Guest's own words — kept as supporting context beneath the parsed rules above, since those are what a host scans first; always shown verbatim, never replaced by the AI's read */}
+          <div className="rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs">
+            <div className="mb-2.5 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
+                <MessageSquare className="h-3.5 w-3.5" />
+              </div>
+              <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">In their own words</h3>
+            </div>
+            <p className="whitespace-pre-wrap rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3.5 font-serif text-sm leading-relaxed text-[var(--dash-text)]">
+              {response.rawText}
+            </p>
           </div>
 
           {/* Optional contact */}

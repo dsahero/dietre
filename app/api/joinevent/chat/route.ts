@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ParsedRules, Severity } from "@/shared/lib/types";
 
+
 export type ChatMessage = {
   role: "user" | "assistant";
   text: string;

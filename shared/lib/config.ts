@@ -13,6 +13,10 @@ export function hasFirebase(): boolean {
   );
 }
 
+export function hasPlacesApiKey(): boolean {
+  return Boolean(process.env.PLACES_API_KEY);
+}
+
 export function runtimeMode() {
   return {
     mongo: hasMongo() ? "mongodb" : "local-json",

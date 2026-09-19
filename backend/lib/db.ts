@@ -87,10 +87,13 @@ export function backendLabel(): "firestore" | "local-json" {
 }
 
 /**
- * Optional demo seed for local demos only. Never called automatically.
- * Set DIETRE_SEED=1 and invoke explicitly (e.g. a one-off script) to load
- * backend/data/seed.ts into Firestore or the JSON store.
- * No-ops when SEED_RESTAURANTS is empty (placeholder data was gutted).
+ * Optional demo seed, gated behind DIETRE_SEED=1 — set it and this loads
+ * backend/data/seed.ts into Firestore or the JSON store; unset (the
+ * default), every call below is a single cheap env check and a no-op, so
+ * production/other deployments are unaffected. Checked once per process
+ * (see ensureDemoSeedChecked) rather than on every single db call — that
+ * blanket "check every hit" pattern is exactly what an earlier pass here
+ * deliberately removed, and re-adding it wholesale would undo that.
  */
 export async function seedDemoDataIfEnabled(): Promise<boolean> {
   if (process.env.DIETRE_SEED !== "1") return false;
@@ -107,14 +110,17 @@ export async function seedDemoDataIfEnabled(): Promise<boolean> {
   const { menuItemToDoc, restaurantToDoc } = await import("@/backend/lib/collections");
 
   if (useFirestore()) {
+    // Version 2: the original marker was written even on the "restaurants
+    // already exist, skip" branch below — meaning a transient non-empty
+    // read (someone else's data momentarily present, then gone) would
+    // permanently block every future seed attempt, since the marker check
+    // above short-circuits before ever re-checking "existing" again. That
+    // is exactly what happened once already. Writes here are upserts keyed
+    // by this file's own fixed ids (rest-gillies, etc.), so there's no real
+    // risk in just seeding directly rather than first checking whether
+    // *some* restaurant happens to already exist.
     const marker = await getDocument<{ version?: number }>("_meta", "seed");
-    if (marker?.version) return false;
-
-    const existing = await listDocuments(COLLECTIONS.restaurants);
-    if (existing.length > 0) {
-      await setDocument("_meta", "seed", { version: 1, seeded_at: new Date().toISOString() });
-      return false;
-    }
+    if ((marker?.version ?? 0) >= 2) return false;
 
     const menuIds = new Map<string, string[]>();
     for (const item of SEED_MENU_ITEMS) {
@@ -164,7 +170,7 @@ export async function seedDemoDataIfEnabled(): Promise<boolean> {
     writes.push({
       collection: "_meta",
       id: "seed",
-      data: { version: 1, seeded_at: new Date().toISOString() },
+      data: { version: 2, seeded_at: new Date().toISOString() },
     });
     await commitWrites(writes);
     return true;
@@ -194,7 +200,22 @@ export async function seedDemoDataIfEnabled(): Promise<boolean> {
   return true;
 }
 
+// Runs seedDemoDataIfEnabled() at most once per server process, from the
+// handful of read paths a fresh demo actually needs (restaurants, menu
+// items, event lookup) rather than from every exported function the way
+// ensureFirestoreSeed() used to. With DIETRE_SEED unset this is one boolean
+// check; with it set, later calls in the same process skip straight past
+// without even that, since the underlying function is itself idempotent
+// but still async.
+let demoSeedChecked = false;
+async function ensureDemoSeedChecked(): Promise<void> {
+  if (demoSeedChecked) return;
+  demoSeedChecked = true;
+  await seedDemoDataIfEnabled();
+}
+
 export async function listRestaurants(): Promise<Restaurant[]> {
+  await ensureDemoSeedChecked();
   if (useFirestore()) {
     const docs = await listDocuments(COLLECTIONS.restaurants);
     return docs.map((doc) => docToRestaurant(doc.id, doc));
@@ -203,11 +224,47 @@ export async function listRestaurants(): Promise<Restaurant[]> {
 }
 
 export async function listMenuItems(): Promise<MenuItem[]> {
+  await ensureDemoSeedChecked();
   if (useFirestore()) {
     const docs = await listDocuments(COLLECTIONS.menu_items);
     return docs.map((doc) => docToMenuItem(doc.id, doc));
   }
   return (await readJsonStore()).menu_items;
+}
+
+/**
+ * Upsert freshly-discovered restaurants (Google Places) into whichever store
+ * is active. Existing menu_item_ids are preserved so a repeat discovery run
+ * for the same spot never wipes menu data a future pipeline attaches later.
+ */
+export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void> {
+  if (!restaurants.length) return;
+  const { restaurantToDoc } = await import("@/backend/lib/collections");
+
+  if (useFirestore()) {
+    const existingMenuIds = await Promise.all(
+      restaurants.map((restaurant) =>
+        getDocument<{ menu_item_ids?: string[] }>(COLLECTIONS.restaurants, restaurant.id)
+      )
+    );
+    const writes = restaurants.map((restaurant, index) => ({
+      collection: COLLECTIONS.restaurants,
+      id: restaurant.id,
+      data: restaurantToDoc(restaurant, existingMenuIds[index]?.menu_item_ids ?? []),
+    }));
+    await commitWrites(writes);
+    return;
+  }
+
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    const byId = new Map(store.restaurants.map((restaurant) => [restaurant.id, restaurant]));
+    for (const restaurant of restaurants) {
+      byId.set(restaurant.id, restaurant);
+    }
+    store.restaurants = Array.from(byId.values());
+    await persistJson(store);
+  });
 }
 
 function asStringArray(value: unknown): string[] {
@@ -298,6 +355,7 @@ export async function listEventsByHost(hostId: string): Promise<DietreEvent[]> {
 }
 
 export async function getEvent(id: string): Promise<DietreEvent | null> {
+  await ensureDemoSeedChecked();
   if (useFirestore()) {
     const byId = await getDocument(COLLECTIONS.events, id);
     if (byId) {
@@ -354,6 +412,9 @@ export async function updateEvent(
       | "limitations"
       | "limitations_checklist"
       | "checklist_notes_by_restaurant"
+      | "complex_notes_by_restaurant"
+      | "complex_notes_signature"
+      | "google_place_id"
     >
   >
 ): Promise<DietreEvent | null> {

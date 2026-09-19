@@ -1,4 +1,5 @@
 import type { BudgetRange, LimitationChecklistItem, MenuItem, Restaurant, RestaurantChecklistNote } from "@/shared/lib/types";
+import { withTimeout } from "@/backend/lib/with-timeout";
 
 // Host-authored free text ("wheelchair accessible, sound curfew 10:30pm,
 // vegan entrée required") isn't a per-guest dietary rule, so it never goes
@@ -23,7 +24,7 @@ Break this into a short checklist of distinct, concrete, checkable venue require
 Return ONLY a JSON array of short labels, each under 60 characters, e.g.:
 ["Wheelchair-accessible entrance", "Vegan entrée available", "Quiet enough for conversation after 10:30 PM"]
 If nothing concrete and checkable is stated, return [].`;
-    const result = await model.generateContent(prompt);
+    const result = await withTimeout(model.generateContent(prompt), 9000, "Limitations checklist extraction");
     const text2 = result.response.text().trim();
     const jsonText = text2.replace(/^```json\s*|\s*```$/g, "");
     const labels = JSON.parse(jsonText) as unknown;
@@ -53,7 +54,7 @@ If — and only if — the text explicitly states a search radius in miles, or a
 Return ONLY JSON: {"radius": number|null, "budget_range": "$"|"$$"|"$$$"|null}
 - radius: only if a specific mile distance is explicitly stated (e.g. "within 5 miles" -> 5). Otherwise null.
 - budget_range: "$" for roughly under $15/person or "budget-friendly", "$$" for roughly $15-35/person or "moderate", "$$$" for roughly $35+/person or "upscale"/"fine dining" — only if a budget is explicitly stated. Otherwise null.`;
-    const result = await model.generateContent(prompt);
+    const result = await withTimeout(model.generateContent(prompt), 9000, "Event details suggestion");
     const raw = result.response.text().trim();
     const jsonText = raw.replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(jsonText) as { radius?: number | null; budget_range?: string | null };
@@ -111,7 +112,7 @@ Return ONLY JSON shaped exactly like:
 {"<restaurant_id>": [{"itemId": "<checklist item id>", "verdict": "good"|"neutral"|"bad"|"unknown", "note": "one short honest sentence"}, ...], ...}
 Include every restaurant id and every checklist item id. Default to "unknown" rather than guessing confidently past what the data supports.`;
 
-    const result = await model.generateContent(prompt);
+    const result = await withTimeout(model.generateContent(prompt), 9000, "Restaurant checklist evaluation");
     const raw = result.response.text().trim();
     const jsonText = raw.replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(jsonText) as Record<

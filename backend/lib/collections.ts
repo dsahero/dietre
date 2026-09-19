@@ -160,6 +160,9 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     limitations: event.limitations ?? null,
     limitations_checklist: event.limitations_checklist ?? [],
     checklist_notes_by_restaurant: event.checklist_notes_by_restaurant ?? {},
+    complex_notes_by_restaurant: event.complex_notes_by_restaurant ?? {},
+    complex_notes_signature: event.complex_notes_signature ?? "",
+    google_place_id: event.google_place_id ?? null,
   };
 }
 
@@ -189,6 +192,12 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
       doc.checklist_notes_by_restaurant && typeof doc.checklist_notes_by_restaurant === "object"
         ? (doc.checklist_notes_by_restaurant as DietreEvent["checklist_notes_by_restaurant"])
         : undefined,
+    complex_notes_by_restaurant:
+      doc.complex_notes_by_restaurant && typeof doc.complex_notes_by_restaurant === "object"
+        ? (doc.complex_notes_by_restaurant as DietreEvent["complex_notes_by_restaurant"])
+        : undefined,
+    complex_notes_signature: typeof doc.complex_notes_signature === "string" ? doc.complex_notes_signature : undefined,
+    google_place_id: typeof doc.google_place_id === "string" ? doc.google_place_id : null,
   };
 }
 
@@ -206,6 +215,9 @@ export function eventPatchToDoc(
       | "limitations"
       | "limitations_checklist"
       | "checklist_notes_by_restaurant"
+      | "complex_notes_by_restaurant"
+      | "complex_notes_signature"
+      | "google_place_id"
     >
   >
 ): Record<string, unknown> {
@@ -225,6 +237,11 @@ export function eventPatchToDoc(
   if (patch.checklist_notes_by_restaurant !== undefined) {
     data.checklist_notes_by_restaurant = patch.checklist_notes_by_restaurant;
   }
+  if (patch.complex_notes_by_restaurant !== undefined) {
+    data.complex_notes_by_restaurant = patch.complex_notes_by_restaurant;
+  }
+  if (patch.complex_notes_signature !== undefined) data.complex_notes_signature = patch.complex_notes_signature;
+  if (patch.google_place_id !== undefined) data.google_place_id = patch.google_place_id;
   return data;
 }
 

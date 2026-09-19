@@ -15,6 +15,7 @@
 
 import allergenMapJson from "@/backend/data/allergen-map.json";
 import type { DietResponse, MenuFlags, MenuItem, ParsedRules, Severity } from "@/shared/lib/types";
+import { withTimeout } from "@/backend/lib/with-timeout";
 
 // ---------------------------------------------------------------------------
 // Allergen map
@@ -38,6 +39,118 @@ function unique(values: string[]): string[] {
     out.push(k);
   }
   return out;
+}
+
+export function parseDietaryText(raw: string): ParsedRules {
+  const text = raw.toLowerCase();
+  const hard: string[] = [];
+  const complex: string[] = [];
+  const soft: string[] = [];
+
+  const addHard = (...items: string[]) => hard.push(...items);
+  const addComplex = (...items: string[]) => complex.push(...items);
+  const addSoft = (...items: string[]) => soft.push(...items);
+
+  // Detect compound / conditional meat & dairy separation rules (e.g. kosher style, can only eat dairy and meat separately, no mixing meat and dairy)
+  const isMeatDairyComboOnly =
+    /(meat|beef|poultry|chicken|pork)\s*(and|&|\+|\/|,|\s+)*\s*(dairy|milk|cheese)\s*(together|combo|mix(ing)?|combined|separat(e|ely)|not together|apart|distinct)/i.test(text) ||
+    /(dairy|milk|cheese)\s*(and|&|\+|\/|,|\s+)*\s*(meat|beef|poultry|chicken|pork)\s*(together|combo|mix(ing)?|combined|separat(e|ely)|not together|apart|distinct)/i.test(text) ||
+    /(can\s*only|only)\s*eat\s*(dairy|milk|cheese|meat|beef)\s*(and|&|\+|,|\s+)*\s*(meat|beef|dairy|milk|cheese)\s*separat/i.test(text) ||
+    /(mix(ing)?\s*(meat|dairy|milk)|can('?t|not|never)\s*(eat|mix|have)\s*(meat|dairy|milk)\s*(and|&|\+)\s*(dairy|milk|meat)\s*together)/i.test(text) ||
+    /\bkosher\b/i.test(text) ||
+    (/(dairy|milk)/i.test(text) && /(meat|beef)/i.test(text) && /(separat|not together|don'?t mix|never mix|no mix|apart)/i.test(text));
+
+  if (isMeatDairyComboOnly) {
+    addComplex("yes dairy, yes meat, not together");
+    addHard("meat dairy combo");
+    if (/\bkosher\b/.test(text)) {
+      addHard("pork", "shellfish");
+      addSoft("kosher");
+    }
+  }
+
+  // Cross-contamination special requirements
+  if (/(cross[- ]contamination|dedicated (fryer|prep|surface|kitchen)|separate (fryer|prep|cookware))/i.test(text)) {
+    addComplex("Strict cross-contamination parameter: requires dedicated prep surfaces or fryer");
+  }
+
+  if (/\bvegan\b/.test(text) || /no animal/.test(text) || /plant[- ]based/.test(text)) {
+    addHard("meat", "dairy", "egg", "animal products");
+    addSoft("plant-based");
+  } else if (/\bvegetarian\b/.test(text) || /no meat\b/.test(text)) {
+    addHard("meat", "fish", "shellfish");
+    addSoft("vegetarian");
+  }
+
+  if (/\bhalal\b|i'?m\s*halal|imhalal/i.test(text)) {
+    addHard("pork", "alcohol");
+    addSoft("halal");
+  }
+
+  const allergyOrBan = (pattern: RegExp, exclude: string, forceHard = false) => {
+    if (!pattern.test(text)) return;
+    // If user only bans combining meat and dairy, do NOT ban standalone dairy or standalone meat/beef (they are NOT allergic to milk!)
+    if (isMeatDairyComboOnly && (exclude === "dairy" || exclude === "beef" || exclude === "meat")) {
+      if (!/(allergic to (dairy|milk|beef)|lactose intolerant|strictly no dairy|never eat dairy|no meat at all)/i.test(text)) {
+        return;
+      }
+    }
+    const allowedHere = new RegExp(
+      `\\b${exclude.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?\\b[^\\.\\n]{0,16}\\b(fine|ok|okay|alright|allowed)\\b`,
+      "i"
+    );
+    if (allowedHere.test(text)) return;
+    const windowMatch = text.match(pattern);
+    const around = windowMatch
+      ? text.slice(Math.max(0, (windowMatch.index ?? 0) - 40), (windowMatch.index ?? 0) + 40)
+      : text;
+    const isSoft =
+      !forceHard &&
+      /(prefer|like|hate|can't stand|dont like|don't like|rather not|not a fan)/.test(around) &&
+      !/(allerg|anaphyla|celiac|cannot eat|can't eat|no |without |medical|religious)/.test(around);
+    if (isSoft) addSoft(`no ${exclude}`);
+    else addHard(exclude);
+  };
+
+  allergyOrBan(/\bpeanuts?\b/, "peanuts", true);
+  allergyOrBan(/\b(tree ?nuts?|almonds?|walnuts?|cashews?|pistachios?|hazelnuts?|pecans?)\b/, "tree nuts");
+  allergyOrBan(/\b(shellfish|shrimp|crab|lobster|crawfish|mussels?|scallops?)\b/, "shellfish");
+  allergyOrBan(/\b(gluten|wheat|celiac)\b/, "gluten", /\bceliac\b/.test(text));
+  allergyOrBan(/\b(dairy|lactose|milk|cheese)\b/, "dairy");
+  allergyOrBan(/\bpork\b|\bbacon\b|\bham\b/, "pork");
+  allergyOrBan(/\b(sesame|tahini)\b/, "sesame");
+  allergyOrBan(/\b(soy|soya|soybean)\b/, "soy");
+  allergyOrBan(/\beggs?\b/, "egg");
+  allergyOrBan(/\b(alcohol|wine|beer)\b/, "alcohol");
+  allergyOrBan(/\bfish\b|\bsalmon\b|\btuna\b/, "fish");
+  allergyOrBan(/\bbeef\b|\bred meat\b/, "beef");
+  allergyOrBan(/\bcilantro\b|\bcoriander\b/, "cilantro");
+
+  if (/\bspicy\b|\bheat\b|\bhot food\b/.test(text)) addSoft("spicy");
+  if (/\bmild\b|\bno spice\b/.test(text)) addSoft("mild");
+  if (/\blight(er)?\b|\bhealthy\b/.test(text)) addSoft("light");
+  if (/\bcheap\b|\bbudget\b/.test(text)) addSoft("budget");
+  if (/\bhigh protein\b/.test(text)) addSoft("high protein");
+
+  let severity: Severity = "low";
+  // Ignore negated "no allergies" so it doesn't inflate severity
+  const severityText = text.replace(/\bno\s+allerg(y|ies)\b/g, " ");
+  if (/(allerg|anaphyla|celiac|epi[- ]?pen|medical|will make me sick|anaphyl)/.test(severityText)) {
+    severity = "high";
+  } else if (
+    /(halal|kosher|vegan|vegetarian|religious|hindu|muslim|jewish|ethical|intoleran|lactose)/.test(
+      text
+    )
+  ) {
+    severity = "medium";
+  }
+
+  return {
+    hard_excludes: unique(hard),
+    complex_restrictions: unique(complex),
+    soft_preferences: unique(soft),
+    severity,
+  };
 }
 
 // ---------------------------------------------------------------------------

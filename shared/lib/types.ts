@@ -57,6 +57,16 @@ export type DietreEvent = {
   // Per-restaurant notes against limitations_checklist, keyed by restaurant
   // id. Computed once when the checklist changes, not on every page load.
   checklist_notes_by_restaurant?: Record<string, RestaurantChecklistNote[]>;
+  // Per-restaurant notes against guests' complex/compound restrictions
+  // (e.g. "no mixing meat and dairy"), keyed by restaurant id. Computed
+  // once per distinct set of complex rules + candidate restaurants — see
+  // complexNotesCacheKey in backend/lib/matching.ts — not on every page
+  // load; complex_notes_signature records which input it was computed for.
+  complex_notes_by_restaurant?: Record<string, ComplexRequirementNote[]>;
+  complex_notes_signature?: string;
+  // Google Places id the host's location text resolved to (real geocoding),
+  // or null when resolved via the offline landmark-list fallback instead.
+  google_place_id?: string | null;
 };
 
 export type ParsedRules = {
