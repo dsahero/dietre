@@ -142,24 +142,24 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#22c55e]/15">
           <CheckCircle2 className="h-7 w-7 text-[#4ade80]" />
         </div>
-        <h2 className="text-xl font-bold text-white">You&apos;re in!</h2>
-        <p className="max-w-xs text-sm text-[#a0928c]">
+        <h2 className="text-xl font-bold text-[var(--dash-text)]">You&apos;re in!</h2>
+        <p className="max-w-xs text-sm text-[var(--dash-text-muted)]">
           Your dietary preferences have been submitted anonymously. The host will use this to find a
           restaurant that works for everyone.
         </p>
         {pendingRules && pendingRules.hard_excludes.length > 0 && (
-          <div className="mt-2 rounded-xl border border-[#3a2822] bg-[#231a17] px-5 py-3 text-left text-xs text-[#c8b9b3] space-y-1 w-full max-w-xs">
-            <p className="font-semibold text-[#d88c5e] mb-2">What we recorded:</p>
-            <p>🚫 <span className="text-white">{pendingRules.hard_excludes.join(", ")}</span></p>
+          <div className="mt-2 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-5 py-3 text-left text-xs text-[var(--dash-text-soft)] space-y-1 w-full max-w-xs">
+            <p className="font-semibold text-[var(--dash-accent-soft)] mb-2">What we recorded:</p>
+            <p>🚫 <span className="text-[var(--dash-text)]">{pendingRules.hard_excludes.join(", ")}</span></p>
             {pendingRules.soft_preferences.length > 0 && (
-              <p>💭 <span className="text-white">{pendingRules.soft_preferences.join(", ")}</span></p>
+              <p>💭 <span className="text-[var(--dash-text)]">{pendingRules.soft_preferences.join(", ")}</span></p>
             )}
-            <p>⚠️ Severity: <span className="text-white capitalize">{pendingRules.severity}</span></p>
-            {pendingEmail && <p>📧 <span className="text-white">{pendingEmail}</span></p>}
+            <p>⚠️ Severity: <span className="text-[var(--dash-text)] capitalize">{pendingRules.severity}</span></p>
+            {pendingEmail && <p>📧 <span className="text-[var(--dash-text)]">{pendingEmail}</span></p>}
           </div>
         )}
         {pendingRules && pendingRules.hard_excludes.length === 0 && (
-          <div className="mt-2 rounded-xl border border-[#3a2822] bg-[#231a17] px-5 py-3 text-xs text-[#a0928c]">
+          <div className="mt-2 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-5 py-3 text-xs text-[var(--dash-text-muted)]">
             ✅ No restrictions — easy one!
           </div>
         )}
@@ -171,11 +171,11 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border border-[#3a2822] bg-[#1a1210] overflow-hidden" style={{ minHeight: 420 }}>
+    <div className="flex flex-col rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-bg)] overflow-hidden" style={{ minHeight: 420 }}>
       {/* Chat messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: 480 }}>
         {messages.length === 0 && !loading && (
-          <div className="flex items-center justify-center h-32 text-[#5a4a44] text-sm">
+          <div className="flex items-center justify-center h-32 text-[var(--dash-text-muted)] text-sm">
             Starting conversation…
           </div>
         )}
@@ -189,14 +189,14 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
             <div
               className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${
                 msg.role === "assistant"
-                  ? "bg-gradient-to-br from-[#d98b58] via-[#b8744b] to-[#733f20]"
-                  : "bg-[#2d1e1a] border border-[#4a342b]"
+                  ? "bg-gradient-to-br from-[var(--dash-accent-soft)] via-[var(--dash-accent)] to-[var(--dash-accent-deep)]"
+                  : "bg-[var(--dash-surface-hover)] border border-[var(--dash-border-strong)]"
               }`}
             >
               {msg.role === "assistant" ? (
                 <Bot className="w-3.5 h-3.5 text-white" />
               ) : (
-                <User className="w-3.5 h-3.5 text-[#b8744b]" />
+                <User className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
               )}
             </div>
 
@@ -204,8 +204,8 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
             <div
               className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed max-w-[80%] whitespace-pre-wrap ${
                 msg.role === "assistant"
-                  ? "bg-[#261d1a] text-[#e0d4ce] rounded-tl-sm"
-                  : "bg-[#b8744b] text-white rounded-tr-sm"
+                  ? "bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] rounded-tl-sm"
+                  : "bg-[var(--dash-accent)] text-white rounded-tr-sm"
               }`}
             >
               {msg.text}
@@ -215,11 +215,11 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
 
         {loading && (
           <div className="flex gap-2.5 items-start">
-            <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-[#d98b58] via-[#b8744b] to-[#733f20] flex items-center justify-center mt-0.5">
+            <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-[var(--dash-accent-soft)] via-[var(--dash-accent)] to-[var(--dash-accent-deep)] flex items-center justify-center mt-0.5">
               <Bot className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="rounded-2xl rounded-tl-sm bg-[#261d1a] px-3.5 py-2.5">
-              <Loader2 className="w-4 h-4 text-[#b8744b] animate-spin" />
+            <div className="rounded-2xl rounded-tl-sm bg-[var(--dash-surface-raised)] px-3.5 py-2.5">
+              <Loader2 className="w-4 h-4 text-[var(--dash-accent)] animate-spin" />
             </div>
           </div>
         )}
@@ -228,7 +228,7 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
       </div>
 
       {/* Input bar */}
-      <div className="border-t border-[#2d1e19] p-3 flex gap-2 bg-[#160f0d]">
+      <div className="border-t border-[var(--dash-border)] p-3 flex gap-2 bg-[var(--dash-surface)]">
         <input
           ref={inputRef}
           type="text"
@@ -237,13 +237,13 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
           onKeyDown={handleKeyDown}
           placeholder={loading ? "Thinking…" : "Type your message…"}
           disabled={loading}
-          className="flex-1 rounded-xl bg-[#231a17] border border-[#3a2822] px-4 py-2.5 text-sm text-white placeholder-[#5a4a44] focus:outline-none focus:border-[#b8744b] transition-colors disabled:opacity-50"
+          className="flex-1 rounded-xl bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] px-4 py-2.5 text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] focus:outline-none focus:border-[var(--dash-accent)] transition-colors disabled:opacity-50"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={loading || !input.trim()}
-          className="shrink-0 w-10 h-10 rounded-xl bg-[#b8744b] text-white flex items-center justify-center transition-all hover:bg-[#d88c5e] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="shrink-0 w-10 h-10 rounded-xl bg-[var(--dash-accent)] text-white flex items-center justify-center transition-all hover:bg-[var(--dash-accent-soft)] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           aria-label="Send message"
         >
           <Send className="w-4 h-4" />

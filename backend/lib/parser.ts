@@ -212,6 +212,72 @@ ${raw}`;
   }
 }
 
+// For compound/unusual rules a fixed exclude→flag dictionary can't express
+// (e.g. "don't mix meat and dairy," a specific combination of allergens),
+// ask Gemini to read the actual ingredients and reason about it directly.
+// One call per response, batching every menu item — never one call per
+// item, which would be far too slow and expensive. Callers should cache
+// the result (see backend/lib/db.ts's ai_judgments store) since responses
+// and menu items are both effectively immutable once created.
+export async function judgeResponseAgainstMenuWithGemini(
+  response: DietResponse,
+  items: MenuItem[]
+): Promise<Record<string, { safe: boolean; uncertain: boolean; reasoning: string }> | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || items.length === 0) return null;
+
+  try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const menuSummary = items
+      .map(
+        (item) =>
+          `- id: ${item.id} | name: ${item.name} | description: ${item.description} | estimated_ingredients: ${item.estimated_ingredients.join(", ") || "none listed"} | confidence: ${item.confidence}`
+      )
+      .join("\n");
+
+    const prompt = `You are checking a catering menu against one guest's dietary rules, stated in their own words. Pay special attention to compound or combination rules a simple ingredient-keyword match would miss — e.g. "don't mix meat and dairy" (a dish is unsafe if it contains BOTH, even if neither ingredient alone is excluded), cross-contamination phrasing, or rules that depend on how ingredients are combined rather than a single banned ingredient.
+
+Guest's own words: "${response.raw_text}"
+Hard restrictions (must never be present): ${response.parsed_rules.hard_excludes.join(", ") || "none"}
+Soft preferences (not a safety issue): ${response.parsed_rules.soft_preferences.join(", ") || "none"}
+Severity: ${response.parsed_rules.severity}
+
+Menu items:
+${menuSummary}
+
+Return ONLY JSON, an object keyed by item id, each value shaped exactly like:
+{"safe": boolean, "uncertain": boolean, "reasoning": string}
+- safe: false if the item conflicts with any hard restriction, including compound rules.
+- uncertain: true if the ingredient list is too vague/thin to be confident either way (be honest — don't guess past what the data supports).
+- reasoning: one short sentence a host could read and immediately understand.
+Include every item id. No prose outside the JSON.`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
+    const parsed = JSON.parse(jsonText) as Record<
+      string,
+      { safe?: boolean; uncertain?: boolean; reasoning?: string }
+    >;
+
+    const out: Record<string, { safe: boolean; uncertain: boolean; reasoning: string }> = {};
+    for (const item of items) {
+      const entry = parsed[item.id];
+      out[item.id] = {
+        safe: entry?.safe !== false,
+        uncertain: Boolean(entry?.uncertain),
+        reasoning: entry?.reasoning || "",
+      };
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 function itemHasFlag(flags: MenuFlags, key: FlagKey): boolean {
   return Boolean(flags[key]);
 }

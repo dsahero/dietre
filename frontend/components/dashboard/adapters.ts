@@ -4,6 +4,7 @@ import type {
   EventDetails,
   GuestResponse,
   RestaurantCardData,
+  RestaurantChecklistNote,
   StatMetric,
 } from './types';
 
@@ -28,6 +29,8 @@ export function toEventDetails(event: DietreEvent): EventDetails {
     radiusMiles: event.radius,
     maxBudget: event.budget_range,
     expectedHeadcount: event.expected_headcount,
+    limitations: event.limitations ?? '',
+    limitationsChecklist: event.limitations_checklist ?? [],
   };
 }
 
@@ -51,7 +54,8 @@ export function toGuestResponses(
 export function toRestaurantCardData(
   matches: RestaurantMatch[],
   responses: DietResponse[],
-  guestTokenById: ReadonlyMap<string, string>
+  guestTokenById: ReadonlyMap<string, string>,
+  checklistNotesByRestaurant?: ReadonlyMap<string, RestaurantChecklistNote[]>
 ): RestaurantCardData[] {
   return matches.map((match) => {
     const matchedIds = new Set<string>();
@@ -72,9 +76,10 @@ export function toRestaurantCardData(
       id: safeItem.item.id,
       name: safeItem.item.name,
       price: safeItem.item.price,
-      coveredGuestTokens: safeItem.covered_response_ids.map(
-        (id) => guestTokenById.get(id) ?? '—'
-      ),
+      coveredResponses: safeItem.covered_response_ids.map((id) => ({
+        responseId: id,
+        token: guestTokenById.get(id) ?? '—',
+      })),
       uncertain: safeItem.uncertain,
     }));
 
@@ -94,12 +99,21 @@ export function toRestaurantCardData(
       coveredCount: match.covered_count,
       totalResponses: match.total_responses,
       hasUnconfirmedItems: match.safe_items.some((item) => item.uncertain),
-      matchedGuestTokens: Array.from(matchedIds).map((id) => guestTokenById.get(id) ?? '—'),
+      matchedResponses: Array.from(matchedIds).map((id) => ({
+        responseId: id,
+        token: guestTokenById.get(id) ?? '—',
+      })),
       dietaryConflicts,
       suggestedMenuItems,
       menuDataThin: match.safe_items.length === 0 && match.covered_count === 0,
+      checklistNotes: checklistNotesByRestaurant?.get(match.restaurant.id) ?? [],
     };
   });
+}
+
+export function coveragePercent(coveredCount: number, totalResponses: number): number {
+  if (totalResponses === 0) return 0;
+  return Math.round((coveredCount / totalResponses) * 100);
 }
 
 const SEVERITY_COLOR: Record<DietResponse['parsed_rules']['severity'], string> = {

@@ -16,6 +16,7 @@ import {
   Activity,
   ShieldAlert,
 } from 'lucide-react';
+import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
 
 const BANNER_IMAGE = '/images/event_venue_banner_1789784962387.jpg';
 const FALLBACK_BANNER =
@@ -44,7 +45,7 @@ export function HomePageView() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F2EA] text-[#38261E] flex flex-col font-sans select-none scroll-smooth">
+    <div className="min-h-screen w-full bg-[var(--dash-bg)] text-[var(--dash-text)] flex flex-col font-sans select-none scroll-smooth">
       {/* ========================================================================= */}
       {/* 1. TOP IMAGE BANNER WITH COMPANY NAME & TOP-RIGHT AUTH BUTTONS */}
       {/* ========================================================================= */}
@@ -60,7 +61,7 @@ export function HomePageView() {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[#25140C]/85 via-[#351C12]/45 via-40% to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-28 sm:h-36 md:h-44 bg-gradient-to-b from-transparent via-[#F7F2EA]/60 via-65% to-[#F7F2EA]" />
+          <div className="absolute inset-x-0 bottom-0 h-28 sm:h-36 md:h-44 bg-gradient-to-b from-transparent via-[var(--dash-bg)]/60 via-65% to-[var(--dash-bg)]" />
         </div>
 
         {/* Top Header Bar over the Banner */}
@@ -73,11 +74,11 @@ export function HomePageView() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             {/* Company Logo & Name */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#C15C3D] text-white flex items-center justify-center shadow-lg shadow-[#C15C3D]/30">
+              <div className="w-10 h-10 rounded-2xl bg-[var(--dash-accent)] text-white flex items-center justify-center shadow-lg shadow-[var(--dash-accent)]/30">
                 <Calendar className="w-5 h-5 text-[#FFDEC9]" />
               </div>
               <div>
-                <span className="text-xl font-bold font-serif tracking-tight text-white">DietRe</span>
+                <span className="text-xl font-bold font-heading tracking-tight text-white">dietre</span>
                 <span className="block text-[11px] text-[#E8D5C4] font-medium">
                   Anonymous dietary matching for large events
                 </span>
@@ -102,6 +103,7 @@ export function HomePageView() {
 
             {/* Top-Right Header Buttons */}
             <div className="flex items-center gap-2.5">
+              <HostThemeToggle className="!border-white/25 !bg-white/10 !text-white hover:!bg-white/25" />
               <button
                 id="btn-header-login"
                 type="button"
@@ -116,7 +118,7 @@ export function HomePageView() {
                 id="btn-header-signup"
                 type="button"
                 onClick={handleGoToLogin}
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#C15C3D] hover:bg-[#A84A2E] rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
               >
                 <UserPlus className="w-3.5 h-3.5 text-white" />
                 <span>Create Event</span>
@@ -132,16 +134,16 @@ export function HomePageView() {
           transition={{ duration: 0.7, ease: 'easeOut' }}
           className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center my-auto py-12 space-y-6"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FAF5EF]/15 border border-[#DFAB62]/30 backdrop-blur-sm text-xs font-semibold text-[#FFDEC9]">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--dash-surface-raised)]/15 border border-[#DFAB62]/30 backdrop-blur-sm text-xs font-semibold text-[#FFDEC9]">
             <Sparkles className="w-3.5 h-3.5 text-[#DFAB62]" />
             <span>When2meet for catering</span>
           </div>
 
           <div className="space-y-3">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold font-serif text-white tracking-tight leading-none drop-shadow-md">
-              DietRe
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold font-heading text-white tracking-tight leading-none drop-shadow-md">
+              dietre
             </h1>
-            <p className="text-base sm:text-xl lg:text-2xl text-[#F7ECE1] font-medium font-serif max-w-2xl mx-auto leading-snug drop-shadow-sm">
+            <p className="text-base sm:text-xl lg:text-2xl text-[#F7ECE1] font-medium font-heading max-w-2xl mx-auto leading-snug drop-shadow-sm">
               Anonymous, ingredient-level dietary matching for events too large to poll by vote
             </p>
           </div>
@@ -156,7 +158,7 @@ export function HomePageView() {
               id="btn-banner-signup"
               type="button"
               onClick={handleGoToLogin}
-              className="w-full sm:w-auto px-7 py-3.5 bg-[#C15C3D] hover:bg-[#A84A2E] text-white text-xs sm:text-sm font-bold rounded-2xl shadow-xl shadow-[#C15C3D]/30 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+              className="w-full sm:w-auto px-7 py-3.5 bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white text-xs sm:text-sm font-bold rounded-2xl shadow-xl shadow-[var(--dash-accent)]/30 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
             >
               <span>Host an Event</span>
               <ArrowRight className="w-4 h-4 text-white" />
@@ -193,12 +195,12 @@ export function HomePageView() {
                 <span>Built for events, not friend groups</span>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-bold font-serif text-[#2B170F] tracking-tight leading-tight">
+              <h2 className="text-3xl sm:text-4xl font-bold font-heading text-[var(--dash-text)] tracking-tight leading-tight">
                 Replace the &quot;who can&apos;t eat the pork?&quot; thread with real answers
               </h2>
 
-              <p className="text-sm text-[#61493C] leading-relaxed font-normal">
-                DietRe reads a diet and resolves it — into restaurant rankings a caterer can actually act
+              <p className="text-sm text-[var(--dash-text-soft)] leading-relaxed font-normal">
+                dietre reads a diet and resolves it — into restaurant rankings a caterer can actually act
                 on, and safe menu items rather than a checkbox list that flattens allergies, religious
                 practice, and preference into one category.
               </p>
@@ -209,8 +211,8 @@ export function HomePageView() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#2B170F]">Anonymous by design</h4>
-                    <p className="text-xs text-[#6B5549]">
+                    <h4 className="text-xs font-bold text-[var(--dash-text)]">Anonymous by design</h4>
+                    <p className="text-xs text-[var(--dash-text-soft)]">
                       Guests are identified only by a rotating token — &quot;Guest 07&quot;, never a name.
                       No login, no avatar, no account.
                     </p>
@@ -222,8 +224,8 @@ export function HomePageView() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#2B170F]">Ingredient-level matching</h4>
-                    <p className="text-xs text-[#6B5549]">
+                    <h4 className="text-xs font-bold text-[var(--dash-text)]">Ingredient-level matching</h4>
+                    <p className="text-xs text-[var(--dash-text-soft)]">
                       Hard excludes collide with estimated ingredients — pork, gluten, shellfish,
                       meat-dairy combos — not a restaurant&apos;s self-tagged checkbox.
                     </p>
@@ -235,8 +237,8 @@ export function HomePageView() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#2B170F]">Zero-match alerts</h4>
-                    <p className="text-xs text-[#6B5549]">
+                    <h4 className="text-xs font-bold text-[var(--dash-text)]">Zero-match alerts</h4>
+                    <p className="text-xs text-[var(--dash-text-soft)]">
                       If a guest has no safe option anywhere in range, the host sees an anonymous flag —
                       plus an email only if that guest chose to leave one.
                     </p>
@@ -248,7 +250,7 @@ export function HomePageView() {
                 <button
                   type="button"
                   onClick={handleGoToLogin}
-                  className="px-5 py-2.5 bg-[#C15C3D] hover:bg-[#A84A2E] text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-2"
                 >
                   <span>Host an Event</span>
                   <ArrowRight className="w-3.5 h-3.5 text-[#FFDEC9]" />
@@ -256,7 +258,7 @@ export function HomePageView() {
                 <button
                   type="button"
                   onClick={() => router.push(DEMO_GUEST_FORM_PATH)}
-                  className="px-4 py-2.5 text-xs font-semibold text-[#7C513D] hover:text-[#2B170F] underline cursor-pointer"
+                  className="px-4 py-2.5 text-xs font-semibold text-[#7C513D] hover:text-[var(--dash-text)] underline cursor-pointer"
                 >
                   Try the anonymous guest form →
                 </button>
@@ -270,13 +272,13 @@ export function HomePageView() {
               transition={{ duration: 0.65, delay: 0.1, ease: 'easeOut' }}
               className="lg:col-span-5"
             >
-              <div className="bg-[#EFE5D8] rounded-3xl border border-[#DFCEBD] shadow-xl p-5 sm:p-6 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#DFCEBD]">
+              <div className="bg-[var(--dash-surface)] rounded-3xl border border-[var(--dash-border)] shadow-xl p-5 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--dash-border)]">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#C15C3D]" />
+                    <div className="w-3 h-3 rounded-full bg-[var(--dash-accent)]" />
                     <div className="w-3 h-3 rounded-full bg-[#D49A4C]" />
                     <div className="w-3 h-3 rounded-full bg-[#687C64]" />
-                    <span className="text-xs font-bold font-serif text-[#2B170F] ml-2">
+                    <span className="text-xs font-bold font-heading text-[var(--dash-text)] ml-2">
                       Host Dashboard Preview
                     </span>
                   </div>
@@ -286,17 +288,17 @@ export function HomePageView() {
                 </div>
 
                 {/* Restaurant match preview */}
-                <div className="bg-[#FAF5EF] rounded-2xl border border-[#DFCEBD] p-4 space-y-2.5 shadow-xs">
+                <div className="bg-[var(--dash-surface-raised)] rounded-2xl border border-[var(--dash-border)] p-4 space-y-2.5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C15C3D] bg-[#FBECE6] px-2 py-0.5 rounded-md border border-[#F2C7B6]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--dash-accent)] bg-[#FBECE6] px-2 py-0.5 rounded-md border border-[#F2C7B6]">
                       Top Ranked
                     </span>
-                    <span className="text-xs font-semibold text-[#61493C] font-mono">
+                    <span className="text-xs font-semibold text-[var(--dash-text-soft)] font-mono">
                       92% · 13 of 14 matched
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold font-serif text-[#2B170F]">Downtown kitchen, 1.4 mi</h4>
-                  <div className="flex items-center gap-3 text-xs text-[#7A6052]">
+                  <h4 className="text-sm font-bold font-heading text-[var(--dash-text)]">Downtown kitchen, 1.4 mi</h4>
+                  <div className="flex items-center gap-3 text-xs text-[var(--dash-text-soft)]">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5 text-[#A5826F]" />
                       Within radius &amp; budget
@@ -305,30 +307,30 @@ export function HomePageView() {
                 </div>
 
                 {/* Anonymous response preview */}
-                <div className="bg-[#FAF5EF] rounded-2xl border border-[#DFCEBD] p-4 space-y-2.5 shadow-xs">
+                <div className="bg-[var(--dash-surface-raised)] rounded-2xl border border-[var(--dash-border)] p-4 space-y-2.5 shadow-xs">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#2B170F] font-mono">Guest 07</span>
-                    <span className="text-[10px] font-bold uppercase bg-[#FBECE6] text-[#A84A2E] px-2 py-0.5 rounded-full border border-[#F2C7B6]">
+                    <span className="font-bold text-[var(--dash-text)] font-mono">Guest 07</span>
+                    <span className="text-[10px] font-bold uppercase bg-[#FBECE6] text-[var(--dash-accent-deep)] px-2 py-0.5 rounded-full border border-[#F2C7B6]">
                       High constraint
                     </span>
                   </div>
-                  <p className="text-xs text-[#6B5549] italic leading-relaxed">
+                  <p className="text-xs text-[var(--dash-text-soft)] italic leading-relaxed">
                     &quot;No pork, no meat and dairy together, don&apos;t care about certification.&quot;
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#FBECE6] text-[#A84A2E] border border-[#F2C7B6]">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#FBECE6] text-[var(--dash-accent-deep)] border border-[#F2C7B6]">
                       no pork
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#FBECE6] text-[#A84A2E] border border-[#F2C7B6]">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#FBECE6] text-[var(--dash-accent-deep)] border border-[#F2C7B6]">
                       no meat+dairy combo
                     </span>
                   </div>
                 </div>
 
                 {/* Zero-match alert preview */}
-                <div className="flex items-center justify-between p-3 bg-[#351C12] text-[#FAF5EF] rounded-xl border border-[#522E1F]">
+                <div className="flex items-center justify-between p-3 bg-[#351C12] text-[var(--dash-surface-raised)] rounded-xl border border-[#522E1F]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#C15C3D]/20 border border-[#C15C3D]/50 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-[var(--dash-accent)]/20 border border-[var(--dash-accent)]/50 flex items-center justify-center">
                       <ShieldAlert className="w-4 h-4 text-[#DFAB62]" />
                     </div>
                     <div>
@@ -351,7 +353,7 @@ export function HomePageView() {
         </section>
 
         {/* Section B: Core Feature Deep-Dive */}
-        <section id="features" className="py-16 bg-[#EFE5D8]/80 border-y border-[#DFCEBD]">
+        <section id="features" className="py-16 bg-[var(--dash-surface)]/80 border-y border-[var(--dash-border)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -359,13 +361,13 @@ export function HomePageView() {
               transition={{ duration: 0.5 }}
               className="text-center max-w-3xl mx-auto mb-12 space-y-2"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-[#8A5A43] bg-[#FAF5EF] px-3 py-1 rounded-full border border-[#DFCEBD]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--dash-text-soft)] bg-[var(--dash-surface-raised)] px-3 py-1 rounded-full border border-[var(--dash-border)]">
                 Core Features
               </span>
-              <h3 className="text-2xl sm:text-3xl font-bold font-serif text-[#2B170F] tracking-tight">
+              <h3 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--dash-text)] tracking-tight">
                 Built for hosts running real headcounts
               </h3>
-              <p className="text-xs sm:text-sm text-[#6B5549]">
+              <p className="text-xs sm:text-sm text-[var(--dash-text-soft)]">
                 Weddings, corporate offsites, campus orgs, conferences — anything too large to swipe
                 through as a group.
               </p>
@@ -400,13 +402,13 @@ export function HomePageView() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: feat.delay, ease: 'easeOut' }}
                     whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                    className="bg-[#FAF5EF] p-6 rounded-3xl border border-[#DFCEBD] shadow-xs space-y-3 transition-shadow hover:shadow-md hover:border-[#C15C3D]/40"
+                    className="bg-[var(--dash-surface-raised)] p-6 rounded-3xl border border-[var(--dash-border)] shadow-xs space-y-3 transition-shadow hover:shadow-md hover:border-[var(--dash-accent)]/40"
                   >
                     <div className="w-10 h-10 rounded-2xl bg-[#3D2317] text-white flex items-center justify-center shadow-xs">
                       <IconComp className="w-5 h-5 text-[#DFAB62]" />
                     </div>
-                    <h4 className="text-base font-bold font-serif text-[#2B170F]">{feat.title}</h4>
-                    <p className="text-xs text-[#6B5549] leading-relaxed">{feat.desc}</p>
+                    <h4 className="text-base font-bold font-heading text-[var(--dash-text)]">{feat.title}</h4>
+                    <p className="text-xs text-[var(--dash-text-soft)] leading-relaxed">{feat.desc}</p>
                   </motion.div>
                 );
               })}
@@ -422,10 +424,10 @@ export function HomePageView() {
             transition={{ duration: 0.5 }}
             className="text-center max-w-2xl mx-auto mb-12 space-y-2"
           >
-            <span className="text-xs font-bold uppercase tracking-wider text-[#8A5A43] bg-[#FAF5EF] px-3 py-1 rounded-full border border-[#DFCEBD]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--dash-text-soft)] bg-[var(--dash-surface-raised)] px-3 py-1 rounded-full border border-[var(--dash-border)]">
               Host Guide
             </span>
-            <h3 className="text-2xl sm:text-3xl font-bold font-serif text-[#2B170F] tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--dash-text)] tracking-tight">
               Three steps, no spreadsheet archaeology
             </h3>
           </motion.div>
@@ -457,13 +459,13 @@ export function HomePageView() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: st.delay, ease: 'easeOut' }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="bg-[#FAF5EF] p-6 rounded-3xl border border-[#DFCEBD] space-y-3 shadow-xs hover:shadow-md"
+                className="bg-[var(--dash-surface-raised)] p-6 rounded-3xl border border-[var(--dash-border)] space-y-3 shadow-xs hover:shadow-md"
               >
-                <span className="w-8 h-8 rounded-full bg-[#C15C3D] text-white font-bold font-serif text-xs flex items-center justify-center shadow-xs">
+                <span className="w-8 h-8 rounded-full bg-[var(--dash-accent)] text-white font-bold font-heading text-xs flex items-center justify-center shadow-xs">
                   {st.step}
                 </span>
-                <h4 className="text-sm font-bold font-serif text-[#2B170F]">{st.title}</h4>
-                <p className="text-xs text-[#6B5549] leading-relaxed">{st.desc}</p>
+                <h4 className="text-sm font-bold font-heading text-[var(--dash-text)]">{st.title}</h4>
+                <p className="text-xs text-[var(--dash-text-soft)] leading-relaxed">{st.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -475,9 +477,9 @@ export function HomePageView() {
             initial={{ opacity: 0, scale: 0.96, y: 25 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="bg-gradient-to-br from-[#351C12] via-[#4A2718] to-[#25140C] text-[#FAF5EF] rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-2xl border border-[#6B3E29]"
+            className="bg-gradient-to-br from-[#351C12] via-[#4A2718] to-[#25140C] text-[var(--dash-surface-raised)] rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-2xl border border-[#6B3E29]"
           >
-            <h3 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-white">
+            <h3 className="text-2xl sm:text-3xl font-bold font-heading tracking-tight text-white">
               Ready to stop guessing what your guests can eat?
             </h3>
             <p className="text-xs sm:text-sm text-[#E2D0BE] max-w-xl mx-auto leading-relaxed">
@@ -489,7 +491,7 @@ export function HomePageView() {
                 id="btn-bottom-signup"
                 type="button"
                 onClick={handleGoToLogin}
-                className="w-full sm:w-auto px-6 py-3 bg-[#C15C3D] hover:bg-[#A84A2E] text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-3 bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <UserPlus className="w-4 h-4 text-white" />
                 <span>Host an Event</span>
@@ -509,28 +511,28 @@ export function HomePageView() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-[#DFCEBD] bg-[#EFE5D8]/70 py-8 px-4 sm:px-6 lg:px-8 text-center text-xs text-[#7A6052]">
+        <footer className="border-t border-[var(--dash-border)] bg-[var(--dash-surface)]/70 py-8 px-4 sm:px-6 lg:px-8 text-center text-xs text-[var(--dash-text-soft)]">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-[#C15C3D] text-white flex items-center justify-center shadow-xs">
+              <div className="w-6 h-6 rounded-lg bg-[var(--dash-accent)] text-white flex items-center justify-center shadow-xs">
                 <Calendar className="w-3.5 h-3.5 text-[#FFDEC9]" />
               </div>
-              <span className="font-bold font-serif text-[#2B170F]">DietRe</span>
+              <span className="font-bold font-heading text-[var(--dash-text)]">dietre</span>
               <span>— When2meet for catering</span>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-semibold text-[#61493C]">
+            <div className="flex items-center gap-4 text-xs font-semibold text-[var(--dash-text-soft)]">
               <button
                 type="button"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="hover:text-[#2B170F] cursor-pointer"
+                className="hover:text-[var(--dash-text)] cursor-pointer"
               >
                 Back to Top ↑
               </button>
-              <button type="button" onClick={handleGoToLogin} className="hover:text-[#2B170F] cursor-pointer">
+              <button type="button" onClick={handleGoToLogin} className="hover:text-[var(--dash-text)] cursor-pointer">
                 Host Log In
               </button>
-              <button type="button" onClick={handleExploreDemo} className="hover:text-[#2B170F] cursor-pointer">
+              <button type="button" onClick={handleExploreDemo} className="hover:text-[var(--dash-text)] cursor-pointer">
                 Live Demo
               </button>
             </div>

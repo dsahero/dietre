@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavItem } from '../types';
 import { PanelLeftClose, UtensilsCrossed, Home, ChevronRight, Bookmark, Users, Map } from 'lucide-react';
+import { ThemeToggleButton } from '@/frontend/components/theme-toggle-button';
 
 interface SidebarProps {
   navItems: NavItem[];
@@ -10,6 +11,8 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onGoHome: () => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -20,13 +23,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   onGoHome,
+  theme,
+  onToggleTheme,
 }) => {
   return (
     <>
       {/* Sidebar Container with Smooth Slide/Fold Transition */}
       <aside
         id="sidebar-navigation"
-        className={`sidebar transition-all duration-300 ease-in-out z-30 flex flex-col justify-between shrink-0 bg-[#160f0d] border-r border-[#2a1e1a] ${
+        className={`sidebar transition-all duration-300 ease-in-out z-30 flex flex-col justify-between shrink-0 bg-[var(--dash-bg)] border-r border-[var(--dash-border)] ${
           isCollapsed
             ? '-translate-x-full w-0 opacity-0 pointer-events-none p-0 overflow-hidden'
             : 'translate-x-0 w-[220px] opacity-100'
@@ -38,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className="pt-7 px-5">
           {/* Top Brand Header: Round Logo (Home Button) + Full Brand + Collapse Toggle */}
-          <div className="flex items-center justify-between pb-6 mb-7 border-b border-[#2e201b]">
+          <div className="flex items-center justify-between pb-6 mb-7 border-b border-[var(--dash-border)]">
             <div className="flex items-center gap-3">
               {/* Round Logo Home Button */}
               <button
@@ -46,38 +51,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={onGoHome}
                 id="sidebar-home-logo-btn"
                 title="Go to Home / Overview"
-                className="group relative w-11 h-11 rounded-full bg-gradient-to-br from-[#d98b58] via-[#b8744b] to-[#733f20] p-0.5 shadow-md shadow-[#b8744b]/30 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+                className="group relative w-11 h-11 rounded-full bg-gradient-to-br from-[var(--dash-accent-soft)] via-[var(--dash-accent)] to-[var(--dash-accent-deep)] p-0.5 shadow-md shadow-[var(--dash-accent)]/30 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
               >
-                <div className="w-full h-full rounded-full bg-[#1a1210] flex items-center justify-center border border-[#e29b6e]/40 group-hover:bg-[#241714] transition-colors">
-                  <UtensilsCrossed className="w-5 h-5 text-[#f4ba95] group-hover:rotate-12 transition-transform duration-300" />
+                <div className="w-full h-full rounded-full bg-[var(--dash-bg)] flex items-center justify-center border border-[var(--dash-accent-soft)]/40 group-hover:bg-[var(--dash-surface-hover)] transition-colors">
+                  <UtensilsCrossed className="w-5 h-5 text-[var(--dash-accent-soft)] group-hover:rotate-12 transition-transform duration-300" />
                 </div>
                 {/* Floating mini home indicator */}
-                <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#b8744b] border border-[#1a1210] flex items-center justify-center text-[9px] text-white font-bold">
+                <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[var(--dash-accent)] border border-[var(--dash-bg)] flex items-center justify-center text-[9px] text-white font-bold">
                   <Home className="w-2.5 h-2.5" />
                 </span>
               </button>
 
               {/* Full Logo Title & Subtitle */}
               <div className="flex flex-col">
-                <span className="text-sm font-bold tracking-wider text-white uppercase font-serif">
-                  DietRe
+                <span className="text-sm font-bold tracking-wider text-white font-heading">
+                  dietre
                 </span>
-                <span className="text-[10px] tracking-widest text-[#a8958c] uppercase font-semibold">
+                <span className="text-[10px] tracking-widest text-[var(--dash-text-muted)] uppercase font-semibold">
                   Event Dashboard
                 </span>
               </div>
             </div>
 
-            {/* Fold/Slide Sidebar Left Toggle Button */}
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              id="collapse-sidebar-btn"
-              title="Slide sidebar into left (Collapse)"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8e7e78] hover:text-white hover:bg-[#291b17] transition-colors cursor-pointer"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <ThemeToggleButton theme={theme} onToggle={onToggleTheme} label="dashboard" />
+              {/* Fold/Slide Sidebar Left Toggle Button */}
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                id="collapse-sidebar-btn"
+                title="Slide sidebar into left (Collapse)"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--dash-text-muted)] hover:text-white hover:bg-[var(--dash-surface-raised)] transition-colors cursor-pointer"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Section Header: WORKSPACE */}
@@ -94,14 +102,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   switch (item.iconName || item.id) {
                     case 'shortlisted':
                     case 'bookmark':
-                      return <Bookmark className={`w-4 h-4 ${isActive ? 'text-[#e29b6e] fill-[#e29b6e]/30' : 'text-[#887872]'}`} />;
+                      return <Bookmark className={`w-4 h-4 ${isActive ? 'text-[var(--dash-accent-soft)] fill-[var(--dash-accent-soft)]/30' : 'text-[var(--dash-text-muted)]'}`} />;
                     case 'users':
-                      return <Users className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
+                      return <Users className={`w-4 h-4 ${isActive ? 'text-[var(--dash-accent-soft)]' : 'text-[var(--dash-text-muted)]'}`} />;
                     case 'map':
-                      return <Map className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
+                      return <Map className={`w-4 h-4 ${isActive ? 'text-[var(--dash-accent-soft)]' : 'text-[var(--dash-text-muted)]'}`} />;
                     case 'overview':
                     default:
-                      return <UtensilsCrossed className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
+                      return <UtensilsCrossed className={`w-4 h-4 ${isActive ? 'text-[var(--dash-accent-soft)]' : 'text-[var(--dash-text-muted)]'}`} />;
                   }
                 };
 
@@ -112,8 +120,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       id={`nav-link-${item.id}`}
                       className={`nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[#291c18] text-[#f7ece8] font-semibold border-l-2 border-[#b8744b]'
-                          : 'text-[#94847e] hover:text-white hover:bg-[#201512]'
+                          ? 'bg-[var(--dash-surface-raised)] text-[var(--dash-text)] font-semibold border-l-2 border-[var(--dash-accent)]'
+                          : 'text-[var(--dash-text-muted)] hover:text-white hover:bg-[var(--dash-surface)]'
                       }`}
                       onClick={() => onSelect(item.id)}
                     >
@@ -125,8 +133,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <span
                           className={`text-[10.5px] px-2 py-0.5 rounded-full font-semibold ${
                             isActive
-                              ? 'bg-[#b8744b] text-white'
-                              : 'bg-[#3d2720] text-[#d68b5e]'
+                              ? 'bg-[var(--dash-accent)] text-white'
+                              : 'bg-[var(--dash-border)] text-[var(--dash-accent-soft)]'
                           }`}
                         >
                           {item.badge}
@@ -141,14 +149,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Sidebar Footer: Quick Info */}
-        <div className="p-4 m-3 rounded-xl bg-[#201512] border border-[#2d1e19] text-xs text-[#8e7e78]">
+        <div className="p-4 m-3 rounded-xl bg-[var(--dash-surface)] border border-[var(--dash-border)] text-xs text-[var(--dash-text-muted)]">
           <div className="flex items-center justify-between mb-1">
-            <span className="font-semibold text-[#d4c8c2]">Status</span>
+            <span className="font-semibold text-[var(--dash-text-soft)]">Status</span>
             <span className="flex items-center gap-1 text-[11px] text-[#22c55e]">
               <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" /> Live Curation
             </span>
           </div>
-          <p className="text-[11px] leading-relaxed text-[#94847e]">
+          <p className="text-[11px] leading-relaxed text-[var(--dash-text-muted)]">
             Curating venues within event radius.
           </p>
         </div>
@@ -163,12 +171,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onGoHome}
             id="floating-home-logo-btn"
             title="Home / Overview"
-            className="group relative w-11 h-11 rounded-full bg-gradient-to-br from-[#d98b58] via-[#b8744b] to-[#733f20] p-0.5 shadow-xl shadow-black/50 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+            className="group relative w-11 h-11 rounded-full bg-gradient-to-br from-[var(--dash-accent-soft)] via-[var(--dash-accent)] to-[var(--dash-accent-deep)] p-0.5 shadow-xl shadow-black/50 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
           >
-            <div className="w-full h-full rounded-full bg-[#1a1210] flex items-center justify-center border border-[#e29b6e]/40 group-hover:bg-[#241714] transition-colors">
-              <UtensilsCrossed className="w-5 h-5 text-[#f4ba95]" />
+            <div className="w-full h-full rounded-full bg-[var(--dash-bg)] flex items-center justify-center border border-[var(--dash-accent-soft)]/40 group-hover:bg-[var(--dash-surface-hover)] transition-colors">
+              <UtensilsCrossed className="w-5 h-5 text-[var(--dash-accent-soft)]" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#b8744b] border border-[#1a1210] flex items-center justify-center text-[9px] text-white font-bold">
+            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[var(--dash-accent)] border border-[var(--dash-bg)] flex items-center justify-center text-[9px] text-white font-bold">
               <Home className="w-2.5 h-2.5" />
             </span>
           </button>
@@ -179,11 +187,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onToggleCollapse}
             id="reopen-sidebar-btn"
             title="Expand Sidebar"
-            className="h-10 px-3 rounded-full bg-[#231a17]/90 backdrop-blur-md border border-[#43322b] text-[#c7b9b3] hover:text-white hover:bg-[#32231e] shadow-lg flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer"
+            className="h-10 px-3 rounded-full bg-[var(--dash-surface)]/90 backdrop-blur-md border border-[var(--dash-border)] text-[var(--dash-text-soft)] hover:text-white hover:bg-[var(--dash-border)] shadow-lg flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer"
           >
             <span>Menu</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#b8744b]" />
+            <ChevronRight className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
           </button>
+
+          <ThemeToggleButton
+            theme={theme}
+            onToggle={onToggleTheme}
+            label="dashboard"
+            className="h-10 w-10 rounded-full bg-[var(--dash-surface)]/90 backdrop-blur-md shadow-lg"
+          />
         </div>
       )}
     </>

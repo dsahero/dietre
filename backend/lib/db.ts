@@ -10,7 +10,16 @@ import {
 } from "@/backend/data/seed";
 import { hostIdFromEmail } from "@/backend/lib/auth";
 import { hasMongo } from "@/shared/lib/config";
-import type { DataStore, DietResponse, DietreEvent, HostRecord, MenuItem, Restaurant } from "@/shared/lib/types";
+import type {
+  AiItemJudgment,
+  DataStore,
+  DietResponse,
+  DietreEvent,
+  HostRecord,
+  MenuItem,
+  Restaurant,
+  ResponseItemJudgments,
+} from "@/shared/lib/types";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
@@ -19,7 +28,7 @@ let mongoPromise: Promise<Db> | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
 
 function emptyStore(): DataStore {
-  return { events: [], responses: [], restaurants: [], menu_items: [], hosts: [] };
+  return { events: [], responses: [], restaurants: [], menu_items: [], hosts: [], ai_judgments: [] };
 }
 
 function withSeed(store: DataStore): DataStore {
@@ -38,7 +47,9 @@ function withSeed(store: DataStore): DataStore {
   const missingHosts = SEED_HOSTS.filter((host) => !existingHostIds.has(host.host_id));
   const hosts = [...(store.hosts ?? []), ...missingHosts];
 
-  return { events, responses, restaurants, menu_items, hosts };
+  const ai_judgments = store.ai_judgments ?? [];
+
+  return { events, responses, restaurants, menu_items, hosts, ai_judgments };
 }
 
 async function readJsonStore(): Promise<DataStore> {
@@ -170,7 +181,19 @@ export async function createEvent(event: DietreEvent): Promise<DietreEvent> {
 export async function updateEvent(
   id: string,
   patch: Partial<
-    Pick<DietreEvent, "name" | "location" | "lat" | "lng" | "radius" | "budget_range" | "expected_headcount">
+    Pick<
+      DietreEvent,
+      | "name"
+      | "location"
+      | "lat"
+      | "lng"
+      | "radius"
+      | "budget_range"
+      | "expected_headcount"
+      | "limitations"
+      | "limitations_checklist"
+      | "checklist_notes_by_restaurant"
+    >
   >
 ): Promise<DietreEvent | null> {
   if (hasMongo()) {
@@ -290,6 +313,40 @@ export async function deleteHost(hostId: string): Promise<void> {
   await enqueueWrite(async () => {
     const store = await readJsonStore();
     store.hosts = store.hosts.filter((host) => host.host_id !== hostId);
+    await persistJson(store);
+  });
+}
+
+// Gemini per-item safety judgments are cached per response (responses are
+// immutable once submitted, and menu items are static seed data), so a
+// dashboard reload never re-pays for the same Gemini call.
+export async function getResponseJudgments(responseId: string): Promise<Record<string, AiItemJudgment> | null> {
+  if (hasMongo()) {
+    const db = await getMongo();
+    const doc = await db.collection<ResponseItemJudgments>("ai_judgments").findOne({ response_id: responseId });
+    return doc ? doc.judgments : null;
+  }
+  const store = await readJsonStore();
+  const doc = store.ai_judgments.find((entry) => entry.response_id === responseId);
+  return doc ? doc.judgments : null;
+}
+
+export async function saveResponseJudgments(
+  responseId: string,
+  judgments: Record<string, AiItemJudgment>
+): Promise<void> {
+  const entry: ResponseItemJudgments = { response_id: responseId, computed_at: new Date().toISOString(), judgments };
+  if (hasMongo()) {
+    const db = await getMongo();
+    await db
+      .collection<ResponseItemJudgments>("ai_judgments")
+      .updateOne({ response_id: responseId }, { $set: entry }, { upsert: true });
+    return;
+  }
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    store.ai_judgments = store.ai_judgments.filter((item) => item.response_id !== responseId);
+    store.ai_judgments.push(entry);
     await persistJson(store);
   });
 }
