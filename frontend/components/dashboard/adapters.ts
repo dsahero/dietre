@@ -35,6 +35,7 @@ export function toEventDetails(event: DietreEvent, responses?: DietResponse[]): 
   return {
     name: event.name,
     address: event.location,
+    placeId: event.google_place_id ?? null,
     date: event.date,
     maxDistanceRadius: `${event.radius} ${event.radius === 1 ? 'mile' : 'miles'}`,
     radiusMiles: event.radius,

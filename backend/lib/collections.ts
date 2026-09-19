@@ -173,6 +173,7 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     checklist_notes_by_restaurant: event.checklist_notes_by_restaurant ?? {},
     complex_notes_by_restaurant: event.complex_notes_by_restaurant ?? {},
     complex_notes_signature: event.complex_notes_signature ?? "",
+    google_place_id: event.google_place_id ?? null,
   };
 }
 
@@ -207,6 +208,7 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
         ? (doc.complex_notes_by_restaurant as DietreEvent["complex_notes_by_restaurant"])
         : undefined,
     complex_notes_signature: typeof doc.complex_notes_signature === "string" ? doc.complex_notes_signature : undefined,
+    google_place_id: typeof doc.google_place_id === "string" ? doc.google_place_id : null,
   };
 }
 
@@ -226,6 +228,7 @@ export function eventPatchToDoc(
       | "checklist_notes_by_restaurant"
       | "complex_notes_by_restaurant"
       | "complex_notes_signature"
+      | "google_place_id"
     >
   >
 ): Record<string, unknown> {
@@ -249,6 +252,7 @@ export function eventPatchToDoc(
     data.complex_notes_by_restaurant = patch.complex_notes_by_restaurant;
   }
   if (patch.complex_notes_signature !== undefined) data.complex_notes_signature = patch.complex_notes_signature;
+  if (patch.google_place_id !== undefined) data.google_place_id = patch.google_place_id;
   return data;
 }
 

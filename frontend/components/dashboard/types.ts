@@ -106,6 +106,7 @@ export interface ComplexRequirementNote {
 export interface EventDetails {
   name: string;
   address: string;
+  placeId?: string | null;
   date: string;
   maxDistanceRadius: string; // display string, e.g. "5 miles"
   radiusMiles: number;

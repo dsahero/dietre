@@ -64,6 +64,9 @@ export type DietreEvent = {
   // load; complex_notes_signature records which input it was computed for.
   complex_notes_by_restaurant?: Record<string, ComplexRequirementNote[]>;
   complex_notes_signature?: string;
+  // Google Places id the host's location text resolved to (real geocoding),
+  // or null when resolved via the offline landmark-list fallback instead.
+  google_place_id?: string | null;
 };
 
 export type ParsedRules = {

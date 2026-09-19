@@ -61,6 +61,26 @@ html, body {
   will-change: width, transform, opacity;
 }
 
+/*
+ * `@import "tailwindcss"` puts every Tailwind utility inside `@layer`, and
+ * per the CSS cascade-layers spec, ANY unlayered rule always beats a
+ * layered one regardless of selector specificity or source order. Plain
+ * rules written directly in this file (like the width above) are
+ * unlayered, so the collapsed-state utility classes on <aside> (w-0,
+ * opacity-0, etc. — see Sidebar.tsx) were losing to `width: 230px` every
+ * time: the sidebar visually slid away and faded out (transform/opacity
+ * have no competing unlayered rule here, so those did apply) but its real
+ * layout width never reached 0, leaving a permanent 230px gap that
+ * .main-content could never expand into. Targeting the same `aria-hidden`
+ * attribute the component already sets on collapse keeps this rule in the
+ * same unlayered context, where normal specificity applies and this wins.
+ */
+.sidebar[aria-hidden="true"] {
+  width: 0;
+  min-width: 0;
+  border-right-width: 0;
+}
+
 /* Broken artistic hairline overlay down the sidebar border to avoid sterile 1px look */
 .sidebar::after {
   content: "";

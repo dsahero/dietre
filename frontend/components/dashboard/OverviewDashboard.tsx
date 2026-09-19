@@ -162,6 +162,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
       body: JSON.stringify({
         name: patch.name,
         location: patch.address,
+        place_id: patch.place_id,
         radius: patch.radiusMiles,
         budget_range: patch.maxBudget,
         expected_headcount: patch.expectedHeadcount,

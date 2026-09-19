@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Compass, Filter, Info, Menu, Search, ZoomIn, ZoomOut } from 'lucide-react';
+import { Compass, Filter, Info, Maximize2, Menu, Minimize2, Search, ZoomIn, ZoomOut } from 'lucide-react';
 import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
 import { useIsMobile } from '@/frontend/lib/use-is-mobile';
@@ -61,6 +61,7 @@ export const MapTab: React.FC<MapTabProps> = ({
   const markersRef = useRef<L.LayerGroup | null>(null);
 
   const isMobile = useIsMobile(880);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<MatchTier | null>(null);
@@ -74,6 +75,26 @@ export const MapTab: React.FC<MapTabProps> = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the viewport, not derivable during render
     if (isMobile) setIsSidebarOpen(false);
   }, [isMobile]);
+
+  // Escape backs out of the maximized (fullscreen-overlay) view, and the
+  // page behind it shouldn't scroll while it's covering the screen.
+  // Leaflet's own ResizeObserver (below) already re-measures the tile
+  // layer whenever containerRef's box changes, which fires automatically
+  // as this toggle grows/shrinks that box — no extra invalidateSize() call
+  // needed here.
+  useEffect(() => {
+    if (!isMaximized) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMaximized(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMaximized]);
 
   // Only venues within the event radius plus a reasonable buffer, so the
   // map isn't cluttered with places nobody could realistically travel to.
@@ -213,7 +234,14 @@ export const MapTab: React.FC<MapTabProps> = ({
   }, [inRange]);
 
   return (
-    <div className="flex h-[70vh] min-h-[420px] overflow-hidden rounded-sm border border-[var(--dash-border)] sm:h-[720px]" id="map-tab-container">
+    <div
+      className={
+        isMaximized
+          ? 'fixed inset-0 z-[2000] flex overflow-hidden border border-[var(--dash-border)]'
+          : 'flex h-[70vh] min-h-[420px] overflow-hidden rounded-sm border border-[var(--dash-border)] sm:h-[720px]'
+      }
+      id="map-tab-container"
+    >
       {/* Locations sidebar */}
       {isSidebarOpen && (
         <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-r border-[var(--dash-border)] bg-[var(--dash-surface)] sm:w-80">
@@ -328,15 +356,26 @@ export const MapTab: React.FC<MapTabProps> = ({
             </span>
           </div>
 
-          <div className="relative w-40 sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--dash-text-muted)]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search restaurants..."
-              className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] py-1.5 pl-8 pr-3 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative w-40 sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--dash-text-muted)]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search restaurants..."
+                className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] py-1.5 pl-8 pr-3 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMaximized((prev) => !prev)}
+              aria-label={isMaximized ? 'Exit fullscreen map' : 'Maximize map'}
+              title={isMaximized ? 'Exit fullscreen (Esc)' : 'Maximize map'}
+              className="cursor-pointer rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] p-1.5 text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
+            >
+              {isMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </button>
           </div>
         </div>
 
