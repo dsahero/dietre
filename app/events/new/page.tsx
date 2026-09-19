@@ -17,8 +17,8 @@ export default async function NewEventPage() {
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
         <h1 className="font-heading text-3xl">Create an event</h1>
         <p className="mt-2 mb-8 text-muted-foreground">
-          Location geocodes against known Blacksburg / VT landmarks. Restaurants outside the radius still appear, just
-          demoted.
+          Search any address worldwide. Restaurant matching uses your chosen coordinates and search radius.
+          Places outside the radius still appear, just demoted.
         </p>
         <EventForm />
       </main>

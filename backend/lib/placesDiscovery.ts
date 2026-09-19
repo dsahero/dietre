@@ -1,6 +1,5 @@
 import { withTimeout } from "@/backend/lib/with-timeout";
 import { hasPlacesApiKey as hasPlacesApiKeyConfig } from "@/shared/lib/config";
-import { DOWNTOWN_BLACKSBURG } from "@/shared/lib/places";
 
 export type PlaceSuggestion = { placeId: string; mainText: string; secondaryText: string };
 export type ResolvedPlace = { formattedAddress: string; lat: number; lng: number; displayName: string };
@@ -35,12 +34,6 @@ export async function autocompletePlaces(input: string): Promise<PlaceSuggestion
         },
         body: JSON.stringify({
           input,
-          locationBias: {
-            circle: {
-              center: { latitude: DOWNTOWN_BLACKSBURG.lat, longitude: DOWNTOWN_BLACKSBURG.lng },
-              radius: 50000,
-            },
-          },
         }),
       }),
       4000,

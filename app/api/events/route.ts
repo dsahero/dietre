@@ -3,7 +3,6 @@ import { getSession } from "@/backend/lib/auth";
 import { createEvent, listEventsByHost } from "@/backend/lib/db";
 import { resolvePlace } from "@/backend/lib/placesDiscovery";
 import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
-import { geocodeBlacksburg } from "@/shared/lib/places";
 import type { BudgetRange, DietreEvent } from "@/shared/lib/types";
 
 export async function GET() {
@@ -49,25 +48,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Expected headcount must be at least 1." }, { status: 400 });
   }
 
-  let lat: number;
-  let lng: number;
-  let googlePlaceId: string | null = null;
-  if (place_id.startsWith("landmark:")) {
-    const place = geocodeBlacksburg(place_id.slice("landmark:".length));
-    lat = place.lat;
-    lng = place.lng;
-  } else {
-    const resolved = await resolvePlace(place_id);
-    if (resolved) {
-      lat = resolved.lat;
-      lng = resolved.lng;
-      googlePlaceId = place_id;
-    } else {
-      const place = geocodeBlacksburg(location);
-      lat = place.lat;
-      lng = place.lng;
-    }
+  const resolved = await resolvePlace(place_id);
+  if (!resolved) {
+    return NextResponse.json(
+      { error: "Could not resolve that location. Pick another suggestion." },
+      { status: 400 }
+    );
   }
+  const lat = resolved.lat;
+  const lng = resolved.lng;
+  const googlePlaceId = place_id;
 
   const event: DietreEvent = {
     id: crypto.randomUUID(),

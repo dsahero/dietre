@@ -10,7 +10,6 @@ import {
 import { matchEvent } from "@/backend/lib/matching";
 import { resolvePlace } from "@/backend/lib/placesDiscovery";
 import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
-import { geocodeBlacksburg } from "@/shared/lib/places";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
 export async function GET(
@@ -106,28 +105,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     locationChanged = location !== event.location;
     if (locationChanged) {
-      let lat: number;
-      let lng: number;
-      let googlePlaceId: string | null = null;
-      if (place_id.startsWith("landmark:")) {
-        const place = geocodeBlacksburg(place_id.slice("landmark:".length));
-        lat = place.lat;
-        lng = place.lng;
-      } else {
-        const resolved = await resolvePlace(place_id);
-        if (resolved) {
-          lat = resolved.lat;
-          lng = resolved.lng;
-          googlePlaceId = place_id;
-        } else {
-          const place = geocodeBlacksburg(location);
-          lat = place.lat;
-          lng = place.lng;
-        }
+      const resolved = await resolvePlace(place_id);
+      if (!resolved) {
+        return NextResponse.json(
+          { error: "Could not resolve that location. Pick another suggestion." },
+          { status: 400 }
+        );
       }
-      patch.lat = lat;
-      patch.lng = lng;
-      patch.google_place_id = googlePlaceId;
+      patch.lat = resolved.lat;
+      patch.lng = resolved.lng;
+      patch.google_place_id = place_id;
     }
     patch.location = location;
   }
