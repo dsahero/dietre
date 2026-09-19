@@ -1,4 +1,5 @@
-import type { DietResponse, DietreEvent, MenuItem, Restaurant } from "@/shared/lib/types";
+import { hashPassword, hostIdFromEmail } from "@/backend/lib/auth";
+import type { DietResponse, DietreEvent, HostRecord, MenuItem, Restaurant } from "@/shared/lib/types";
 
 function flags(partial: MenuItem["flags"]): MenuItem["flags"] {
   return partial;
@@ -1041,7 +1042,10 @@ export const SEED_MENU_ITEMS: MenuItem[] = [
 ];
 
 export const DEMO_EVENT_ID = "demo-vt-hacks";
-export const DEMO_HOST_ID = "demo-host";
+// Derived the same way every real account's host_id is derived, so logging
+// in as DEMO_HOST_EMAIL actually lands on this same host_id.
+export const DEMO_HOST_EMAIL = "demo@dietre.app";
+export const DEMO_HOST_ID = hostIdFromEmail(DEMO_HOST_EMAIL);
 
 export const SEED_DEMO_EVENT: DietreEvent = {
   id: DEMO_EVENT_ID,
@@ -1191,4 +1195,178 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
     contact_email: "zero-match-demo@example.com",
     submitted_at: "2026-09-18T18:08:00.000Z",
   },
+];
+
+// Demo host account — real, working credentials for the mock/local auth
+// provider, so the login/signup/profile flow has something real to sign
+// into out of the box. Password: "dietre-demo-2026".
+export const SEED_HOSTS: HostRecord[] = [
+  {
+    host_id: DEMO_HOST_ID,
+    email: DEMO_HOST_EMAIL,
+    name: "Jordan Blacksburg",
+    provider: "mock",
+    password_hash: hashPassword("dietre-demo-2026"),
+    created_at: "2026-09-01T12:00:00.000Z",
+    updated_at: "2026-09-01T12:00:00.000Z",
+  },
+];
+
+// A second, smaller demo event so the events grid has more than one card
+// to show off out of the box.
+export const SEED_EVENT_2_ID = "demo-wic-mixer";
+export const SEED_EVENT_2: DietreEvent = {
+  id: SEED_EVENT_2_ID,
+  host_id: DEMO_HOST_ID,
+  name: "Women in Computing Mixer",
+  date: "2026-10-03T17:30",
+  location: "Graduate Life Center / GLC",
+  lat: 37.2289,
+  lng: -80.4233,
+  radius: 1.5,
+  budget_range: "$",
+  expected_headcount: 60,
+  created_at: "2026-09-10T14:00:00.000Z",
+};
+
+export const SEED_EVENT_2_RESPONSES: DietResponse[] = [
+  {
+    id: "resp-wic-1",
+    event_id: SEED_EVENT_2_ID,
+    raw_text: "Vegetarian, no fish either. Dairy and eggs are fine.",
+    parsed_rules: {
+      hard_excludes: ["meat", "fish", "shellfish"],
+      soft_preferences: ["vegetarian"],
+      severity: "medium",
+    },
+    submitted_at: "2026-09-11T09:12:00.000Z",
+  },
+  {
+    id: "resp-wic-2",
+    event_id: SEED_EVENT_2_ID,
+    raw_text: "Lactose intolerant — dairy gives me real trouble. Everything else is fine.",
+    parsed_rules: {
+      hard_excludes: ["dairy"],
+      soft_preferences: [],
+      severity: "medium",
+    },
+    submitted_at: "2026-09-11T09:20:00.000Z",
+  },
+  {
+    id: "resp-wic-3",
+    event_id: SEED_EVENT_2_ID,
+    raw_text: "No restrictions, but I'd love something with fresh veggies if it's easy.",
+    parsed_rules: {
+      hard_excludes: [],
+      soft_preferences: ["fresh vegetables"],
+      severity: "low",
+    },
+    submitted_at: "2026-09-11T09:31:00.000Z",
+  },
+  {
+    id: "resp-wic-4",
+    event_id: SEED_EVENT_2_ID,
+    raw_text: "Severe shellfish allergy — throat swelling. Please keep it far away from my food.",
+    parsed_rules: {
+      hard_excludes: ["shellfish"],
+      soft_preferences: [],
+      severity: "high",
+    },
+    contact_email: "wic-guest@example.com",
+    submitted_at: "2026-09-11T09:40:00.000Z",
+  },
+  {
+    id: "resp-wic-5",
+    event_id: SEED_EVENT_2_ID,
+    raw_text: "Gluten-free, diagnosed celiac. Cross-contamination matters to me.",
+    parsed_rules: {
+      hard_excludes: ["gluten", "wheat"],
+      soft_preferences: [],
+      severity: "high",
+    },
+    submitted_at: "2026-09-11T09:47:00.000Z",
+  },
+];
+
+// A larger, pricier third demo event, further out, to show range/budget
+// filtering doing real work in the dashboard.
+export const SEED_EVENT_3_ID = "demo-alumni-tailgate";
+export const SEED_EVENT_3: DietreEvent = {
+  id: SEED_EVENT_3_ID,
+  host_id: DEMO_HOST_ID,
+  name: "Alumni Weekend Tailgate Dinner",
+  date: "2026-11-07T16:00",
+  location: "The Inn at Virginia Tech",
+  lat: 37.2318,
+  lng: -80.4255,
+  radius: 3,
+  budget_range: "$$$",
+  expected_headcount: 250,
+  created_at: "2026-09-15T10:00:00.000Z",
+};
+
+export const SEED_EVENT_3_RESPONSES: DietResponse[] = [
+  {
+    id: "resp-tailgate-1",
+    event_id: SEED_EVENT_3_ID,
+    raw_text: "Keep kosher — no pork, no shellfish, no mixing meat and dairy.",
+    parsed_rules: {
+      hard_excludes: ["pork", "shellfish", "meat dairy combo"],
+      soft_preferences: ["kosher"],
+      severity: "medium",
+    },
+    submitted_at: "2026-09-16T11:05:00.000Z",
+  },
+  {
+    id: "resp-tailgate-2",
+    event_id: SEED_EVENT_3_ID,
+    raw_text: "Vegan, and I'd rather not have anything ultra-processed if there's a choice.",
+    parsed_rules: {
+      hard_excludes: ["meat", "dairy", "egg", "honey", "animal products"],
+      soft_preferences: ["whole foods"],
+      severity: "medium",
+    },
+    submitted_at: "2026-09-16T11:12:00.000Z",
+  },
+  {
+    id: "resp-tailgate-3",
+    event_id: SEED_EVENT_3_ID,
+    raw_text: "Diabetic — try to avoid heavy sugar sauces, but not a hard rule.",
+    parsed_rules: {
+      hard_excludes: [],
+      soft_preferences: ["low sugar"],
+      severity: "low",
+    },
+    submitted_at: "2026-09-16T11:20:00.000Z",
+  },
+  {
+    id: "resp-tailgate-4",
+    event_id: SEED_EVENT_3_ID,
+    raw_text: "Tree nut allergy, confirmed by allergist. Peanuts are fine, tree nuts are not.",
+    parsed_rules: {
+      hard_excludes: ["tree nuts"],
+      soft_preferences: [],
+      severity: "high",
+    },
+    contact_email: "tailgate-guest@example.com",
+    submitted_at: "2026-09-16T11:27:00.000Z",
+  },
+  {
+    id: "resp-tailgate-5",
+    event_id: SEED_EVENT_3_ID,
+    raw_text: "Eat everything, no restrictions, no preferences. Surprise me.",
+    parsed_rules: {
+      hard_excludes: [],
+      soft_preferences: [],
+      severity: "low",
+    },
+    submitted_at: "2026-09-16T11:30:00.000Z",
+  },
+];
+
+export const SEED_EVENTS: DietreEvent[] = [SEED_DEMO_EVENT, SEED_EVENT_2, SEED_EVENT_3];
+export const SEED_EVENT_RESPONSES: DietResponse[] = [
+  ...SEED_DEMO_RESPONSES,
+  ...SEED_EVENT_2_RESPONSES,
+  ...SEED_EVENT_3_RESPONSES,
 ];

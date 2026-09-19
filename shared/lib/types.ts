@@ -78,6 +78,20 @@ export type HostSession = {
   provider: "firebase" | "mock";
 };
 
+// Persistent host profile — separate from HostSession (the signed cookie).
+// password_hash is only ever set for provider "mock"; Firebase manages its
+// own credentials and is never asked to hold one here.
+export type HostRecord = {
+  host_id: string;
+  email: string;
+  name: string;
+  avatar_data_url?: string;
+  password_hash?: string;
+  provider: "firebase" | "mock";
+  created_at: string;
+  updated_at: string;
+};
+
 export type SafeMenuItem = {
   item: MenuItem;
   covered_response_ids: string[];
@@ -116,4 +130,5 @@ export type DataStore = {
   responses: DietResponse[];
   restaurants: Restaurant[];
   menu_items: MenuItem[];
+  hosts: HostRecord[];
 };

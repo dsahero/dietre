@@ -2,13 +2,15 @@ import { promises as fs } from "fs";
 import path from "path";
 import { MongoClient, type Db } from "mongodb";
 import {
-  SEED_DEMO_EVENT,
-  SEED_DEMO_RESPONSES,
+  SEED_EVENT_RESPONSES,
+  SEED_EVENTS,
+  SEED_HOSTS,
   SEED_MENU_ITEMS,
   SEED_RESTAURANTS,
 } from "@/backend/data/seed";
+import { hostIdFromEmail } from "@/backend/lib/auth";
 import { hasMongo } from "@/shared/lib/config";
-import type { DataStore, DietResponse, DietreEvent, MenuItem, Restaurant } from "@/shared/lib/types";
+import type { DataStore, DietResponse, DietreEvent, HostRecord, MenuItem, Restaurant } from "@/shared/lib/types";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
@@ -17,18 +19,26 @@ let mongoPromise: Promise<Db> | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
 
 function emptyStore(): DataStore {
-  return { events: [], responses: [], restaurants: [], menu_items: [] };
+  return { events: [], responses: [], restaurants: [], menu_items: [], hosts: [] };
 }
 
 function withSeed(store: DataStore): DataStore {
   const restaurants = SEED_RESTAURANTS;
   const menu_items = SEED_MENU_ITEMS;
-  const events = store.events.some((event) => event.id === SEED_DEMO_EVENT.id)
-    ? store.events
-    : [SEED_DEMO_EVENT, ...store.events];
-  const known = new Set(store.responses.map((response) => response.id));
-  const missingDemo = SEED_DEMO_RESPONSES.filter((response) => !known.has(response.id));
-  return { events, responses: [...store.responses, ...missingDemo], restaurants, menu_items };
+
+  const existingEventIds = new Set(store.events.map((event) => event.id));
+  const missingEvents = SEED_EVENTS.filter((event) => !existingEventIds.has(event.id));
+  const events = [...missingEvents, ...store.events];
+
+  const knownResponseIds = new Set(store.responses.map((response) => response.id));
+  const missingResponses = SEED_EVENT_RESPONSES.filter((response) => !knownResponseIds.has(response.id));
+  const responses = [...store.responses, ...missingResponses];
+
+  const existingHostIds = new Set((store.hosts ?? []).map((host) => host.host_id));
+  const missingHosts = SEED_HOSTS.filter((host) => !existingHostIds.has(host.host_id));
+  const hosts = [...(store.hosts ?? []), ...missingHosts];
+
+  return { events, responses, restaurants, menu_items, hosts };
 }
 
 async function readJsonStore(): Promise<DataStore> {
@@ -73,12 +83,23 @@ async function ensureMongoSeed(db: Db): Promise<void> {
     await menu.insertMany(SEED_MENU_ITEMS);
   }
   const events = db.collection("events");
-  if (!(await events.findOne({ id: SEED_DEMO_EVENT.id }))) {
-    await events.insertOne(SEED_DEMO_EVENT);
+  for (const event of SEED_EVENTS) {
+    if (!(await events.findOne({ id: event.id }))) {
+      await events.insertOne(event);
+    }
   }
   const responses = db.collection("responses");
-  if ((await responses.countDocuments({ event_id: SEED_DEMO_EVENT.id })) === 0) {
-    await responses.insertMany(SEED_DEMO_RESPONSES);
+  for (const event of SEED_EVENTS) {
+    if ((await responses.countDocuments({ event_id: event.id })) === 0) {
+      const seeded = SEED_EVENT_RESPONSES.filter((response) => response.event_id === event.id);
+      if (seeded.length > 0) await responses.insertMany(seeded);
+    }
+  }
+  const hosts = db.collection("hosts");
+  for (const host of SEED_HOSTS) {
+    if (!(await hosts.findOne({ host_id: host.host_id }))) {
+      await hosts.insertOne(host);
+    }
   }
 }
 
@@ -202,4 +223,73 @@ export async function createResponse(response: DietResponse): Promise<DietRespon
 
 export function backendLabel(): "mongodb" | "local-json" {
   return hasMongo() ? "mongodb" : "local-json";
+}
+
+export async function getHost(hostId: string): Promise<HostRecord | null> {
+  if (hasMongo()) {
+    const db = await getMongo();
+    await ensureMongoSeed(db);
+    const doc = await db.collection<HostRecord>("hosts").findOne({ host_id: hostId });
+    return doc ? stripId(doc) : null;
+  }
+  return (await readJsonStore()).hosts.find((host) => host.host_id === hostId) ?? null;
+}
+
+export async function getHostByEmail(email: string): Promise<HostRecord | null> {
+  return getHost(hostIdFromEmail(email));
+}
+
+export async function createHost(host: HostRecord): Promise<HostRecord> {
+  if (hasMongo()) {
+    const db = await getMongo();
+    await ensureMongoSeed(db);
+    await db.collection("hosts").insertOne(host);
+    return host;
+  }
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    store.hosts.push(host);
+    await persistJson(store);
+  });
+  return host;
+}
+
+export async function updateHost(
+  hostId: string,
+  patch: Partial<Pick<HostRecord, "name" | "avatar_data_url" | "password_hash">>
+): Promise<HostRecord | null> {
+  const updated_at = new Date().toISOString();
+  if (hasMongo()) {
+    const db = await getMongo();
+    await ensureMongoSeed(db);
+    const result = await db
+      .collection<HostRecord>("hosts")
+      .findOneAndUpdate({ host_id: hostId }, { $set: { ...patch, updated_at } }, { returnDocument: "after" });
+    return result ? stripId(result) : null;
+  }
+  let updated: HostRecord | null = null;
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    const host = store.hosts.find((item) => item.host_id === hostId);
+    if (host) {
+      Object.assign(host, patch, { updated_at });
+      updated = host;
+      await persistJson(store);
+    }
+  });
+  return updated;
+}
+
+export async function deleteHost(hostId: string): Promise<void> {
+  if (hasMongo()) {
+    const db = await getMongo();
+    await ensureMongoSeed(db);
+    await db.collection("hosts").deleteOne({ host_id: hostId });
+    return;
+  }
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    store.hosts = store.hosts.filter((host) => host.host_id !== hostId);
+    await persistJson(store);
+  });
 }
