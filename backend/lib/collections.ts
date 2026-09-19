@@ -47,19 +47,15 @@ export type EventDoc = {
   checklist_notes_by_restaurant?: DietreEvent["checklist_notes_by_restaurant"];
 };
 
+/** Firestore guest shape mirrors DietResponse (Gemini/chat submit fields only). */
 export type GuestDoc = {
   event_id: string;
-  anon_token: string;
-  name?: string;
-  email?: string;
-  transcript: string;
+  guest_name?: string;
   raw_text: string;
   parsed_rules: ParsedRules;
-  preference_vector: string[];
-  confidence: number;
-  conflict_followups: string[];
-  contact_email?: string;
+  contact_email?: string | null;
   submitted_at: string;
+  // Optional legacy / matcher cache fields — not written by new submits
   ai_judgments?: Record<string, AiItemJudgment>;
   ai_judgments_computed_at?: string;
 };
@@ -114,12 +110,6 @@ function asStringArray(value: unknown): string[] {
 
 export function geoPoint(lng: number, lat: number): GeoJsonPoint {
   return { type: "Point", coordinates: [lng, lat] };
-}
-
-export function guestConfidence(severity: Severity): number {
-  if (severity === "high") return 0.95;
-  if (severity === "medium") return 0.75;
-  return 0.5;
 }
 
 export function organizerToHost(id: string, doc: Partial<OrganizerDoc> & Record<string, unknown>): HostRecord {
@@ -256,6 +246,12 @@ export function eventPatchToDoc(
   return data;
 }
 
+export function guestConfidence(severity: Severity): number {
+  if (severity === "high") return 0.95;
+  if (severity === "medium") return 0.75;
+  return 0.5;
+}
+
 export function responseToGuest(response: DietResponse): Record<string, unknown> {
   const event_id = response.event_id?.trim();
   if (!event_id) {
@@ -278,8 +274,6 @@ export function responseToGuest(response: DietResponse): Record<string, unknown>
     anon_token: response.id,
     name: response.guest_name ?? null,
     guest_name: response.guest_name ?? null,
-    email: response.contact_email ?? null,
-    transcript: response.raw_text,
     raw_text: response.raw_text,
     parsed_rules,
     hard_excludes,
