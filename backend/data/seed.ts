@@ -1,8 +1,10 @@
 import { hashPassword, hostIdFromEmail } from "@/backend/lib/auth";
 import type { DietResponse, DietreEvent, HostRecord, MenuItem, Restaurant } from "@/shared/lib/types";
 
-// Frontend-shaped seed. Firestore documents (organizers/events/guests/…) are
-// mapped in backend/lib/collections.ts — this file stays the source of truth.
+// Demo-only data. Not loaded automatically. Call seedDemoDataIfEnabled() with
+// DIETRE_SEED=1 for local demos. Live paths use empty collections until real
+// guest submits / restaurant acquisition / matchEvent writes scores.
+// Firestore document shapes are mapped in backend/lib/collections.ts.
 
 function flags(partial: MenuItem["flags"]): MenuItem["flags"] {
   return partial;

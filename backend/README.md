@@ -7,7 +7,7 @@ Library used by the Next.js `app/` routes and server components. Not a standalon
 | Env | Store |
 | --- | --- |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` plus API key, service account, or `FIRESTORE_EMULATOR_HOST` | Firestore collections `organizers`, `events`, `guests`, `restaurants`, `menu_items`, `restaurant_scores` |
-| none of the above | `.data/store.json` |
+| none of the above | `.data/store.json` (starts empty — no placeholder restaurants/menus/guests) |
 
 Credentials (first match wins for writes):
 
@@ -16,6 +16,8 @@ Credentials (first match wins for writes):
 3. `NEXT_PUBLIC_FIREBASE_API_KEY` alone (only works with open rules)
 
 Also read (optional): `GEMINI_API_KEY`, `PLACES_API_KEY`, `AUTH_SECRET`.
+
+**No auto-seed.** `restaurants` / `menu_items` stay empty until acquisition writes them; `guests` only from submit/parse; `restaurant_scores` only from live `matchEvent` when there is data. Optional demo load: set `DIETRE_SEED=1` and call `seedDemoDataIfEnabled()` (never runs on API hit by itself).
 
 Organizer auth: Firebase Auth ID token (`firebaseToken` on `POST /api/auth/login`) when the frontend has `NEXT_PUBLIC_FIREBASE_*`. Mock email/password hosts otherwise (`password_hash` on `organizers`).
 

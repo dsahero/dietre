@@ -1,12 +1,5 @@
 import { promises as fs } from "fs";
 import path from "path";
-import {
-  SEED_EVENT_RESPONSES,
-  SEED_EVENTS,
-  SEED_HOSTS,
-  SEED_MENU_ITEMS,
-  SEED_RESTAURANTS,
-} from "@/backend/data/seed";
 import { hostIdFromEmail } from "@/backend/lib/auth";
 import {
   docToEvent,
@@ -16,10 +9,8 @@ import {
   eventPatchToDoc,
   eventToDoc,
   hostToOrganizer,
-  menuItemToDoc,
   organizerToHost,
   responseToGuest,
-  restaurantToDoc,
   scoreDocId,
   type RestaurantScoreDoc,
 } from "@/backend/lib/collections";
@@ -51,7 +42,6 @@ const DATA_FILE = path.join(DATA_DIR, "store.json");
 type JsonStore = DataStore & { restaurant_scores: RestaurantScoreDoc[] };
 
 let writeQueue: Promise<void> = Promise.resolve();
-let firestoreSeedPromise: Promise<void> | null = null;
 
 function emptyStore(): JsonStore {
   return {
@@ -65,36 +55,14 @@ function emptyStore(): JsonStore {
   };
 }
 
-function withSeed(store: JsonStore): JsonStore {
-  const restaurants = SEED_RESTAURANTS;
-  const menu_items = SEED_MENU_ITEMS;
-
-  const existingEventIds = new Set(store.events.map((event) => event.id));
-  const missingEvents = SEED_EVENTS.filter((event) => !existingEventIds.has(event.id));
-  const events = [...missingEvents, ...store.events];
-
-  const knownResponseIds = new Set(store.responses.map((response) => response.id));
-  const missingResponses = SEED_EVENT_RESPONSES.filter((response) => !knownResponseIds.has(response.id));
-  const responses = [...store.responses, ...missingResponses];
-
-  const existingHostIds = new Set((store.hosts ?? []).map((host) => host.host_id));
-  const missingHosts = SEED_HOSTS.filter((host) => !existingHostIds.has(host.host_id));
-  const hosts = [...(store.hosts ?? []), ...missingHosts];
-
-  const ai_judgments = store.ai_judgments ?? [];
-  const restaurant_scores = store.restaurant_scores ?? [];
-
-  return { events, responses, restaurants, menu_items, hosts, ai_judgments, restaurant_scores };
-}
-
 async function readJsonStore(): Promise<JsonStore> {
   try {
     const raw = await fs.readFile(DATA_FILE, "utf8");
-    return withSeed({ ...emptyStore(), ...(JSON.parse(raw) as Partial<JsonStore>) });
+    return { ...emptyStore(), ...(JSON.parse(raw) as Partial<JsonStore>) };
   } catch {
-    const seeded = withSeed(emptyStore());
-    await persistJson(seeded);
-    return seeded;
+    const store = emptyStore();
+    await persistJson(store);
+    return store;
   }
 }
 
@@ -110,82 +78,6 @@ function enqueueWrite(task: () => Promise<void>): Promise<void> {
   return writeQueue;
 }
 
-function menuIdsByRestaurant(): Map<string, string[]> {
-  const map = new Map<string, string[]>();
-  for (const item of SEED_MENU_ITEMS) {
-    const list = map.get(item.restaurant_id) ?? [];
-    list.push(item.id);
-    map.set(item.restaurant_id, list);
-  }
-  return map;
-}
-
-async function ensureFirestoreSeed(): Promise<void> {
-  if (!firestoreSeedPromise) {
-    firestoreSeedPromise = (async () => {
-      const marker = await getDocument<{ version?: number }>("_meta", "seed");
-      if (marker?.version) return;
-
-      const restaurants = await listDocuments(COLLECTIONS.restaurants);
-      if (restaurants.length > 0) {
-        await setDocument("_meta", "seed", { version: 1, seeded_at: new Date().toISOString() });
-        return;
-      }
-
-      const menuIds = menuIdsByRestaurant();
-      const restaurantIds = SEED_RESTAURANTS.map((restaurant) => restaurant.id);
-      const writes: Array<{ collection: string; id: string; data: Record<string, unknown> }> = [];
-
-      for (const restaurant of SEED_RESTAURANTS) {
-        writes.push({
-          collection: COLLECTIONS.restaurants,
-          id: restaurant.id,
-          data: restaurantToDoc(restaurant, menuIds.get(restaurant.id) ?? []),
-        });
-      }
-      for (const item of SEED_MENU_ITEMS) {
-        writes.push({
-          collection: COLLECTIONS.menu_items,
-          id: item.id,
-          data: menuItemToDoc(item),
-        });
-      }
-      for (const host of SEED_HOSTS) {
-        const eventIds = SEED_EVENTS.filter((event) => event.host_id === host.host_id).map((event) => event.id);
-        writes.push({
-          collection: COLLECTIONS.organizers,
-          id: host.host_id,
-          data: hostToOrganizer(host, eventIds),
-        });
-      }
-      for (const event of SEED_EVENTS) {
-        writes.push({
-          collection: COLLECTIONS.events,
-          id: event.id,
-          data: eventToDoc(event, restaurantIds),
-        });
-      }
-      for (const response of SEED_EVENT_RESPONSES) {
-        writes.push({
-          collection: COLLECTIONS.guests,
-          id: response.id,
-          data: responseToGuest(response),
-        });
-      }
-      writes.push({
-        collection: "_meta",
-        id: "seed",
-        data: { version: 1, seeded_at: new Date().toISOString() },
-      });
-      await commitWrites(writes);
-    })().catch((error) => {
-      firestoreSeedPromise = null;
-      throw error;
-    });
-  }
-  return firestoreSeedPromise;
-}
-
 function useFirestore(): boolean {
   return hasFirestore();
 }
@@ -194,9 +86,113 @@ export function backendLabel(): "firestore" | "local-json" {
   return useFirestore() ? "firestore" : "local-json";
 }
 
+/**
+ * Optional demo seed for local demos only. Never called automatically.
+ * Set DIETRE_SEED=1 and invoke explicitly (e.g. a one-off script) to load
+ * backend/data/seed.ts into Firestore or the JSON store.
+ */
+export async function seedDemoDataIfEnabled(): Promise<boolean> {
+  if (process.env.DIETRE_SEED !== "1") return false;
+
+  const {
+    SEED_EVENT_RESPONSES,
+    SEED_EVENTS,
+    SEED_HOSTS,
+    SEED_MENU_ITEMS,
+    SEED_RESTAURANTS,
+  } = await import("@/backend/data/seed");
+  const { menuItemToDoc, restaurantToDoc } = await import("@/backend/lib/collections");
+
+  if (useFirestore()) {
+    const marker = await getDocument<{ version?: number }>("_meta", "seed");
+    if (marker?.version) return false;
+
+    const existing = await listDocuments(COLLECTIONS.restaurants);
+    if (existing.length > 0) {
+      await setDocument("_meta", "seed", { version: 1, seeded_at: new Date().toISOString() });
+      return false;
+    }
+
+    const menuIds = new Map<string, string[]>();
+    for (const item of SEED_MENU_ITEMS) {
+      const list = menuIds.get(item.restaurant_id) ?? [];
+      list.push(item.id);
+      menuIds.set(item.restaurant_id, list);
+    }
+    const restaurantIds = SEED_RESTAURANTS.map((restaurant) => restaurant.id);
+    const writes: Array<{ collection: string; id: string; data: Record<string, unknown> }> = [];
+
+    for (const restaurant of SEED_RESTAURANTS) {
+      writes.push({
+        collection: COLLECTIONS.restaurants,
+        id: restaurant.id,
+        data: restaurantToDoc(restaurant, menuIds.get(restaurant.id) ?? []),
+      });
+    }
+    for (const item of SEED_MENU_ITEMS) {
+      writes.push({
+        collection: COLLECTIONS.menu_items,
+        id: item.id,
+        data: menuItemToDoc(item),
+      });
+    }
+    for (const host of SEED_HOSTS) {
+      const eventIds = SEED_EVENTS.filter((event) => event.host_id === host.host_id).map((event) => event.id);
+      writes.push({
+        collection: COLLECTIONS.organizers,
+        id: host.host_id,
+        data: hostToOrganizer(host, eventIds),
+      });
+    }
+    for (const event of SEED_EVENTS) {
+      writes.push({
+        collection: COLLECTIONS.events,
+        id: event.id,
+        data: eventToDoc(event, restaurantIds),
+      });
+    }
+    for (const response of SEED_EVENT_RESPONSES) {
+      writes.push({
+        collection: COLLECTIONS.guests,
+        id: response.id,
+        data: responseToGuest(response),
+      });
+    }
+    writes.push({
+      collection: "_meta",
+      id: "seed",
+      data: { version: 1, seeded_at: new Date().toISOString() },
+    });
+    await commitWrites(writes);
+    return true;
+  }
+
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    const existingEventIds = new Set(store.events.map((event) => event.id));
+    const existingResponseIds = new Set(store.responses.map((response) => response.id));
+    const existingHostIds = new Set(store.hosts.map((host) => host.host_id));
+    store.restaurants = SEED_RESTAURANTS;
+    store.menu_items = SEED_MENU_ITEMS;
+    store.events = [
+      ...SEED_EVENTS.filter((event) => !existingEventIds.has(event.id)),
+      ...store.events,
+    ];
+    store.responses = [
+      ...store.responses,
+      ...SEED_EVENT_RESPONSES.filter((response) => !existingResponseIds.has(response.id)),
+    ];
+    store.hosts = [
+      ...store.hosts,
+      ...SEED_HOSTS.filter((host) => !existingHostIds.has(host.host_id)),
+    ];
+    await persistJson(store);
+  });
+  return true;
+}
+
 export async function listRestaurants(): Promise<Restaurant[]> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const docs = await listDocuments(COLLECTIONS.restaurants);
     return docs.map((doc) => docToRestaurant(doc.id, doc));
   }
@@ -205,7 +201,6 @@ export async function listRestaurants(): Promise<Restaurant[]> {
 
 export async function listMenuItems(): Promise<MenuItem[]> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const docs = await listDocuments(COLLECTIONS.menu_items);
     return docs.map((doc) => docToMenuItem(doc.id, doc));
   }
@@ -214,7 +209,6 @@ export async function listMenuItems(): Promise<MenuItem[]> {
 
 export async function listEventsByHost(hostId: string): Promise<DietreEvent[]> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const docs = await queryDocuments(COLLECTIONS.events, "organizer_id", "EQUAL", hostId);
     return docs
       .map((doc) => docToEvent(doc.id, doc))
@@ -228,7 +222,6 @@ export async function listEventsByHost(hostId: string): Promise<DietreEvent[]> {
 
 export async function getEvent(id: string): Promise<DietreEvent | null> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const byId = await getDocument(COLLECTIONS.events, id);
     if (byId) return docToEvent(byId.id, byId);
     const byToken = await queryDocuments(COLLECTIONS.events, "link_token", "EQUAL", id);
@@ -239,9 +232,8 @@ export async function getEvent(id: string): Promise<DietreEvent | null> {
 
 export async function createEvent(event: DietreEvent): Promise<DietreEvent> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
-    const restaurantIds = SEED_RESTAURANTS.map((restaurant) => restaurant.id);
-    await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, restaurantIds));
+    // Candidate restaurants come from live acquisition later — start empty.
+    await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, []));
     const organizer = await getDocument<{ events?: string[] }>(COLLECTIONS.organizers, event.host_id);
     if (organizer) {
       const events = Array.isArray(organizer.events) ? organizer.events : [];
@@ -278,7 +270,6 @@ export async function updateEvent(
   >
 ): Promise<DietreEvent | null> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const updated = await patchDocument(COLLECTIONS.events, id, eventPatchToDoc(patch));
     return updated ? docToEvent(id, updated) : null;
   }
@@ -297,7 +288,6 @@ export async function updateEvent(
 
 export async function listResponses(eventId: string): Promise<DietResponse[]> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const docs = await queryDocuments(COLLECTIONS.guests, "event_id", "EQUAL", eventId);
     return docs
       .map((doc) => docToResponse(doc.id, doc))
@@ -310,7 +300,6 @@ export async function listResponses(eventId: string): Promise<DietResponse[]> {
 
 export async function createResponse(response: DietResponse): Promise<DietResponse> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     await setDocument(COLLECTIONS.guests, response.id, responseToGuest(response));
   } else {
     await enqueueWrite(async () => {
@@ -339,7 +328,6 @@ export async function createResponse(response: DietResponse): Promise<DietRespon
 
 export async function getHost(hostId: string): Promise<HostRecord | null> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const doc = await getDocument(COLLECTIONS.organizers, hostId);
     return doc ? organizerToHost(doc.id, doc) : null;
   }
@@ -349,7 +337,6 @@ export async function getHost(hostId: string): Promise<HostRecord | null> {
 export async function getHostByEmail(email: string): Promise<HostRecord | null> {
   const normalized = email.trim().toLowerCase();
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const matches = await queryDocuments(COLLECTIONS.organizers, "email", "EQUAL", normalized);
     if (matches[0]) return organizerToHost(matches[0].id, matches[0]);
     return getHost(hostIdFromEmail(normalized));
@@ -359,7 +346,6 @@ export async function getHostByEmail(email: string): Promise<HostRecord | null> 
 
 export async function createHost(host: HostRecord): Promise<HostRecord> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     await setDocument(COLLECTIONS.organizers, host.host_id, hostToOrganizer(host));
     return host;
   }
@@ -377,7 +363,6 @@ export async function updateHost(
 ): Promise<HostRecord | null> {
   const updated_at = new Date().toISOString();
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const data: Record<string, unknown> = { updated_at };
     if (patch.name !== undefined) data.name = patch.name;
     if (patch.avatar_data_url !== undefined) data.avatar_data_url = patch.avatar_data_url;
@@ -400,7 +385,6 @@ export async function updateHost(
 
 export async function deleteHost(hostId: string): Promise<void> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     await deleteDocument(COLLECTIONS.organizers, hostId);
     return;
   }
@@ -412,11 +396,10 @@ export async function deleteHost(hostId: string): Promise<void> {
 }
 
 // Gemini per-item safety judgments are cached per guest (responses are
-// immutable once submitted, and menu items are static seed data), so a
-// dashboard reload never re-pays for the same Gemini call.
+// immutable once submitted), so a dashboard reload never re-pays for the
+// same Gemini call.
 export async function getResponseJudgments(responseId: string): Promise<Record<string, AiItemJudgment> | null> {
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     const doc = await getDocument<{ ai_judgments?: Record<string, AiItemJudgment> }>(
       COLLECTIONS.guests,
       responseId
@@ -434,7 +417,6 @@ export async function saveResponseJudgments(
 ): Promise<void> {
   const computed_at = new Date().toISOString();
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     await patchDocument(COLLECTIONS.guests, responseId, {
       ai_judgments: judgments,
       ai_judgments_computed_at: computed_at,
@@ -453,7 +435,6 @@ export async function saveResponseJudgments(
 export async function saveRestaurantScores(scores: RestaurantScoreDoc[]): Promise<void> {
   if (scores.length === 0) return;
   if (useFirestore()) {
-    await ensureFirestoreSeed();
     await commitWrites(
       scores.map((score) => ({
         collection: COLLECTIONS.restaurant_scores,
