@@ -1,4 +1,4 @@
-import type { DietResponse, DietreEvent, MenuItem, Restaurant } from "@/lib/types";
+import type { DietResponse, DietreEvent, MenuItem, Restaurant } from "@/shared/lib/types";
 
 function flags(partial: MenuItem["flags"]): MenuItem["flags"] {
   return partial;
