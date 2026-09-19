@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { DEMO_EVENT_ID } from "@/backend/data/seed";
 import { getSession } from "@/backend/lib/auth";
 import { getEvent, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
-import { matchEvent } from "@/backend/lib/matching";
+import { matchEvent } from "@/backend/lib/restaurant_matching";
 import { ModeBanner } from "@/frontend/components/mode-banner";
 import { SharePanel } from "@/frontend/components/share-panel";
 import { SiteHeader } from "@/frontend/components/site-header";

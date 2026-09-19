@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 4321",
     "lint": "eslint",
-    "food-matcher": "tsx --env-file=backend/.env backend/lib/food_matcher.ts"
+    "food-matcher": "tsx --env-file=backend/.env backend/lib/food_matcher.ts",
+    "seed": "tsx --env-file=backend/.env backend/scripts/seed_from_menus.ts"
   },
   "dependencies": {
     "@firecrawl/html-extractor": "^0.1.2",

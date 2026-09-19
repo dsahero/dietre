@@ -7,7 +7,7 @@ import {
   extractLimitationsChecklist,
   suggestEventDetailsFromLimitations,
 } from "@/backend/lib/limitations";
-import { matchEvent } from "@/backend/lib/matching";
+import { matchEvent } from "@/backend/lib/restaurant_matching";
 import { geocodeBlacksburg } from "@/shared/lib/places";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
