@@ -1,5 +1,6 @@
 import { createSign } from "crypto";
 import { readFileSync } from "fs";
+import path from "path";
 
 /**
  * Minimal Firestore REST client. Uses the same Firebase project the frontend
@@ -101,7 +102,8 @@ function loadServiceAccount(): ServiceAccount | null {
   const file = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if (!file) return null;
   try {
-    return JSON.parse(readFileSync(file, "utf8")) as ServiceAccount;
+    const resolved = path.isAbsolute(file) ? file : path.resolve(process.cwd(), file);
+    return JSON.parse(readFileSync(resolved, "utf8")) as ServiceAccount;
   } catch {
     return null;
   }
