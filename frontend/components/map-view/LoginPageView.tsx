@@ -15,6 +15,7 @@ import {
   KeyRound,
   ArrowRight,
 } from 'lucide-react';
+import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
 
 function firebaseConfiguredInBrowser(): boolean {
   return Boolean(
@@ -187,38 +188,41 @@ export function LoginPageView() {
   return (
     <div
       id="login-page"
-      className="min-h-screen w-full bg-[#F5EDE3] flex flex-col items-center justify-center p-4 sm:p-6 text-[#2B170F] select-none"
+      className="min-h-screen w-full bg-[var(--dash-bg)] flex flex-col items-center justify-center p-4 sm:p-6 text-[var(--dash-text)] select-none"
     >
       <div className="w-full max-w-md flex items-center justify-between mb-4 px-2">
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-xs font-semibold text-[#523526] hover:text-[#2B170F] cursor-pointer bg-[#FAF5EF] hover:bg-white px-3 py-1.5 rounded-xl border border-[#DFCEBD] transition-all shadow-2xs"
+          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--dash-text-soft)] hover:text-[var(--dash-text)] cursor-pointer bg-[var(--dash-surface-raised)] hover:bg-[var(--dash-surface-hover)] px-3 py-1.5 rounded-xl border border-[var(--dash-border)] transition-all shadow-2xs"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-[#C15C3D]" />
+          <ArrowLeft className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
           <span>Back Home</span>
         </Link>
 
-        <button
-          id="link-top-to-signup"
-          type="button"
-          onClick={() => {
-            setErrorMessage(null);
-            setAuthMode('signup');
-          }}
-          className="text-xs font-bold text-[#C15C3D] underline hover:text-[#8E3A20] cursor-pointer"
-        >
-          Sign Up
-        </button>
+        <div className="flex items-center gap-2">
+          <HostThemeToggle />
+          <button
+            id="link-top-to-signup"
+            type="button"
+            onClick={() => {
+              setErrorMessage(null);
+              setAuthMode('signup');
+            }}
+            className="text-xs font-bold text-[var(--dash-accent)] underline hover:text-[var(--dash-accent-deep)] cursor-pointer"
+          >
+            Sign Up
+          </button>
+        </div>
       </div>
 
-      <div className="w-full max-w-md bg-[#EFE5D8] rounded-3xl border border-[#DFCEBD] shadow-xl overflow-hidden transition-all duration-300">
-        <div className="bg-[#E5D7C7] border-b border-[#D5C2AF] p-6 text-center space-y-1">
-          <h2 className="text-xl font-bold font-serif text-[#2B170F] tracking-tight">
+      <div className="w-full max-w-md bg-[var(--dash-surface)] rounded-3xl border border-[var(--dash-border)] shadow-xl overflow-hidden transition-all duration-300">
+        <div className="bg-[var(--dash-surface-hover)] border-b border-[var(--dash-border)] p-6 text-center space-y-1">
+          <h2 className="text-xl font-bold font-heading text-[var(--dash-text)] tracking-tight">
             {authMode === 'login' && 'Host Sign In'}
             {authMode === 'signup' && 'Create Host Account'}
             {authMode === 'forgot-password' && 'Reset Host Password'}
           </h2>
-          <p className="text-xs text-[#7A6052]">
+          <p className="text-xs text-[var(--dash-text-soft)]">
             {authMode === 'login' && 'Sign in to create events and manage your dashboard'}
             {authMode === 'signup' && 'Register as a host to start collecting anonymous dietary responses'}
             {authMode === 'forgot-password' && 'Enter your registered host email'}
@@ -236,12 +240,12 @@ export function LoginPageView() {
           {authMode === 'forgot-password' ? (
             <div className="space-y-4">
               {resetAcknowledged ? (
-                <div className="p-5 bg-[#FAF5EF] rounded-2xl border border-[#DFCEBD] text-center space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-[#F2E3D9] text-[#C15C3D] flex items-center justify-center mx-auto">
+                <div className="p-5 bg-[var(--dash-surface-raised)] rounded-2xl border border-[var(--dash-border)] text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-[var(--dash-surface-hover)] text-[var(--dash-accent)] flex items-center justify-center mx-auto">
                     <AlertCircle className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold font-serif text-[#2B170F]">Not available in this demo</h3>
-                  <p className="text-xs text-[#7A6052] leading-relaxed">
+                  <h3 className="text-sm font-bold font-heading text-[var(--dash-text)]">Not available in this demo</h3>
+                  <p className="text-xs text-[var(--dash-text-soft)] leading-relaxed">
                     This demo doesn&apos;t send real emails, so password recovery isn&apos;t wired up. If you
                     remember your password, sign in normally — otherwise, sign up for a new account.
                   </p>
@@ -251,7 +255,7 @@ export function LoginPageView() {
                       setResetAcknowledged(false);
                       setAuthMode('login');
                     }}
-                    className="w-full py-2.5 px-4 bg-[#C15C3D] hover:bg-[#A8482C] text-white rounded-xl text-xs font-semibold shadow-xs cursor-pointer transition-colors"
+                    className="w-full py-2.5 px-4 bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white rounded-xl text-xs font-semibold shadow-xs cursor-pointer transition-colors"
                   >
                     Return to Log In
                   </button>
@@ -259,25 +263,25 @@ export function LoginPageView() {
               ) : (
                 <form onSubmit={handleResetPassword} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-[#523526] mb-1.5">
+                    <label className="block text-xs font-semibold text-[var(--dash-text-soft)] mb-1.5">
                       Registered Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C7F6E]" />
+                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)]" />
                       <input
                         type="email"
                         required
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
                         placeholder="you@example.com"
-                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-white border border-[#DFCEBD] rounded-xl text-[#2B170F] placeholder:text-[#9C7F6E] focus:outline-none focus:ring-2 focus:ring-[#C15C3D]"
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-white border border-[var(--dash-border)] rounded-xl text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--dash-accent)]"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 px-4 bg-[#C15C3D] hover:bg-[#A8482C] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-4 bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <KeyRound className="w-4 h-4 text-[#FFDEC9]" />
                     <span>Continue</span>
@@ -289,7 +293,7 @@ export function LoginPageView() {
                       setErrorMessage(null);
                       setAuthMode('login');
                     }}
-                    className="w-full py-2 text-xs font-semibold text-[#7A6052] hover:text-[#2B170F] flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full py-2 text-xs font-semibold text-[var(--dash-text-soft)] hover:text-[var(--dash-text)] flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to Log In</span>
@@ -302,39 +306,39 @@ export function LoginPageView() {
               <form onSubmit={authMode === 'login' ? handleEmailLogin : handleSignUp} className="space-y-3.5">
                 {authMode === 'signup' && (
                   <div>
-                    <label className="block text-xs font-semibold text-[#523526] mb-1">Full Name</label>
+                    <label className="block text-xs font-semibold text-[var(--dash-text-soft)] mb-1">Full Name</label>
                     <div className="relative">
-                      <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C7F6E]" />
+                      <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)]" />
                       <input
                         type="text"
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Your name"
-                        className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-[#DFCEBD] rounded-xl text-[#2B170F] placeholder:text-[#9C7F6E] focus:outline-none focus:ring-2 focus:ring-[#C15C3D]"
+                        className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-[var(--dash-border)] rounded-xl text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--dash-accent)]"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#523526] mb-1">Email Address</label>
+                  <label className="block text-xs font-semibold text-[var(--dash-text-soft)] mb-1">Email Address</label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C7F6E]" />
+                    <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)]" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-[#DFCEBD] rounded-xl text-[#2B170F] placeholder:text-[#9C7F6E] focus:outline-none focus:ring-2 focus:ring-[#C15C3D]"
+                      className="w-full pl-10 pr-3.5 py-2 text-xs bg-white border border-[var(--dash-border)] rounded-xl text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--dash-accent)]"
                     />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-[#523526]">Password</label>
+                    <label className="block text-xs font-semibold text-[var(--dash-text-soft)]">Password</label>
                     {authMode === 'login' && (
                       <button
                         type="button"
@@ -343,26 +347,26 @@ export function LoginPageView() {
                           setResetEmail(email);
                           setAuthMode('forgot-password');
                         }}
-                        className="text-[11px] font-medium text-[#7A6052] hover:text-[#C15C3D] underline cursor-pointer"
+                        className="text-[11px] font-medium text-[var(--dash-text-soft)] hover:text-[var(--dash-accent)] underline cursor-pointer"
                       >
                         Forgot password?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C7F6E]" />
+                    <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)]" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-10 py-2 text-xs bg-white border border-[#DFCEBD] rounded-xl text-[#2B170F] placeholder:text-[#9C7F6E] focus:outline-none focus:ring-2 focus:ring-[#C15C3D]"
+                      className="w-full pl-10 pr-10 py-2 text-xs bg-white border border-[var(--dash-border)] rounded-xl text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--dash-accent)]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9C7F6E] hover:text-[#523526] cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)] hover:text-[var(--dash-text-soft)] cursor-pointer"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -372,21 +376,21 @@ export function LoginPageView() {
 
                 {authMode === 'signup' && (
                   <div>
-                    <label className="block text-xs font-semibold text-[#523526] mb-1">Confirm Password</label>
+                    <label className="block text-xs font-semibold text-[var(--dash-text-soft)] mb-1">Confirm Password</label>
                     <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C7F6E]" />
+                      <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)]" />
                       <input
                         type={showConfirmPassword ? 'text' : 'password'}
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-10 py-2 text-xs bg-white border border-[#DFCEBD] rounded-xl text-[#2B170F] placeholder:text-[#9C7F6E] focus:outline-none focus:ring-2 focus:ring-[#C15C3D]"
+                        className="w-full pl-10 pr-10 py-2 text-xs bg-white border border-[var(--dash-border)] rounded-xl text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--dash-accent)]"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword((prev) => !prev)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9C7F6E] hover:text-[#523526] cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)] hover:text-[var(--dash-text-soft)] cursor-pointer"
                         aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                       >
                         {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -398,7 +402,7 @@ export function LoginPageView() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="w-full mt-2 py-2.5 px-4 bg-[#C15C3D] hover:bg-[#A8482C] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
+                  className="w-full mt-2 py-2.5 px-4 bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
                 >
                   <span>{busy ? 'Please wait…' : authMode === 'login' ? 'Log In' : 'Create Account'}</span>
                   {!busy && <ArrowRight className="w-4 h-4 text-[#FFDEC9]" />}
@@ -408,18 +412,18 @@ export function LoginPageView() {
               {firebaseOn && (
                 <>
                   <div className="relative flex items-center justify-center my-1.5 gap-3">
-                    <div className="border-t border-[#DFCEBD] flex-1" />
-                    <span className="text-[11px] font-semibold text-[#8C6D5A] uppercase tracking-wider whitespace-nowrap shrink-0 select-none">
+                    <div className="border-t border-[var(--dash-border)] flex-1" />
+                    <span className="text-[11px] font-semibold text-[var(--dash-text-muted)] uppercase tracking-wider whitespace-nowrap shrink-0 select-none">
                       Or continue with
                     </span>
-                    <div className="border-t border-[#DFCEBD] flex-1" />
+                    <div className="border-t border-[var(--dash-border)] flex-1" />
                   </div>
 
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={busy}
-                    className="w-full py-2.5 px-4 bg-white hover:bg-[#FAF5EF] border border-[#DFCEBD] text-[#472E21] text-xs font-bold rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60"
+                    className="w-full py-2.5 px-4 bg-white hover:bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] text-[var(--dash-text)] text-xs font-bold rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60"
                   >
                     <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                       <path
@@ -445,15 +449,15 @@ export function LoginPageView() {
               )}
 
               {!firebaseOn && (
-                <div className="flex items-center gap-2 text-[11px] text-[#8C6D5A] bg-[#FAF5EF] border border-[#DFCEBD] rounded-xl p-2.5">
+                <div className="flex items-center gap-2 text-[11px] text-[var(--dash-text-muted)] bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] rounded-xl p-2.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#687C64] shrink-0" />
                   <span>Running in local demo mode — accounts are real, stored in this project&apos;s own database.</span>
                 </div>
               )}
 
-              <div className="pt-3 border-t border-[#DFCEBD] text-center">
+              <div className="pt-3 border-t border-[var(--dash-border)] text-center">
                 {authMode === 'login' ? (
-                  <p className="text-xs text-[#7A6052]">
+                  <p className="text-xs text-[var(--dash-text-soft)]">
                     Don&apos;t have an account?{' '}
                     <button
                       type="button"
@@ -461,13 +465,13 @@ export function LoginPageView() {
                         setErrorMessage(null);
                         setAuthMode('signup');
                       }}
-                      className="font-bold text-[#C15C3D] hover:underline cursor-pointer ml-1"
+                      className="font-bold text-[var(--dash-accent)] hover:underline cursor-pointer ml-1"
                     >
                       Sign up
                     </button>
                   </p>
                 ) : (
-                  <p className="text-xs text-[#7A6052]">
+                  <p className="text-xs text-[var(--dash-text-soft)]">
                     Already have an account?{' '}
                     <button
                       type="button"
@@ -475,7 +479,7 @@ export function LoginPageView() {
                         setErrorMessage(null);
                         setAuthMode('login');
                       }}
-                      className="font-bold text-[#C15C3D] hover:underline cursor-pointer ml-1"
+                      className="font-bold text-[var(--dash-accent)] hover:underline cursor-pointer ml-1"
                     >
                       Log in
                     </button>
@@ -487,7 +491,7 @@ export function LoginPageView() {
         </div>
       </div>
 
-      <div className="mt-6 text-center text-[11px] text-[#8C6D5A]">
+      <div className="mt-6 text-center text-[11px] text-[var(--dash-text-muted)]">
         <span>Guests never sign in — this door is only for hosts creating events.</span>
       </div>
     </div>

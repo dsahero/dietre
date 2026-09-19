@@ -12,11 +12,11 @@ export const AudienceStatsCard: React.FC<AudienceStatsCardProps> = ({
 }) => {
   return (
     <div className="audience-stats-card flex flex-col justify-between" id="audience-stats-card">
-      <div className="flex items-center justify-between pb-2 border-b border-[#382620] mb-2 shrink-0">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#b8744b]">
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--dash-surface-hover)] mb-2 shrink-0">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--dash-accent)]">
           {title}
         </span>
-        <span className="text-[10.5px] text-[#8e7e78]">
+        <span className="text-[10.5px] text-[var(--dash-text-muted)]">
           Scroll to view all ({metrics.length}) &harr;
         </span>
       </div>
@@ -43,14 +43,14 @@ export const AudienceStatsCard: React.FC<AudienceStatsCardProps> = ({
                   {metric.percentage}
                 </span>
                 {metric.count !== undefined && (
-                  <span className="text-[10.5px] text-[#9b8b84] font-medium whitespace-nowrap">
+                  <span className="text-[10.5px] text-[var(--dash-text-muted)] font-medium whitespace-nowrap">
                     ({metric.count} {metric.count === 1 ? 'guest' : 'guests'})
                   </span>
                 )}
               </div>
             </div>
             <span
-              className="stat-label text-right font-medium text-[#dcd1cb] whitespace-nowrap text-[12px] shrink-0"
+              className="stat-label text-right font-medium text-[var(--dash-text-soft)] whitespace-nowrap text-[12px] shrink-0"
               id={`stat-label-${index}`}
               title={metric.label}
             >

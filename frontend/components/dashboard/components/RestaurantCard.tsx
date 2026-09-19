@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
+import { coveragePercent } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
 import { MapPin, DollarSign, Sparkles, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 
@@ -52,7 +53,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
   return (
     <div
-      className="content-card relative group border border-transparent transition-all duration-200 hover:border-[#5a4239] cursor-pointer"
+      className="content-card relative group border border-transparent transition-all duration-200 hover:border-[var(--dash-border-strong)] cursor-pointer"
       onClick={() => onClickDetails?.(restaurant)}
     >
       {/* Left thumbnail with procedural texture */}
@@ -72,7 +73,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
         <div className="relative z-10 flex items-center justify-between gap-1">
           {!restaurant.withinRadius || !restaurant.withinBudget ? (
-            <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold text-[#e5c9b8] backdrop-blur-sm">
+            <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold text-[var(--dash-accent-soft)] backdrop-blur-sm">
               <AlertTriangle className="h-3 w-3" />
               {!restaurant.withinRadius ? 'Outside radius' : 'Over budget'}
             </span>
@@ -89,21 +90,21 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         </div>
 
         <div className="relative z-10 mt-auto">
-          <h3 className="card-title text-[16px] leading-snug transition-colors group-hover:text-[#d88c5e]">
+          <h3 className="card-title text-[16px] leading-snug transition-colors group-hover:text-[var(--dash-accent-soft)]">
             {restaurant.name}
           </h3>
-          <div className="mt-1.5 flex items-center gap-2 text-[11.5px] text-[#f1eae6]/90">
+          <div className="mt-1.5 flex items-center gap-2 text-[11.5px] text-[var(--dash-text)]/90">
             <span className="truncate font-medium">{restaurant.cuisine}</span>
             <span>•</span>
-            <span className="flex shrink-0 items-center gap-0.5 text-[#e5d4cc]">
-              <DollarSign className="h-3 w-3 text-[#d88c5e]" />
+            <span className="flex shrink-0 items-center gap-0.5 text-[var(--dash-accent-soft)]">
+              <DollarSign className="h-3 w-3 text-[var(--dash-accent-soft)]" />
               {PRICE_LABEL[restaurant.priceLevel]}
             </span>
           </div>
-          <div className="mt-1 flex items-center justify-between text-[10.5px] text-[#cfc1ba]/80">
+          <div className="mt-1 flex items-center justify-between text-[10.5px] text-[var(--dash-text-soft)]/80">
             <span className="truncate">{restaurant.location}</span>
-            <span className="flex shrink-0 items-center gap-1 text-[#e2d9d5]">
-              <MapPin className="h-2.5 w-2.5 text-[#b8744b]" />
+            <span className="flex shrink-0 items-center gap-1 text-[var(--dash-text-soft)]">
+              <MapPin className="h-2.5 w-2.5 text-[var(--dash-accent)]" />
               {restaurant.distanceMiles} mi
             </span>
           </div>
@@ -112,9 +113,9 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
       {/* Right side details, scrollable */}
       <div className="card-details relative min-w-0 flex-1 overflow-hidden py-3 px-4 sm:px-5">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#362620]/70 pb-2 text-xs">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--dash-border)]/70 pb-2 text-xs">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#cca152]">
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]">
               <Sparkles className="h-3.5 w-3.5 text-[#eab308]" />
               Match Details
             </span>
@@ -126,11 +127,11 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg border border-[#362620] bg-[#1a1210] p-0.5">
+            <div className="flex items-center gap-1 rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] p-0.5">
               <button
                 type="button"
                 onClick={(e) => scrollDetails('left', e)}
-                className="rounded p-1 text-[#b8744b] transition-colors hover:bg-[#b8744b]/20 hover:text-white cursor-pointer"
+                className="rounded p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/20 hover:text-white cursor-pointer"
                 aria-label="Scroll details left"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
@@ -138,7 +139,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               <button
                 type="button"
                 onClick={(e) => scrollDetails('right', e)}
-                className="rounded p-1 text-[#b8744b] transition-colors hover:bg-[#b8744b]/20 hover:text-white cursor-pointer"
+                className="rounded p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/20 hover:text-white cursor-pointer"
                 aria-label="Scroll details right"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -155,7 +156,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                 className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer ${
                   isShortlisted
                     ? 'border-[#22c55e]/40 bg-[#22c55e]/20 text-[#4ade80]'
-                    : 'border-[#3a2924] bg-[#1e1513] text-[#a89892] hover:border-[#634940] hover:text-white'
+                    : 'border-[var(--dash-surface-hover)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:border-[var(--dash-border-strong)] hover:text-white'
                 }`}
               >
                 {isShortlisted ? '✓ Shortlisted' : '+ Shortlist'}
@@ -167,18 +168,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         <div ref={detailsScrollRef} className="scrollbar-thin min-w-0 flex-1 overflow-x-auto py-2">
           <div className="min-w-[560px] space-y-2.5 pr-2">
             {restaurant.menuDataThin ? (
-              <p className="text-[12px] italic text-[#9b8b84]">
+              <p className="text-[12px] italic text-[var(--dash-text-muted)]">
                 Limited ingredient detail available for this venue — match confidence is lower than usual.
               </p>
             ) : (
               <>
-                <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[#ddd6d2]">
+                <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[var(--dash-text-soft)]">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" />
-                  {restaurant.matchedGuestTokens.length === 0
+                  {restaurant.matchedResponses.length === 0
                     ? 'No responses safely covered yet'
-                    : `Safe for ${restaurant.matchedGuestTokens.length} response${
-                        restaurant.matchedGuestTokens.length === 1 ? '' : 's'
-                      }: ${restaurant.matchedGuestTokens.join(', ')}`}
+                    : `Safe for ${coveragePercent(restaurant.matchedResponses.length, restaurant.totalResponses)}% of participants`}
                 </div>
                 {restaurant.dietaryConflicts.length > 0 && (
                   <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[#f4a9a9]">
@@ -190,12 +189,12 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               </>
             )}
 
-            <div className="flex items-center justify-between gap-4 whitespace-nowrap border-t border-[#2e1e19] pt-2 text-xs">
-              <span className="text-[11px] text-[#8e7e78]">
+            <div className="flex items-center justify-between gap-4 whitespace-nowrap border-t border-[var(--dash-border)] pt-2 text-xs">
+              <span className="text-[11px] text-[var(--dash-text-muted)]">
                 {restaurant.suggestedMenuItems.length} safe menu item
                 {restaurant.suggestedMenuItems.length === 1 ? '' : 's'} identified
               </span>
-              <span className="flex shrink-0 items-center gap-1 font-medium text-[#b8744b] transition-colors group-hover:text-[#e89c6f]">
+              <span className="flex shrink-0 items-center gap-1 font-medium text-[var(--dash-accent)] transition-colors group-hover:text-[var(--dash-accent-soft)]">
                 View details & suggested menu →
               </span>
             </div>

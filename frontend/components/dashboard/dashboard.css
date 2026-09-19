@@ -1,17 +1,22 @@
 @import "tailwindcss";
 
-/* Base styling */
-:root {
-  color-scheme: dark;
-}
+/*
+ * The shared --dash-* brand palette lives in frontend/styles/globals.css
+ * (loaded app-wide via the root layout) so every surface — this dashboard,
+ * the marketing/auth/profile pages, and the guest-facing responder flow —
+ * draws from one definition instead of each hardcoding its own copy of the
+ * same warm palette. This file only holds this dashboard's structural
+ * layout rules; see globals.css for the theme tokens themselves and why.
+ */
 
+/* Base styling */
 html, body {
   width: 100%;
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background-color: #1a1210;
-  color: #dcd6d2;
+  background-color: var(--dash-bg);
+  color: var(--dash-text-soft);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -19,7 +24,7 @@ html, body {
 #root {
   min-height: 100vh;
   display: flex;
-  background-color: #1a1210;
+  background-color: var(--dash-bg);
 }
 
 /* Dashboard Layout */
@@ -27,7 +32,8 @@ html, body {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background-color: #1a1210;
+  background-color: var(--dash-bg);
+  color: var(--dash-text-soft);
   position: relative;
   overflow-x: hidden;
 }
@@ -37,16 +43,17 @@ html, body {
   width: 230px;
   flex-shrink: 0;
   padding: 0;
-  background-color: #160f0d;
-  border-right: 1px solid #281c18;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  background-color: var(--dash-surface);
+  border-right: 1px solid var(--dash-border);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease,
+    background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .workspace-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.6px;
-  color: #a0928c;
+  color: var(--dash-text-muted);
   margin-bottom: 24px;
 }
 
@@ -68,7 +75,7 @@ html, body {
 .page-title {
   font-size: 26px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--dash-text);
   margin: 0;
   letter-spacing: -0.3px;
   display: flex;
@@ -82,16 +89,18 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 36px;
-  max-width: 840px;
+  width: 100%;
+  max-width: 100%;
   margin-left: 0;
 }
 
 /* Top Section: Donut Chart & Audience Stats Card */
 .overview-top-row {
   display: flex;
-  align-items: center;
-  gap: 48px;
-  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 32px;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 /* Donut Chart Container */
@@ -124,7 +133,7 @@ html, body {
   width: 128px;
   height: 128px;
   border-radius: 50%;
-  background-color: #1a1210;
+  background-color: var(--dash-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -136,31 +145,31 @@ html, body {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.4px;
-  color: #9c8e88;
+  color: var(--dash-text-muted);
   margin-bottom: 3px;
 }
 
 .center-value {
   font-size: 27px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--dash-text);
   line-height: 1;
 }
 
 /* Audience Stats Card */
 .audience-stats-card {
   flex: 1;
-  min-width: 280px;
+  min-width: 0;
   height: 250px;
   max-height: 250px;
-  background-color: #261d1a;
+  background-color: var(--dash-surface-raised);
   border-radius: 24px;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  border: 1px solid #3d2a23;
+  border: 1px solid var(--dash-border);
 }
 
 .stats-items {
@@ -172,7 +181,7 @@ html, body {
   max-height: 100%;
   padding-right: 4px;
   scrollbar-width: thin;
-  scrollbar-color: #52382e #1c1412;
+  scrollbar-color: var(--dash-border-strong) var(--dash-bg);
 }
 
 .stats-items::-webkit-scrollbar {
@@ -181,23 +190,23 @@ html, body {
 }
 
 .stats-items::-webkit-scrollbar-track {
-  background: #1c1412;
+  background: var(--dash-bg);
   border-radius: 4px;
 }
 
 .stats-items::-webkit-scrollbar-thumb {
-  background: #52382e;
+  background: var(--dash-border-strong);
   border-radius: 4px;
 }
 
 .stats-items::-webkit-scrollbar-thumb:hover {
-  background: #b8744b;
+  background: var(--dash-accent);
 }
 
 /* Custom sleek scrollbars for horizontal and vertical scrolling */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #52382e #1c1412;
+  scrollbar-color: var(--dash-border-strong) var(--dash-bg);
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -206,17 +215,17 @@ html, body {
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: #1c1412;
+  background: var(--dash-bg);
   border-radius: 4px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #52382e;
+  background: var(--dash-border-strong);
   border-radius: 4px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #b8744b;
+  background: var(--dash-accent);
 }
 
 .stat-item {
@@ -225,7 +234,7 @@ html, body {
   gap: 8px;
   font-size: 15.5px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--dash-text);
 }
 
 .stat-percentage {
@@ -238,14 +247,15 @@ html, body {
 
 /* Content Cards Section */
 .content-cards-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   gap: 18px;
+  width: 100%;
 }
 
 .content-card {
   display: flex;
-  background-color: #261d1a;
+  background-color: var(--dash-surface-raised);
   border-radius: 20px;
   min-height: 156px;
   overflow: hidden;
@@ -300,6 +310,6 @@ html, body {
 
 .indicator-text {
   font-size: 13.5px;
-  color: #ddd6d2;
+  color: var(--dash-text-soft);
   font-weight: 400;
 }

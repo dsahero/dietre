@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Users, Calendar, MapPin, Search, Plus } from 'lucide-react';
 import type { DietreEvent } from '@/shared/lib/types';
+import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
 
 export interface EventWithResponseCount extends DietreEvent {
   responseCount: number;
@@ -34,24 +35,26 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
   }, [events, searchQuery]);
 
   return (
-    <div id="events-dashboard" className="min-h-screen w-full bg-[#F5EDE3] flex flex-col text-[#2B170F] select-none">
+    <div id="events-dashboard" className="min-h-screen w-full bg-[var(--dash-bg)] flex flex-col text-[var(--dash-text)] select-none">
       {/* Dashboard Top Header */}
-      <header className="h-16 w-full bg-[#EFE5D8] border-b border-[#DFCEBD] px-6 md:px-8 flex items-center justify-between shadow-xs sticky top-0 z-30">
+      <header className="h-16 w-full bg-[var(--dash-surface)] border-b border-[var(--dash-border)] px-6 md:px-8 flex items-center justify-between shadow-xs sticky top-0 z-30">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#C15C3D] text-white flex items-center justify-center shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-[var(--dash-accent)] text-white flex items-center justify-center shadow-xs">
             <Calendar className="w-5 h-5 text-[#FFDEC9]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold font-serif text-[#2B170F] leading-tight">Your Events</h1>
-            <p className="text-xs text-[#7A6052]">Signed in as {hostEmail}</p>
+            <h1 className="text-lg font-bold font-heading text-[var(--dash-text)] leading-tight">Your Events</h1>
+            <p className="text-xs text-[var(--dash-text-soft)]">Signed in as {hostEmail}</p>
           </div>
         </Link>
 
         <div className="flex items-center gap-3">
+          <HostThemeToggle />
+
           <Link
             href="/events/new"
             id="btn-new-event"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#C15C3D] hover:bg-[#A8482C] text-white shadow-xs transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-[var(--dash-accent)] hover:bg-[var(--dash-accent-deep)] text-white shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 text-[#FFDEC9]" />
             <span>New Event</span>
@@ -62,7 +65,7 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
             id="dashboard-profile-circle-btn"
             title={`View profile (${profileName || hostEmail})`}
             aria-label="View profile"
-            className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#C15C3D] hover:border-[#8E3A20] shadow-xs hover:shadow-md transition-all cursor-pointer flex-shrink-0 flex items-center justify-center bg-[#FAF5EF] text-[#C15C3D] font-bold text-sm ring-2 ring-transparent hover:ring-[#DFAB62]/50"
+            className="w-9 h-9 rounded-full overflow-hidden border-2 border-[var(--dash-accent)] hover:border-[var(--dash-accent-deep)] shadow-xs hover:shadow-md transition-all cursor-pointer flex-shrink-0 flex items-center justify-center bg-[var(--dash-surface-raised)] text-[var(--dash-accent)] font-bold text-sm ring-2 ring-transparent hover:ring-[#DFAB62]/50"
           >
             {profileAvatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -75,40 +78,40 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
       </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center bg-[#EADECE] p-3.5 rounded-2xl border border-[#D5C2AF]">
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center bg-[var(--dash-surface-hover)] p-3.5 rounded-2xl border border-[var(--dash-border)]">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#472E21] font-serif">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--dash-text)] font-heading">
               Your Events ({filteredEvents.length})
             </h2>
-            <p className="text-xs text-[#7A6052]">Click an event to open its dashboard</p>
+            <p className="text-xs text-[var(--dash-text-soft)]">Click an event to open its dashboard</p>
           </div>
 
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9C7F6E]" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--dash-text-muted)]" />
             <input
               id="dashboard-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search event or venue..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FAF5EF] border border-[#D5C2AF] rounded-xl text-[#2B170F] placeholder:text-[#9C7F6E] focus:outline-none focus:ring-2 focus:ring-[#C15C3D]"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] rounded-xl text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--dash-accent)]"
             />
           </div>
         </div>
 
         {events.length === 0 ? (
-          <div className="p-12 text-center bg-[#FAF5EF] rounded-2xl border border-[#DFCEBD] space-y-3">
-            <p className="text-sm text-[#7A6052]">
+          <div className="p-12 text-center bg-[var(--dash-surface-raised)] rounded-2xl border border-[var(--dash-border)] space-y-3">
+            <p className="text-sm text-[var(--dash-text-soft)]">
               No events yet. Create one, or check out the seeded{' '}
-              <Link className="underline font-semibold text-[#C15C3D]" href="/events/demo-vt-hacks">
+              <Link className="underline font-semibold text-[var(--dash-accent)]" href="/events/demo-vt-hacks">
                 VT Hacks demo
               </Link>
               .
             </p>
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="p-12 text-center bg-[#FAF5EF] rounded-2xl border border-[#DFCEBD]">
-            <p className="text-sm text-[#7A6052]">No events match your current search query.</p>
+          <div className="p-12 text-center bg-[var(--dash-surface-raised)] rounded-2xl border border-[var(--dash-border)]">
+            <p className="text-sm text-[var(--dash-text-soft)]">No events match your current search query.</p>
           </div>
         ) : (
           <div id="events-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -123,13 +126,13 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
               >
                 <Link
                   href={`/events/${event.id}`}
-                  className="group relative bg-[#FAF5EF] hover:bg-[#FFFDFB] rounded-2xl border border-[#DFCEBD] hover:border-[#C15C3D]/60 flex flex-col justify-between shadow-xs hover:shadow-xl transition-all duration-200 cursor-pointer overflow-hidden h-full"
+                  className="group relative bg-[var(--dash-surface-raised)] hover:bg-[var(--dash-surface-raised)] rounded-2xl border border-[var(--dash-border)] hover:border-[var(--dash-accent)]/60 flex flex-col justify-between shadow-xs hover:shadow-xl transition-all duration-200 cursor-pointer overflow-hidden h-full"
                 >
                   {/* Generated pattern instead of a fake stock photo — no real venue photo exists */}
                   <div
                     className="relative w-full h-32 overflow-hidden flex items-end p-3"
                     style={{
-                      background: `linear-gradient(135deg, #C15C3D 0%, #8E3A20 100%)`,
+                      background: `linear-gradient(135deg, var(--dash-accent) 0%, var(--dash-accent-deep) 100%)`,
                     }}
                   >
                     <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_30%,white,transparent_45%)]" />
@@ -141,27 +144,27 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
 
                   <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                     <div>
-                      <h3 className="text-sm font-bold font-serif text-[#2B170F] group-hover:text-[#C15C3D] transition-colors line-clamp-2 leading-snug">
+                      <h3 className="text-sm font-bold font-heading text-[var(--dash-text)] group-hover:text-[var(--dash-accent)] transition-colors line-clamp-2 leading-snug">
                         {event.name}
                       </h3>
 
-                      <div className="mt-2 space-y-1.5 text-xs text-[#7A6052]">
+                      <div className="mt-2 space-y-1.5 text-xs text-[var(--dash-text-soft)]">
                         <div className="flex items-center gap-1.5 truncate">
-                          <MapPin className="w-3.5 h-3.5 text-[#C15C3D] flex-shrink-0" />
-                          <span className="truncate text-[#523526] font-medium">{event.location}</span>
+                          <MapPin className="w-3.5 h-3.5 text-[var(--dash-accent)] flex-shrink-0" />
+                          <span className="truncate text-[var(--dash-text-soft)] font-medium">{event.location}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[#8C6D5A] text-[11px]">
-                          <Calendar className="w-3 h-3 text-[#C15C3D] flex-shrink-0" />
+                        <div className="flex items-center gap-1.5 text-[var(--dash-text-muted)] text-[11px]">
+                          <Calendar className="w-3 h-3 text-[var(--dash-accent)] flex-shrink-0" />
                           <span>{new Date(event.date).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[11px] text-[#8C6D5A]">
-                      <span className="px-2 py-0.5 rounded-full bg-[#EADECE] border border-[#D5C2AF] font-semibold">
+                    <div className="flex items-center gap-2 text-[11px] text-[var(--dash-text-muted)]">
+                      <span className="px-2 py-0.5 rounded-full bg-[var(--dash-surface-hover)] border border-[var(--dash-border)] font-semibold">
                         {event.budget_range}
                       </span>
-                      <span className="px-2 py-0.5 rounded-full bg-[#EADECE] border border-[#D5C2AF] font-semibold">
+                      <span className="px-2 py-0.5 rounded-full bg-[var(--dash-surface-hover)] border border-[var(--dash-border)] font-semibold">
                         {event.radius} mi radius
                       </span>
                     </div>

@@ -4,6 +4,60 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * App-wide brand palette — one set of tokens for every surface: the host
+ * dashboard, the marketing/auth/profile pages, and the guest-facing
+ * responder flow. These used to be redefined as literal hex in several
+ * places (dashboard.css, share-panel-collapsible, zero-match-panel,
+ * join-event-chat, the marketing pages) — the same warm palette typed out
+ * again and again, so a theme change in one spot silently didn't apply
+ * elsewhere. Defining it once here and consuming `var(--dash-*)`
+ * everywhere is what makes the dark/light toggle (and any future palette
+ * tweak) apply across the board instead of needing to be hunted down file
+ * by file.
+ *
+ * Status colors (red/green/amber/blue used for match-quality, alerts,
+ * severity) stay constant across both themes on purpose: their meaning is
+ * the color itself, and usability guidance is to keep semantic status
+ * colors consistent rather than inverting them with the surface palette.
+ *
+ * Toggled via a `data-theme` attribute on <html> (see
+ * frontend/lib/use-theme-toggle.ts). The host dashboard/marketing/profile
+ * pages and the guest responder flow each persist their own preference
+ * under a different localStorage key, so a host's choice never affects
+ * what a guest sees and vice versa, even though both read these same
+ * tokens.
+ */
+:root {
+  --dash-bg: #1a1210;
+  --dash-surface: #201512;
+  --dash-surface-raised: #271a17;
+  --dash-surface-hover: #33201b;
+  --dash-border: #352520;
+  --dash-border-strong: #5a4239;
+  --dash-text: #ffffff;
+  --dash-text-soft: #ded3cd;
+  --dash-text-muted: #9b8b84;
+  --dash-accent: #b8744b;
+  --dash-accent-soft: #d88c5e;
+  --dash-accent-deep: #733f20;
+}
+
+:root[data-theme="light"] {
+  --dash-bg: #f7f2ea;
+  --dash-surface: #ffffff;
+  --dash-surface-raised: #faf5ef;
+  --dash-surface-hover: #f0e6da;
+  --dash-border: #e5d8c8;
+  --dash-border-strong: #cbb59c;
+  --dash-text: #2b1c14;
+  --dash-text-soft: #4a382c;
+  --dash-text-muted: #8a7566;
+  --dash-accent: #b8744b;
+  --dash-accent-soft: #8a5636;
+  --dash-accent-deep: #a6653e;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

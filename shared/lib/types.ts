@@ -21,6 +21,20 @@ export type MenuFlags = {
   vegan?: boolean;
 };
 
+export type LimitationChecklistItem = {
+  id: string;
+  label: string;
+};
+
+// Gemini's provisional read on one checklist item for one restaurant —
+// always surfaced as AI-inferred, never as a confirmed fact.
+export type RestaurantChecklistNote = {
+  itemId: string;
+  label: string;
+  verdict: "good" | "neutral" | "bad" | "unknown";
+  note: string;
+};
+
 export type DietreEvent = {
   id: string;
   host_id: string;
@@ -33,6 +47,16 @@ export type DietreEvent = {
   budget_range: BudgetRange;
   expected_headcount: number;
   created_at: string;
+  // Host-authored free text — accessibility, noise, venue rules, anything
+  // that isn't a per-guest dietary rule. Optional; most events won't set it.
+  limitations?: string;
+  // Gemini's structured read of `limitations`, recomputed whenever the host
+  // changes the text. Empty until the host has saved limitations text with
+  // GEMINI_API_KEY configured.
+  limitations_checklist?: LimitationChecklistItem[];
+  // Per-restaurant notes against limitations_checklist, keyed by restaurant
+  // id. Computed once when the checklist changes, not on every page load.
+  checklist_notes_by_restaurant?: Record<string, RestaurantChecklistNote[]>;
 };
 
 export type ParsedRules = {
@@ -125,10 +149,26 @@ export type MatchResult = {
   expected_headcount: number;
 };
 
+// Gemini's per-item safety read for one response, cached so the (slow,
+// paid) call only happens once per response rather than on every dashboard
+// load. Menu items are static seed data, so the cache never goes stale.
+export type AiItemJudgment = {
+  safe: boolean;
+  uncertain: boolean;
+  reasoning: string;
+};
+
+export type ResponseItemJudgments = {
+  response_id: string;
+  computed_at: string;
+  judgments: Record<string, AiItemJudgment>; // keyed by menu_item_id
+};
+
 export type DataStore = {
   events: DietreEvent[];
   responses: DietResponse[];
   restaurants: Restaurant[];
   menu_items: MenuItem[];
   hosts: HostRecord[];
+  ai_judgments: ResponseItemJudgments[];
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle } from 'lucide-react';
+import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Sparkles } from 'lucide-react';
 import { EventDetails } from '../types';
 
 export interface EventEditPatch {
@@ -8,6 +8,7 @@ export interface EventEditPatch {
   radiusMiles: number;
   maxBudget: '$' | '$$' | '$$$';
   expectedHeadcount: number;
+  limitations: string;
 }
 
 interface EditEventModalProps {
@@ -27,6 +28,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
   const [radiusMiles, setRadiusMiles] = useState(eventDetails.radiusMiles);
   const [maxBudget, setMaxBudget] = useState(eventDetails.maxBudget);
   const [expectedHeadcount, setExpectedHeadcount] = useState(eventDetails.expectedHeadcount);
+  const [limitations, setLimitations] = useState(eventDetails.limitations);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +39,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
     setSaving(true);
     setError(null);
     try {
-      await onSave({ name, address, radiusMiles, maxBudget, expectedHeadcount });
+      await onSave({ name, address, radiusMiles, maxBudget, expectedHeadcount, limitations });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save event details.');
@@ -55,10 +57,10 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
     >
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
-      <div className="animate-in fade-in zoom-in-95 relative z-10 my-auto flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#43322b] bg-[#231a17] shadow-2xl duration-200">
-        <div className="flex shrink-0 items-center justify-between border-b border-[#362722] bg-[#1e1513] px-6 py-4">
+      <div className="animate-in fade-in zoom-in-95 relative z-10 my-auto flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-2xl duration-200">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--dash-border)] bg-[var(--dash-surface)] px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#b8744b]/40 bg-[#b8744b]/20 text-[#d88c5e]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--dash-accent)]/40 bg-[var(--dash-accent)]/20 text-[var(--dash-accent-soft)]">
               <Calendar className="h-4 w-4" />
             </div>
             <h2 id="modal-headline" className="text-lg font-bold tracking-tight text-white">
@@ -69,7 +71,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#a0928c] transition-colors hover:bg-[#34241f] hover:text-white cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--dash-text-muted)] transition-colors hover:bg-[var(--dash-surface-hover)] hover:text-white cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -84,7 +86,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
           )}
 
           <div>
-            <label htmlFor="event-name-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#a0928c]">
+            <label htmlFor="event-name-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
               Event Name
             </label>
             <input
@@ -93,30 +95,30 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-[#3e2c26] bg-[#170f0e] px-4 py-2.5 text-sm text-white placeholder-[#685852] transition-colors focus:border-[#b8744b] focus:outline-none focus:ring-1 focus:ring-[#b8744b]"
+              className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-4 py-2.5 text-sm text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
             />
           </div>
 
           <div>
-            <label htmlFor="event-address-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#a0928c]">
+            <label htmlFor="event-address-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
               Location
             </label>
             <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#d88c5e]" />
+              <MapPin className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[var(--dash-accent-soft)]" />
               <input
                 type="text"
                 id="event-address-input"
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full rounded-xl border border-[#3e2c26] bg-[#170f0e] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[#685852] transition-colors focus:border-[#b8744b] focus:outline-none focus:ring-1 focus:ring-[#b8744b]"
+                className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="event-radius-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#a0928c]">
+              <label htmlFor="event-radius-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Radius (miles)
               </label>
               <div className="relative">
@@ -129,13 +131,13 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
                   max={30}
                   value={radiusMiles}
                   onChange={(e) => setRadiusMiles(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[#3e2c26] bg-[#170f0e] py-2.5 pl-10 pr-4 text-sm text-white transition-colors focus:border-[#b8744b] focus:outline-none focus:ring-1 focus:ring-[#b8744b]"
+                  className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2.5 pl-10 pr-4 text-sm text-white transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="event-headcount-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#a0928c]">
+              <label htmlFor="event-headcount-input" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
                 Expected Headcount
               </label>
               <div className="relative">
@@ -147,25 +149,25 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
                   min={1}
                   value={expectedHeadcount}
                   onChange={(e) => setExpectedHeadcount(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[#3e2c26] bg-[#170f0e] py-2.5 pl-10 pr-4 text-sm text-white transition-colors focus:border-[#b8744b] focus:outline-none focus:ring-1 focus:ring-[#b8744b]"
+                  className="w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2.5 pl-10 pr-4 text-sm text-white transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#a0928c]">
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
               <DollarSign className="h-3.5 w-3.5 text-[#22c55e]" />
               Budget Range
             </label>
-            <div className="inline-flex w-full rounded-xl border border-[#34241e] bg-[#140d0c] p-1 text-sm">
+            <div className="inline-flex w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-1 text-sm">
               {BUDGET_OPTIONS.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setMaxBudget(option)}
                   className={`flex-1 rounded-lg py-1.5 font-semibold transition-all cursor-pointer ${
-                    maxBudget === option ? 'bg-[#b8744b] text-white shadow-sm' : 'text-[#9e8f88] hover:text-white'
+                    maxBudget === option ? 'bg-[var(--dash-accent)] text-white shadow-sm' : 'text-[var(--dash-text-muted)] hover:text-white'
                   }`}
                 >
                   {option}
@@ -174,18 +176,55 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-[#362722] pt-3">
+          <div className="space-y-2 border-t border-[var(--dash-border)] pt-5">
+            <label
+              htmlFor="event-limitations-input"
+              className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]"
+            >
+              <ListChecks className="h-3.5 w-3.5 text-[var(--dash-accent-soft)]" />
+              Limitations &amp; Venue Requirements
+            </label>
+            <p className="text-[11px] leading-relaxed text-[var(--dash-text-muted)]">
+              Accessibility, noise, timing, venue-level dietary requirements — anything that isn&apos;t a per-guest
+              response. Saving this asks Gemini to break it into a checklist and check candidate restaurants against
+              it; a specific radius or budget mentioned here will fill in those fields above if you haven&apos;t
+              already changed them.
+            </p>
+            <textarea
+              id="event-limitations-input"
+              rows={3}
+              value={limitations}
+              onChange={(e) => setLimitations(e.target.value)}
+              placeholder="e.g. Wheelchair-accessible entrance required. Vegan entrée must be available. Keep it under 5 miles."
+              className="w-full resize-y rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-4 py-2.5 text-sm text-white placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--dash-accent)]"
+            />
+            {eventDetails.limitationsChecklist.length > 0 && (
+              <div className="space-y-1.5 rounded-xl border border-dashed border-[#eab308]/40 bg-[#eab308]/5 p-3">
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#facc15]">
+                  <Sparkles className="h-3 w-3" />
+                  Current AI-extracted checklist
+                </span>
+                <ul className="space-y-1 text-xs text-[var(--dash-text-soft)]">
+                  {eventDetails.limitationsChecklist.map((item) => (
+                    <li key={item.id}>• {item.label}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-[var(--dash-border)] pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-[#b5a7a1] transition-colors hover:bg-[#32231e] hover:text-white cursor-pointer"
+              className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--dash-text-muted)] transition-colors hover:bg-[var(--dash-border)] hover:text-white cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-[#b8744b] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#b8744b]/20 transition-all hover:bg-[#c98256] active:bg-[#a6653e] disabled:opacity-60 cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-[var(--dash-accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--dash-accent)]/20 transition-all hover:bg-[var(--dash-accent-soft)] active:bg-[var(--dash-accent-deep)] disabled:opacity-60 cursor-pointer"
             >
               <Check className="h-4 w-4" /> {saving ? 'Saving…' : 'Save Changes'}
             </button>

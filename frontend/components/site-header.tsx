@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogoutButton } from "@/frontend/components/logout-button";
 import { Button } from "@/frontend/components/ui/button";
+import { HostThemeToggle } from "@/frontend/components/host-theme-toggle";
 import { getSession } from "@/backend/lib/auth";
 
 export async function SiteHeader({ quiet = false }: { quiet?: boolean }) {
@@ -13,7 +14,7 @@ export async function SiteHeader({ quiet = false }: { quiet?: boolean }) {
           <span className="grid size-7 place-items-center rounded-md bg-primary text-[11px] font-semibold tracking-wide text-primary-foreground">
             DR
           </span>
-          <span className="font-heading text-lg tracking-tight">DietRe</span>
+          <span className="font-heading text-lg tracking-tight">dietre</span>
         </Link>
         {!quiet && (
           <nav className="flex items-center gap-1.5 text-sm">
@@ -32,6 +33,7 @@ export async function SiteHeader({ quiet = false }: { quiet?: boolean }) {
                   <Link href="/profile">Profile</Link>
                 </Button>
                 <LogoutButton />
+                <HostThemeToggle />
               </>
             ) : (
               <Button size="sm" asChild>

@@ -31,12 +31,19 @@ export interface RestaurantTrait {
   category?: string;
 }
 
+// A pointer to one anonymous response — enough to look it up and open its
+// detail modal, without ever carrying a name.
+export interface GuestRef {
+  responseId: string;
+  token: string; // "Guest 07"
+}
+
 // A menu item this restaurant can safely serve, and who it's safe for.
 export interface SuggestedMenuItem {
   id: string;
   name: string;
   price: number;
-  coveredGuestTokens: string[]; // e.g. ["Guest 01", "Guest 04"]
+  coveredResponses: GuestRef[];
   uncertain: boolean; // AI-inferred ingredients not yet human-confirmed
 }
 
@@ -64,10 +71,27 @@ export interface RestaurantCardData {
   coveredCount: number; // responses covered
   totalResponses: number; // denominator — never show matchPercentage without this
   hasUnconfirmedItems: boolean; // true if any safe item relies on a low-confidence AI ingredient guess
-  matchedGuestTokens: string[];
+  matchedResponses: GuestRef[];
   dietaryConflicts: DietaryConflict[];
   suggestedMenuItems: SuggestedMenuItem[];
   menuDataThin: boolean; // true when we have no menu items at all for this restaurant
+  checklistNotes: RestaurantChecklistNote[]; // Gemini's read on the host's free-text limitations, per venue
+}
+
+// One constraint Gemini pulled out of the host's free-text limitations,
+// e.g. "Vegan entrée available" or "Wheelchair-accessible entrance".
+export interface LimitationChecklistItem {
+  id: string;
+  label: string;
+}
+
+// Gemini's provisional read on one checklist item for one restaurant —
+// always shown as AI-inferred, never as a confirmed fact.
+export interface RestaurantChecklistNote {
+  itemId: string;
+  label: string;
+  verdict: 'good' | 'neutral' | 'bad' | 'unknown';
+  note: string;
 }
 
 export interface EventDetails {
@@ -78,9 +102,11 @@ export interface EventDetails {
   radiusMiles: number;
   maxBudget: '$' | '$$' | '$$$';
   expectedHeadcount: number;
+  limitations: string;
+  limitationsChecklist: LimitationChecklistItem[];
 }
 
-// A single anonymous guest response — never a name. See DietRe's anonymity-by-design rule.
+// A single anonymous guest response — never a name. See dietre's anonymity-by-design rule.
 export interface GuestResponse {
   id: string;
   token: string; // "Guest 07" — the only identifier ever shown

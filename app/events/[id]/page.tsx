@@ -48,7 +48,7 @@ export default async function EventDashboardPage({
     listRestaurants(),
     listMenuItems(),
   ]);
-  const match = matchEvent({ event, responses, restaurants, menuItems });
+  const match = await matchEvent({ event, responses, restaurants, menuItems });
 
   return (
     <OverviewDashboard
