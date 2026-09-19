@@ -1,6 +1,9 @@
 import { hashPassword, hostIdFromEmail } from "@/backend/lib/auth";
 import type { DietResponse, DietreEvent, HostRecord, MenuItem, Restaurant } from "@/shared/lib/types";
 
+// Frontend-shaped seed. Firestore documents (organizers/events/guests/…) are
+// mapped in backend/lib/collections.ts — this file stays the source of truth.
+
 function flags(partial: MenuItem["flags"]): MenuItem["flags"] {
   return partial;
 }
