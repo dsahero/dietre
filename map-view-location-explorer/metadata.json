@@ -1,0 +1,6 @@
+{
+  "name": "Map View Location Explorer",
+  "description": "Event management and venue planning platform with product homepage, host signup and login authentication, event dashboard, and interactive spatial map.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
