@@ -1,6 +1,7 @@
 import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
 import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, severityWeight } from "@/backend/lib/parser";
-import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores } from "@/backend/lib/db";
+import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores, updateEvent } from "@/backend/lib/db";
+import { withTimeout } from "@/backend/lib/with-timeout";
 import type {
   AiItemJudgment,
   ComplexRequirementNote,
@@ -28,62 +29,91 @@ function guestLabel(
 // dashboard reload never re-pays for the same call. Only computed when
 // GEMINI_API_KEY is configured; otherwise every response falls back to the
 // existing rule-based flag/ingredient matching untouched.
+//
+// Uncached responses are NOT awaited here: isSafe() below already treats a
+// missing judgment as "fall back to the deterministic rule-based check,"
+// exactly as it does with no API key configured at all, so a first-time
+// response can be resolved on this same render without ever blocking on a
+// network call. The Gemini read is fetched a few at a time in the
+// background and simply appears, cached, on a later reload — a rate-limited
+// or slow call should never be able to hang the page when a correct
+// fallback already exists.
+const JUDGE_BATCH_SIZE = 3;
+
 async function resolveJudgments(
   responses: DietResponse[],
   menuItems: MenuItem[]
 ): Promise<Map<string, Record<string, AiItemJudgment> | null>> {
-  const entries = await Promise.all(
+  const result = new Map<string, Record<string, AiItemJudgment> | null>();
+  const uncached: DietResponse[] = [];
+
+  await Promise.all(
     responses.map(async (response) => {
       const cached = await getResponseJudgments(response.id);
-      if (cached) return [response.id, cached] as const;
-
-      const computed = await judgeResponseAgainstMenuWithGemini(response, menuItems);
-      if (computed) await saveResponseJudgments(response.id, computed);
-      return [response.id, computed] as const;
+      if (cached) result.set(response.id, cached);
+      else uncached.push(response);
     })
   );
-  return new Map(entries);
+
+  if (uncached.length > 0 && process.env.GEMINI_API_KEY) {
+    void resolveJudgmentsInBackground(uncached, menuItems);
+  }
+
+  return result;
+}
+
+async function resolveJudgmentsInBackground(responses: DietResponse[], menuItems: MenuItem[]): Promise<void> {
+  for (let i = 0; i < responses.length; i += JUDGE_BATCH_SIZE) {
+    const batch = responses.slice(i, i + JUDGE_BATCH_SIZE);
+    await Promise.all(
+      batch.map(async (response) => {
+        try {
+          const computed = await judgeResponseAgainstMenuWithGemini(response, menuItems);
+          if (computed) await saveResponseJudgments(response.id, computed);
+        } catch (error) {
+          console.error("Background Gemini judgment failed", error);
+        }
+      })
+    );
+  }
 }
 
 // Evaluate every candidate restaurant's full menu against the complex special requirements
-// gathered from participants (e.g. meat & dairy separation, cross-contamination).
-// Evaluate every candidate restaurant's full menu against the complex special requirements
-// gathered from participants (e.g. meat & dairy separation, cross-contamination) using
-// the unified event context file.
-// Gemini reasons over the complete menu items; if GEMINI_API_KEY is unset, an intelligent
-// mock inspection provides accurate dietary feedback.
-async function evaluateRestaurantsAgainstComplexRestrictions(
+// gathered from participants (e.g. meat & dairy separation, cross-contamination), using the
+// unified event context file. Split into a synchronous deterministic pass (below) and this
+// Gemini-only pass so a render never has to choose between blocking on the network and
+// showing nothing — see the call site in matchEvent for how the two are combined.
+async function fetchComplexNotesFromGemini(
   contextMarkdown: string,
   complexRules: { rule: string; responseIds: string[] }[],
   restaurants: Restaurant[],
   menuItemsByRestaurant: Map<string, MenuItem[]>,
   guestTokenIndex: (id: string) => string
-): Promise<Record<string, ComplexRequirementNote[]>> {
-  if (complexRules.length === 0 || restaurants.length === 0) return {};
-
+): Promise<Record<string, ComplexRequirementNote[]> | null> {
+  if (complexRules.length === 0 || restaurants.length === 0) return null;
   const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
 
-  if (apiKey) {
-    try {
-      const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-      const rulesText = complexRules
-        .map((cr, idx) => `- Rule ${idx + 1}: "${cr.rule}" (Requested by ${cr.responseIds.map(guestTokenIndex).join(", ")})`)
-        .join("\n");
+    const rulesText = complexRules
+      .map((cr, idx) => `- Rule ${idx + 1}: "${cr.rule}" (Requested by ${cr.responseIds.map(guestTokenIndex).join(", ")})`)
+      .join("\n");
 
-      const restaurantsText = restaurants
-        .map((r) => {
-          const items = menuItemsByRestaurant.get(r.id) ?? [];
-          const itemSummary = items
-            .map((i) => `${i.name} [flags: ${Object.entries(i.flags).filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}; ingredients: ${i.estimated_ingredients.slice(0, 6).join(", ")}]`)
-            .join("; ");
-          return `Restaurant [${r.id}] "${r.name}" (${r.cuisine}): Menu items: ${itemSummary || "No menu data"}`;
-        })
-        .join("\n\n");
+    const restaurantsText = restaurants
+      .map((r) => {
+        const items = menuItemsByRestaurant.get(r.id) ?? [];
+        const itemSummary = items
+          .map((i) => `${i.name} [flags: ${Object.entries(i.flags).filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}; ingredients: ${i.estimated_ingredients.slice(0, 6).join(", ")}]`)
+          .join("; ");
+        return `Restaurant [${r.id}] "${r.name}" (${r.cuisine}): Menu items: ${itemSummary || "No menu data"}`;
+      })
+      .join("\n\n");
 
-      const prompt = `You are an expert culinary auditor evaluating restaurant catering menus against the event's complex restrictions and limitations.
+    const prompt = `You are an expert culinary auditor evaluating restaurant catering menus against the event's complex restrictions and limitations.
 
 OFFICIAL EVENT COMPLEX RESTRICTIONS & EVENT LIMITATIONS CONTEXT FILE:
 ===================================================================
@@ -107,37 +137,46 @@ For each restaurant, evaluate whether its menu options allow guests with these c
 Return ONLY JSON:
 {"<restaurant_id>": [{"rule": "<exact rule text>", "verdict": "good"|"neutral"|"bad", "note": "<concise 1-sentence plain English explanation mentioning menu items>"}, ...]}`;
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim();
-      const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
-      const parsed = JSON.parse(jsonText) as Record<
-        string,
-        { rule?: string; verdict?: string; note?: string }[]
-      >;
+    const result = await withTimeout(model.generateContent(prompt), 9000, "Complex requirements evaluation");
+    const text = result.response.text().trim();
+    const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
+    const parsed = JSON.parse(jsonText) as Record<
+      string,
+      { rule?: string; verdict?: string; note?: string }[]
+    >;
 
-      const out: Record<string, ComplexRequirementNote[]> = {};
-      for (const restaurant of restaurants) {
-        const notes = parsed[restaurant.id];
-        if (Array.isArray(notes)) {
-          out[restaurant.id] = notes.map((n, idx) => {
-            const ruleObj = complexRules[idx] ?? complexRules[0];
-            const verdict = n.verdict === "good" || n.verdict === "bad" || n.verdict === "neutral" ? n.verdict : "neutral";
-            return {
-              rule: n.rule || ruleObj.rule,
-              guest_tokens: ruleObj.responseIds.map(guestTokenIndex),
-              verdict,
-              note: n.note || "Menu evaluated against compound dietary parameters.",
-            };
-          });
-        }
+    const out: Record<string, ComplexRequirementNote[]> = {};
+    for (const restaurant of restaurants) {
+      const notes = parsed[restaurant.id];
+      if (Array.isArray(notes)) {
+        out[restaurant.id] = notes.map((n, idx) => {
+          const ruleObj = complexRules[idx] ?? complexRules[0];
+          const verdict = n.verdict === "good" || n.verdict === "bad" || n.verdict === "neutral" ? n.verdict : "neutral";
+          return {
+            rule: n.rule || ruleObj.rule,
+            guest_tokens: ruleObj.responseIds.map(guestTokenIndex),
+            verdict,
+            note: n.note || "Menu evaluated against compound dietary parameters.",
+          };
+        });
       }
-      if (Object.keys(out).length > 0) return out;
-    } catch (e) {
-      console.warn("Gemini complex requirements evaluation fallback:", e);
     }
+    return Object.keys(out).length > 0 ? out : null;
+  } catch (e) {
+    console.warn("Gemini complex requirements evaluation fallback:", e);
+    return null;
   }
+}
 
-  // Deterministic mock evaluation when GEMINI_API_KEY is not configured
+// Deterministic, synchronous fallback — used both when GEMINI_API_KEY is
+// unset and as the immediate result for a render while
+// fetchComplexNotesFromGemini resolves in the background (see matchEvent).
+function computeMockComplexNotes(
+  complexRules: { rule: string; responseIds: string[] }[],
+  restaurants: Restaurant[],
+  menuItemsByRestaurant: Map<string, MenuItem[]>,
+  guestTokenIndex: (id: string) => string
+): Record<string, ComplexRequirementNote[]> {
   const out: Record<string, ComplexRequirementNote[]> = {};
   for (const restaurant of restaurants) {
     const items = menuItemsByRestaurant.get(restaurant.id) ?? [];
@@ -199,6 +238,25 @@ Return ONLY JSON:
   return out;
 }
 
+// Everything the complex-restrictions evaluation actually reads: which
+// rules exist and who asked for them, plus which restaurants are in play
+// (a menu edit changes the restaurant's id-stable identity in this seed
+// data model, so restaurant ids are a sufficient proxy for "menu changed").
+function complexNotesCacheKey(
+  complexRulesList: { rule: string; responseIds: string[] }[],
+  restaurants: Restaurant[]
+): string {
+  const rulesPart = complexRulesList
+    .map((r) => `${r.rule}::${[...r.responseIds].sort().join(",")}`)
+    .sort()
+    .join("|");
+  const restaurantsPart = restaurants
+    .map((r) => r.id)
+    .sort()
+    .join(",");
+  return `${rulesPart}##${restaurantsPart}`;
+}
+
 export async function matchEvent(input: {
   event: DietreEvent;
   responses: DietResponse[];
@@ -241,17 +299,48 @@ export async function matchEvent(input: {
   // Build and persist the official unified event context file
   const { markdown: contextMarkdown } = await saveEventComplexContext(event, responses);
 
-  const complexNotesByRestaurant = await evaluateRestaurantsAgainstComplexRestrictions(
-    contextMarkdown,
-    complexRulesList,
-    restaurants,
-    itemsByRestaurant,
-    (id) => {
-      const idx = responses.findIndex((r) => r.id === id);
-      const resp = responses[idx];
-      return guestLabel(idx, "medium", resp?.guest_name);
-    }
-  );
+  // Cached on the event the same way checklist_notes_by_restaurant is: this
+  // Gemini call reasons over every restaurant's full menu at once and was
+  // previously being re-run on every single dashboard load (including ones
+  // where nothing had changed since the last visit), which is what was
+  // making the page hang whenever the free-tier quota was exhausted. The
+  // signature captures everything the evaluation actually depends on, so a
+  // plain reload reuses the cached notes and a genuinely new complex rule
+  // (or a changed restaurant/menu set) still triggers a fresh evaluation.
+  //
+  // On a cache miss, this render uses the deterministic mock read
+  // immediately rather than waiting on Gemini — the real evaluation runs in
+  // the background and upgrades the cache for the next load, the same
+  // fire-and-forget shape as persistScores() further down.
+  const complexNotesSignature = complexNotesCacheKey(complexRulesList, restaurants);
+  const cachedComplexNotes =
+    event.complex_notes_signature === complexNotesSignature ? event.complex_notes_by_restaurant : undefined;
+
+  const guestTokenIndex = (id: string) => {
+    const idx = responses.findIndex((r) => r.id === id);
+    const resp = responses[idx];
+    return guestLabel(idx, "medium", resp?.guest_name);
+  };
+
+  const complexNotesByRestaurant =
+    cachedComplexNotes ?? computeMockComplexNotes(complexRulesList, restaurants, itemsByRestaurant, guestTokenIndex);
+
+  if (!cachedComplexNotes && complexRulesList.length > 0) {
+    void (async () => {
+      const geminiNotes = await fetchComplexNotesFromGemini(
+        contextMarkdown,
+        complexRulesList,
+        restaurants,
+        itemsByRestaurant,
+        guestTokenIndex
+      );
+      if (!geminiNotes) return;
+      await updateEvent(event.id, {
+        complex_notes_by_restaurant: geminiNotes,
+        complex_notes_signature: complexNotesSignature,
+      });
+    })().catch((error) => console.error("complex_notes_by_restaurant cache write failed", error));
+  }
 
   // Gemini's read wins when available (it can catch compound rules like
   // "no mixing meat and dairy" that a flag/keyword match can't express);

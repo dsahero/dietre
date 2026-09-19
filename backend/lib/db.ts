@@ -274,6 +274,8 @@ export async function updateEvent(
       | "limitations"
       | "limitations_checklist"
       | "checklist_notes_by_restaurant"
+      | "complex_notes_by_restaurant"
+      | "complex_notes_signature"
     >
   >
 ): Promise<DietreEvent | null> {

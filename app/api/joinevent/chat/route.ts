@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ParsedRules, Severity } from "@/shared/lib/types";
 import { parseDietaryText } from "@/backend/lib/parser";
+import { withTimeout } from "@/backend/lib/with-timeout";
 
 export type ChatMessage = {
   role: "user" | "assistant";
@@ -158,7 +159,7 @@ SUBMIT_JSON:{"name":"${guestName || ""}","hard_excludes":[],"complex_restriction
       : SYSTEM_PROMPT;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-flash-latest",
       systemInstruction,
     });
 
@@ -169,7 +170,7 @@ SUBMIT_JSON:{"name":"${guestName || ""}","hard_excludes":[],"complex_restriction
     }));
 
     const chat = model.startChat({ history: geminiHistory });
-    const result = await chat.sendMessage(userMessage);
+    const result = await withTimeout(chat.sendMessage(userMessage), 9000, "Join-event chat reply");
     const replyText = result.response.text();
 
     const extracted = extractSubmitJson(replyText);

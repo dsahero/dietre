@@ -29,6 +29,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <>
+      {/* Mobile-only scrim behind the drawer (see the max-width: 880px rules
+          in dashboard.css) — tapping it closes the menu, same as the
+          collapse button. Invisible/inert above that breakpoint. */}
+      <div
+        className={`sidebar-backdrop ${isCollapsed ? '' : 'is-open'}`}
+        onClick={onToggleCollapse}
+        aria-hidden="true"
+      />
+
       {/* Sidebar Container with Smooth Slide/Fold Transition */}
       <aside
         id="sidebar-navigation"

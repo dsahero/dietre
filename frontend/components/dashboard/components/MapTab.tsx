@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { Compass, Filter, Info, Menu, Search, ZoomIn, ZoomOut } from 'lucide-react';
 import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
+import { useIsMobile } from '@/frontend/lib/use-is-mobile';
 
 interface MapTabProps {
   event: { name: string; lat: number; lng: number; radiusMiles: number };
@@ -14,6 +15,18 @@ interface MapTabProps {
 }
 
 type MatchTier = 'strong' | 'partial' | 'weak' | 'outside';
+
+// Leaflet's divIcon markup is a raw HTML string, outside the React/Tailwind
+// tree, so it can't reference var(--dash-accent) directly — the palette
+// would only apply at build time otherwise and silently go stale the next
+// time the brand colors change (as literally happened here: this used to
+// hardcode the pre-refresh accent #b8744b). Reading the live custom
+// property at marker-creation time keeps it honest instead.
+function readCssVar(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
 
 const TIER_COLOR: Record<MatchTier, string> = {
   strong: '#22c55e',
@@ -47,11 +60,20 @@ export const MapTab: React.FC<MapTabProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
 
+  const isMobile = useIsMobile(880);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<MatchTier | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailRestaurant, setDetailRestaurant] = useState<RestaurantCardData | null>(null);
+
+  // The list-and-map split needs real width on each side to be usable, so
+  // on a phone the list starts closed and the map takes the full tab —
+  // tapping the Menu button still opens it as an overlay.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the viewport, not derivable during render
+    if (isMobile) setIsSidebarOpen(false);
+  }, [isMobile]);
 
   // Only venues within the event radius plus a reasonable buffer, so the
   // map isn't cluttered with places nobody could realistically travel to.
@@ -85,11 +107,26 @@ export const MapTab: React.FC<MapTabProps> = ({
       center: [event.lat, event.lng],
       zoom: 13,
       zoomControl: false,
+      attributionControl: false,
     });
+
+    // Compact on-theme attribution (styled in dashboard.css) — the OSM
+    // credit is legally required, but Leaflet's own "Leaflet | © ..."
+    // prefix isn't, so it's dropped to keep the chip small enough to sit
+    // clear of the custom zoom/compass control in the same corner.
+    L.control
+      .attribution({ prefix: false })
+      .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+      .addTo(map);
+
+    const accent = readCssVar('--dash-accent', '#b9502a');
+    const surface = readCssVar('--dash-surface-raised', '#fbf6ea');
 
     // Standard OSM tiles — no API key, no anonymous-usage rate limiting
     // (CartoDB's free Voyager tiles started rendering "API key required"
-    // watermarks under repeated local testing).
+    // watermarks under repeated local testing). Color-graded toward the
+    // app's warm palette via CSS filter on .leaflet-tile-pane (see
+    // dashboard.css) rather than left in OSM's stock saturated colors.
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -98,15 +135,15 @@ export const MapTab: React.FC<MapTabProps> = ({
 
     L.circle([event.lat, event.lng], {
       radius: event.radiusMiles * 1609.34,
-      color: '#b8744b',
+      color: accent,
       weight: 1,
-      fillColor: '#b8744b',
+      fillColor: accent,
       fillOpacity: 0.06,
     }).addTo(map);
 
     const eventIcon = L.divIcon({
       className: 'event-pin',
-      html: `<div style="width:16px;height:16px;border-radius:9999px;background:#b8744b;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+      html: `<div style="width:16px;height:16px;border-radius:9999px;background:${accent};border:2px solid ${surface};box-shadow:0 2px 6px rgba(20,12,6,0.45)"></div>`,
       iconSize: [16, 16],
       iconAnchor: [8, 8],
     });
@@ -176,7 +213,7 @@ export const MapTab: React.FC<MapTabProps> = ({
   }, [inRange]);
 
   return (
-    <div className="flex h-[720px] overflow-hidden rounded-sm border border-[var(--dash-border)]" id="map-tab-container">
+    <div className="flex h-[70vh] min-h-[420px] overflow-hidden rounded-sm border border-[var(--dash-border)] sm:h-[720px]" id="map-tab-container">
       {/* Locations sidebar */}
       {isSidebarOpen && (
         <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-r border-[var(--dash-border)] bg-[var(--dash-surface)] sm:w-80">
@@ -303,9 +340,12 @@ export const MapTab: React.FC<MapTabProps> = ({
           </div>
         </div>
 
-        <div ref={containerRef} className="absolute inset-0 z-0" />
+        <div ref={containerRef} className="map-canvas absolute inset-0 z-0" />
 
-        <div className="absolute bottom-5 right-5 z-[900] flex flex-col gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 p-1.5 shadow-lg backdrop-blur-md">
+        {/* Inset above bottom-5 so Leaflet's own (compact, on-theme —
+            see dashboard.css) attribution chip has clear room in the
+            literal bottom-right corner instead of sitting under this. */}
+        <div className="absolute bottom-14 right-5 z-[900] flex flex-col gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 p-1.5 shadow-lg backdrop-blur-md">
           <button
             type="button"
             onClick={() => mapRef.current?.zoomIn()}
@@ -338,7 +378,7 @@ export const MapTab: React.FC<MapTabProps> = ({
 
         <div className="absolute bottom-5 left-5 z-[900] flex flex-wrap items-center gap-3 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)]/95 px-3.5 py-2 text-xs shadow-lg backdrop-blur-md">
           <span className="flex items-center gap-1.5 text-[var(--dash-text-soft)]">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#b8744b' }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--dash-accent)' }} />
             Event
           </span>
           {(Object.keys(TIER_LABEL) as MatchTier[]).map((tier) => (

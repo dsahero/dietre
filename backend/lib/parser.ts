@@ -1,4 +1,5 @@
 import type { DietResponse, MenuFlags, MenuItem, ParsedRules, Severity } from "@/shared/lib/types";
+import { withTimeout } from "@/backend/lib/with-timeout";
 
 type FlagKey =
   | "contains_pork"
@@ -211,7 +212,7 @@ export async function parseDietaryWithGemini(raw: string): Promise<{
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     const prompt = `You parse dietary needs for catering. Return ONLY JSON with this shape:
 {"hard_excludes": string[], "complex_restrictions": string[], "soft_preferences": string[], "severity": "high"|"medium"|"low"}
 Rules:
@@ -222,7 +223,7 @@ CRITICAL: If the guest states they can eat meat and dairy separately (e.g. "can 
 - severity: high for medical/allergy/celiac, medium for religious/ethical (halal, kosher, vegan), low for taste.
 Text:
 ${raw}`;
-    const result = await model.generateContent(prompt);
+    const result = await withTimeout(model.generateContent(prompt), 9000, "Dietary text parse");
     const text = result.response.text().trim();
     const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(jsonText) as ParsedRules;
@@ -260,7 +261,7 @@ export async function judgeResponseAgainstMenuWithGemini(
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const menuSummary = items
       .map(
@@ -287,7 +288,7 @@ Return ONLY JSON, an object keyed by item id, each value shaped exactly like:
 - reasoning: one short sentence a host could read and immediately understand.
 Include every item id. No prose outside the JSON.`;
 
-    const result = await model.generateContent(prompt);
+    const result = await withTimeout(model.generateContent(prompt), 9000, "Menu safety judgment");
     const text = result.response.text().trim();
     const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(jsonText) as Record<

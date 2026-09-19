@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DietForm } from "@/frontend/components/diet-form";
 import { JoinEventChat } from "@/frontend/components/join-event-chat";
-import { MessageSquareText, ClipboardList, Sparkles } from "lucide-react";
+import { MessageSquareText, ClipboardList } from "lucide-react";
 
 interface ParticipantViewProps {
   eventId: string;
@@ -29,8 +29,8 @@ export function ParticipantView({ eventId, eventName, hostName }: ParticipantVie
         >
           <MessageSquareText className="h-3.5 w-3.5" />
           <span>Concierge Chatbot</span>
-          <span className="hidden sm:inline-flex items-center gap-0.5 rounded-xs bg-white/20 px-1.5 py-0.2 text-[8px] font-mono font-bold tracking-normal">
-            <Sparkles className="h-2.5 w-2.5" /> AI Maitre D&apos;
+          <span className="hidden sm:inline-flex items-center rounded-xs bg-white/20 px-1.5 py-0.2 font-mono text-[8px] font-bold tracking-normal">
+            Maitre D&apos;
           </span>
         </button>
 

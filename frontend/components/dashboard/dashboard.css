@@ -95,10 +95,62 @@ html, body {
   margin-bottom: 24px;
 }
 
+/*
+ * Below ~880px the sidebar can no longer share the row with content at a
+ * usable width, so it switches from a flex sibling that pushes .main-content
+ * over, to a fixed-position drawer that overlays on top of it. Because
+ * `position: fixed` takes an element out of normal flow regardless of its
+ * parent's `display: flex`, .main-content (flex: 1) automatically expands
+ * to fill the full width underneath as soon as this rule applies — the
+ * same mechanism that already makes it go full-width on desktop when the
+ * sidebar collapses to width: 0, just also true here whether the drawer is
+ * open or closed.
+ */
+@media (max-width: 880px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: 200;
+    max-width: 85vw;
+    box-shadow: 8px 0 32px rgba(15, 8, 5, 0.45);
+  }
+
+  .main-content {
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 20px;
+  }
+}
+
+/* Dims and blocks the page behind the drawer; tapping it closes the menu. */
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 880px) {
+  .sidebar-backdrop.is-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 190;
+    background: rgba(10, 6, 4, 0.55);
+    backdrop-filter: blur(1px);
+    animation: sidebar-backdrop-in 0.2s ease;
+  }
+}
+
+@keyframes sidebar-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Main Content Area */
 .main-content {
   flex: 1;
   min-width: 0;
+  width: 100%;
   padding-top: 36px;
   padding-left: 36px;
   padding-right: 36px;
@@ -142,7 +194,7 @@ html, body {
   display: flex;
   align-items: stretch;
   gap: 32px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   width: 100%;
 }
 
@@ -295,7 +347,10 @@ html, body {
 /* Content Cards Section */
 .content-cards-section {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  /* min(480px, 100%) keeps a column from ever forcing horizontal overflow —
+     below ~480px viewport width it collapses to a single full-width column
+     instead of clipping. */
+  grid-template-columns: repeat(auto-fill, minmax(min(480px, 100%), 1fr));
   gap: 18px;
   width: 100%;
 }
@@ -309,6 +364,16 @@ html, body {
   border: 1px solid var(--dash-border);
   box-shadow: 0 2px 6px rgba(35, 20, 10, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+@media (max-width: 640px) {
+  .content-card {
+    flex-direction: column;
+  }
+  .card-thumbnail {
+    width: 100%;
+    min-height: 140px;
+  }
 }
 
 .content-card:hover {
@@ -365,4 +430,72 @@ html, body {
   font-size: 13.5px;
   color: var(--dash-text-soft);
   font-weight: 400;
+}
+
+/*
+ * Leaflet map — color-grade the raw OpenStreetMap tiles (saturated greens
+ * and blues by default) toward the warm cardstock/terracotta palette used
+ * everywhere else, instead of a jarring bright-map-on-parchment mismatch.
+ * A CSS filter on the tile pane is the standard way to reskin OSM tiles
+ * without a paid vector-tile provider. Two variants: light mode gets a
+ * sepia parchment cast, dark mode gets a desaturated, dimmed "night map"
+ * pass so it recedes behind the terracotta pins rather than glowing white.
+ */
+.map-canvas .leaflet-tile-pane {
+  filter: sepia(0.35) saturate(0.65) brightness(1.03) hue-rotate(-6deg);
+}
+
+:root[data-theme="dark"] .map-canvas .leaflet-tile-pane {
+  filter: sepia(0.25) saturate(0.5) brightness(0.55) contrast(1.05) hue-rotate(-6deg) invert(0.92);
+}
+
+.map-canvas .leaflet-container {
+  background: var(--dash-surface);
+  font-family: var(--font-sans), Georgia, serif;
+}
+
+/* Compact, on-theme attribution chip instead of Leaflet's stark white
+   default — required OSM credit stays, it just stops looking like a
+   foreign widget dropped onto the page. Left in Leaflet's own bottom-right
+   corner; our custom zoom/compass control is inset further up (see
+   MapTab.tsx) so the two never overlap. */
+.map-canvas .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--dash-surface) 88%, transparent);
+  color: var(--dash-text-muted);
+  border: 1px solid var(--dash-border);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 9.5px;
+  box-shadow: 0 1px 4px rgba(20, 12, 6, 0.25);
+}
+
+.map-canvas .leaflet-control-attribution a {
+  color: var(--dash-accent-soft);
+}
+
+.map-canvas .leaflet-popup-content-wrapper,
+.map-canvas .leaflet-tooltip {
+  background: var(--dash-surface-raised);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+  border-radius: 4px;
+  font-family: var(--font-sans), Georgia, serif;
+  font-size: 12px;
+  box-shadow: 0 4px 14px rgba(20, 12, 6, 0.3);
+}
+
+.map-canvas .leaflet-tooltip-top:before {
+  border-top-color: var(--dash-border);
+}
+
+/* Soft postcard vignette — purely decorative, sits above the tiles but
+   below the floating UI controls, and never intercepts map clicks/drags. */
+.map-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  box-shadow: inset 0 0 60px rgba(20, 12, 6, 0.22);
 }

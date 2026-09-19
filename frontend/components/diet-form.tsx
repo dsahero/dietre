@@ -8,6 +8,7 @@ import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
 import { Textarea } from "@/frontend/components/ui/textarea";
+import { Bot, User, Send, Loader2, CheckCircle2 } from "lucide-react";
 import type { ParsedRules } from "@/shared/lib/types";
 
 export function DietForm({ eventId }: { eventId: string }) {
@@ -16,7 +17,10 @@ export function DietForm({ eventId }: { eventId: string }) {
 
   if (submitted.ok) {
     return (
-      <div className="rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-8 text-center shadow-xs">
+      <div className="paper-grain tilt-slight rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-8 text-center shadow-[0_4px_16px_rgba(25,12,6,0.12)]">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#22c55e]/40 bg-[#22c55e]/10">
+          <CheckCircle2 className="h-6 w-6 text-[#22c55e]" />
+        </div>
         <span className="ink-stamp inline-block px-2.5 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)] mb-3">
           Registered
         </span>
@@ -32,7 +36,7 @@ export function DietForm({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-6">
-      <form action={parseAction} method="post" className="space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-2xs">
+      <form action={parseAction} method="post" className="paper-grain tilt-left space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]">
         {/* Ask name first */}
         <div className="space-y-2">
           <Label htmlFor="name" className="font-heading text-sm font-bold text-[var(--dash-text)]">
@@ -98,8 +102,6 @@ export function DietForm({ eventId }: { eventId: string }) {
   );
 }
 
-import { Bot, Send, Loader2, Sparkles } from "lucide-react";
-
 function SubmitChips({
   eventId,
   initialName,
@@ -119,7 +121,7 @@ function SubmitChips({
   const [rules, setRules] = useState(initialRules);
 
   return (
-    <form action={action} method="post" className="space-y-6 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-2xs">
+    <form action={action} method="post" className="paper-grain tilt-right space-y-5 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]">
       <input type="hidden" name="event_id" value={eventId} />
       <input type="hidden" name="raw_text" value={raw} />
       <input type="hidden" name="hard_excludes" value={JSON.stringify(rules.hard_excludes)} />
@@ -156,6 +158,8 @@ function SubmitChips({
         />
       </div>
 
+      <hr className="deckle-divider" />
+
       {/* Follow-up Chatbot Section in the Approval stage */}
       <ApprovalChatbotSection
         eventId={eventId}
@@ -163,6 +167,8 @@ function SubmitChips({
         rules={rules}
         onUpdateRules={setRules}
       />
+
+      <hr className="deckle-divider" />
 
       <ChipEditor rules={rules} onChange={setRules} />
 
@@ -272,15 +278,25 @@ function ApprovalChatbotSection({
         <div className="space-y-3">
           <div className="max-h-48 overflow-y-auto space-y-2.5 pr-1 font-serif text-xs leading-relaxed">
             {messages.map((m, idx) => (
-              <div
-                key={idx}
-                className={`p-2.5 rounded-xs ${
-                  m.role === "assistant"
-                    ? "bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] border-l-2 border-l-[var(--dash-accent)] text-[var(--dash-text)]"
-                    : "bg-[var(--dash-accent)] text-white ml-6 text-right"
-                }`}
-              >
-                {m.text}
+              <div key={idx} className={`flex items-start gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+                <span
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-xs ${
+                    m.role === "assistant"
+                      ? "bg-[var(--dash-accent)] text-white"
+                      : "border border-[var(--dash-border-strong)] bg-[var(--dash-surface-hover)] text-[var(--dash-accent)]"
+                  }`}
+                >
+                  {m.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                </span>
+                <div
+                  className={`max-w-[85%] rounded-xs p-2.5 ${
+                    m.role === "assistant"
+                      ? "border border-[var(--dash-border)] border-l-2 border-l-[var(--dash-accent)] bg-[var(--dash-surface-raised)] text-[var(--dash-text)]"
+                      : "bg-[var(--dash-accent)] text-white"
+                  }`}
+                >
+                  {m.text}
+                </div>
               </div>
             ))}
             {loading && (
