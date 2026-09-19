@@ -105,24 +105,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     locationChanged = location !== event.location;
     if (locationChanged) {
-      let lat: number;
-      let lng: number;
-      let googlePlaceId: string | null = null;
-      if (place_id.startsWith("landmark:")) {
-        const place = geocodeBlacksburg(place_id.slice("landmark:".length));
-        lat = place.lat;
-        lng = place.lng;
-      } else {
-        const resolved = await resolvePlace(place_id);
-        if (resolved) {
-          lat = resolved.lat;
-          lng = resolved.lng;
-          googlePlaceId = place_id;
-        } else {
-          const place = geocodeBlacksburg(location);
-          lat = place.lat;
-          lng = place.lng;
-        }
       const resolved = await resolvePlace(place_id);
       if (!resolved) {
         return NextResponse.json(
