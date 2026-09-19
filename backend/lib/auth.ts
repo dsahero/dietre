@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import type { HostSession } from "@/shared/lib/types";
 
@@ -46,6 +46,24 @@ export function sessionCookieOptions() {
     maxAge: 60 * 60 * 24 * 30,
     secure: process.env.NODE_ENV === "production",
   };
+}
+
+// Password storage for provider "mock" hosts — scrypt with a random salt,
+// stored as "salt:hash" hex. Firebase hosts never have a password_hash;
+// Firebase is their credential store.
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, stored: string | undefined): boolean {
+  if (!stored) return false;
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const candidate = scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, "hex");
+  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
 export function decodeFirebaseJwt(token: string): { uid: string; email?: string; name?: string } | null {
