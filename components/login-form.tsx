@@ -1,94 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-} from "firebase/auth";
+import { loginAction, type LoginState } from "@/app/login/actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { firebaseConfigured, getFirebaseAuth } from "@/lib/firebase";
+
+function firebaseConfiguredInBrowser(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  );
+}
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const firebaseOn = firebaseConfiguredInBrowser();
+  const [state, formAction, pending] = useActionState(loginAction, {} as LoginState);
+  const [clientError, setClientError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const firebaseOn = firebaseConfigured();
 
-  async function establishSession(payload: { email?: string; firebaseToken?: string; name?: string }) {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = (await res.json()) as { error?: string };
-    if (!res.ok) throw new Error(data.error || "Could not start a host session.");
-    router.push("/events");
-    router.refresh();
-  }
-
-  async function mockLogin(event: React.FormEvent) {
-    event.preventDefault();
+  async function firebaseLogin(mode: "in" | "up" | "google") {
     setBusy(true);
-    setError(null);
+    setClientError(null);
     try {
-      await establishSession({ email });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function firebaseEmail(mode: "in" | "up") {
-    const auth = getFirebaseAuth();
-    if (!auth) return;
-    setBusy(true);
-    setError(null);
-    try {
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const {
+        GoogleAuthProvider,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signInWithPopup,
+      } = await import("firebase/auth");
+      const auth = getFirebaseAuth();
+      if (!auth) throw new Error("Firebase is not configured in this browser.");
+      const email = (document.getElementById("email") as HTMLInputElement | null)?.value ?? "";
+      const password = (document.getElementById("password") as HTMLInputElement | null)?.value ?? "";
       const cred =
-        mode === "in"
-          ? await signInWithEmailAndPassword(auth, email, password)
-          : await createUserWithEmailAndPassword(auth, email, password);
+        mode === "google"
+          ? await signInWithPopup(auth, new GoogleAuthProvider())
+          : mode === "in"
+            ? await signInWithEmailAndPassword(auth, email, password)
+            : await createUserWithEmailAndPassword(auth, email, password);
       const token = await cred.user.getIdToken();
-      await establishSession({
-        email: cred.user.email || email,
-        firebaseToken: token,
-        name: cred.user.displayName || undefined,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cred.user.email || email,
+          firebaseToken: token,
+          name: cred.user.displayName || undefined,
+        }),
       });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Could not start a host session.");
+      router.push("/events");
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Firebase auth failed.");
+      setClientError(err instanceof Error ? err.message : "Firebase auth failed.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function google() {
-    const auth = getFirebaseAuth();
-    if (!auth) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-      const token = await cred.user.getIdToken();
-      await establishSession({
-        email: cred.user.email || undefined,
-        firebaseToken: token,
-        name: cred.user.displayName || undefined,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const error = clientError || state.error;
 
   return (
     <div className="space-y-5">
@@ -101,16 +76,15 @@ export function LoginForm() {
           </AlertDescription>
         </Alert>
       )}
-      <form className="space-y-4" onSubmit={firebaseOn ? (event) => { event.preventDefault(); void firebaseEmail("in"); } : mockLogin}>
+      <form className="space-y-4" action={formAction} method="post">
         <div className="space-y-2">
           <Label htmlFor="email">Host email</Label>
           <Input
             id="email"
+            name="email"
             type="email"
             autoComplete="email"
             required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
             placeholder="you@vt.edu"
           />
         </div>
@@ -119,29 +93,28 @@ export function LoginForm() {
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
               placeholder="Firebase password"
             />
           </div>
         )}
         {firebaseOn ? (
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={busy}>
+            <Button type="button" disabled={busy} onClick={() => void firebaseLogin("in")}>
               Sign in
             </Button>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => void firebaseEmail("up")}>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void firebaseLogin("up")}>
               Create host
             </Button>
-            <Button type="button" variant="secondary" disabled={busy} onClick={() => void google()}>
+            <Button type="button" variant="secondary" disabled={busy} onClick={() => void firebaseLogin("google")}>
               Continue with Google
             </Button>
           </div>
         ) : (
-          <Button type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Continue as host"}
+          <Button type="submit" disabled={pending}>
+            {pending ? "Signing in…" : "Continue as host"}
           </Button>
         )}
       </form>
