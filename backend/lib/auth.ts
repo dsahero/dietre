@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
-import type { HostSession } from "@/lib/types";
+import type { HostSession } from "@/shared/lib/types";
 
 export const SESSION_COOKIE = "dietre_session";
 
