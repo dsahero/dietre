@@ -21,15 +21,14 @@ function emptyStore(): DataStore {
 }
 
 function withSeed(store: DataStore): DataStore {
-  const restaurants = store.restaurants.length ? store.restaurants : SEED_RESTAURANTS;
-  const menu_items = store.menu_items.length ? store.menu_items : SEED_MENU_ITEMS;
+  const restaurants = SEED_RESTAURANTS;
+  const menu_items = SEED_MENU_ITEMS;
   const events = store.events.some((event) => event.id === SEED_DEMO_EVENT.id)
     ? store.events
     : [SEED_DEMO_EVENT, ...store.events];
-  const responses = store.responses.some((response) => response.event_id === SEED_DEMO_EVENT.id)
-    ? store.responses
-    : [...SEED_DEMO_RESPONSES, ...store.responses];
-  return { events, responses, restaurants, menu_items };
+  const known = new Set(store.responses.map((response) => response.id));
+  const missingDemo = SEED_DEMO_RESPONSES.filter((response) => !known.has(response.id));
+  return { events, responses: [...store.responses, ...missingDemo], restaurants, menu_items };
 }
 
 async function readJsonStore(): Promise<DataStore> {
