@@ -23,6 +23,7 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pendingRules, setPendingRules] = useState<ParsedRules | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | undefined>(undefined);
+  const [pendingName, setPendingName] = useState<string | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
@@ -64,6 +65,7 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
 
       const data = (await res.json()) as {
         reply: string;
+        guestName?: string;
         parsedRules?: ParsedRules;
         contactEmail?: string;
         done?: boolean;
@@ -76,8 +78,9 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
       if (data.done && data.parsedRules) {
         setPendingRules(data.parsedRules);
         setPendingEmail(data.contactEmail);
+        if (data.guestName) setPendingName(data.guestName);
         // Auto-submit
-        await submitResponse(data.parsedRules, data.contactEmail, updatedHistory);
+        await submitResponse(data.parsedRules, data.contactEmail, updatedHistory, data.guestName);
       }
     } catch {
       setMessages((prev) => [
@@ -93,7 +96,8 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
   async function submitResponse(
     rules: ParsedRules,
     contactEmail: string | undefined,
-    history: Message[]
+    history: Message[],
+    guestName?: string
   ) {
     try {
       const rawSummary = history
@@ -106,6 +110,7 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId,
+          guestName: guestName || pendingName,
           parsedRules: rules,
           contactEmail,
           rawSummary,
@@ -142,19 +147,28 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#22c55e]/15">
           <CheckCircle2 className="h-7 w-7 text-[#4ade80]" />
         </div>
-        <h2 className="font-heading text-xl text-[var(--dash-text)]">On the manifest</h2>
+        <h2 className="font-heading text-xl text-[var(--dash-text)]">
+          {pendingName ? `Thank you, ${pendingName}` : "On the manifest"}
+        </h2>
         <p className="max-w-xs text-sm text-[var(--dash-text-muted)]">
-          Your response was submitted anonymously. The host will use it to select a restaurant that
+          Your response has been recorded. The host will use it to select a restaurant that
           works for the table.
         </p>
-        {pendingRules && pendingRules.hard_excludes.length > 0 && (
+        {pendingRules && (pendingRules.hard_excludes.length > 0 || (pendingRules.complex_restrictions && pendingRules.complex_restrictions.length > 0)) && (
           <div className="tilt-slight mt-2 w-full max-w-xs rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-5 py-4 text-left font-mono text-[11px] text-[var(--dash-text-soft)]">
             <p className="mb-2 border-b border-dashed border-[var(--dash-border)] pb-1.5 uppercase tracking-wider text-[var(--dash-accent-soft)]">
-              Anonymous guest manifest
+              {pendingName ? `Guest manifest — ${pendingName}` : "Guest manifest"}
             </p>
-            <p className="uppercase">
-              Hard excludes: <span className="text-[var(--dash-text)]">{pendingRules.hard_excludes.join(", ")}</span>
-            </p>
+            {pendingRules.hard_excludes.length > 0 && (
+              <p className="uppercase">
+                Hard excludes: <span className="text-[var(--dash-text)]">{pendingRules.hard_excludes.join(", ")}</span>
+              </p>
+            )}
+            {pendingRules.complex_restrictions && pendingRules.complex_restrictions.length > 0 && (
+              <p className="mt-1 uppercase text-[#b45309]">
+                Complex rules: <span className="text-[var(--dash-text)]">{pendingRules.complex_restrictions.join("; ")}</span>
+              </p>
+            )}
             {pendingRules.soft_preferences.length > 0 && (
               <p className="mt-1 uppercase">
                 Soft likes: <span className="text-[var(--dash-text)]">{pendingRules.soft_preferences.join(", ")}</span>
@@ -170,7 +184,7 @@ export function JoinEventChat({ eventId, eventName, hostName }: JoinEventChatPro
             )}
           </div>
         )}
-        {pendingRules && pendingRules.hard_excludes.length === 0 && (
+        {pendingRules && pendingRules.hard_excludes.length === 0 && (!pendingRules.complex_restrictions || pendingRules.complex_restrictions.length === 0) && (
           <div className="tilt-slight mt-2 w-full max-w-xs rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-5 py-3 font-mono text-[11px] uppercase tracking-wider text-[var(--dash-text-muted)]">
             No restrictions on file
           </div>

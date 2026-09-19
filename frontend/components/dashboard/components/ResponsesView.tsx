@@ -41,8 +41,10 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
         const query = searchQuery.toLowerCase();
         return (
           response.token.toLowerCase().includes(query) ||
+          Boolean(response.guestName && response.guestName.toLowerCase().includes(query)) ||
           response.rawText.toLowerCase().includes(query) ||
           response.hardExcludes.some((rule) => rule.toLowerCase().includes(query)) ||
+          response.complexRestrictions?.some((rule) => rule.toLowerCase().includes(query)) ||
           response.softPreferences.some((rule) => rule.toLowerCase().includes(query))
         );
       }
@@ -95,7 +97,7 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by guest token or rule text (e.g. peanuts, kosher, vegan)..."
+            placeholder="Search by guest name or rule text (e.g. peanuts, kosher, vegan)..."
             className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] py-2 pl-10 pr-4 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] font-serif transition-colors focus:border-[var(--dash-accent)] focus:outline-none shadow-2xs"
           />
         </div>
@@ -160,8 +162,7 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
           <div>
             <h3 className="font-heading text-lg font-bold tracking-tight text-[var(--dash-text)]">Guest Responses</h3>
             <p className="mt-0.5 text-xs text-[var(--dash-text-muted)] font-serif italic">
-              Each guest is identified by a manifest token. Click a row to see their
-              exact submitted words and parsed ingredient rules.
+              Review each guest&apos;s dietary parameters, complex requirements, and submitted notes.
             </p>
           </div>
           <span className="font-mono text-[10.5px] rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-2.5 py-1 font-semibold text-[var(--dash-text-muted)]">
@@ -171,7 +172,7 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
 
         {responses.length === 0 ? (
           <div className="px-6 py-10 text-center text-xs text-[var(--dash-text-muted)] font-serif italic">
-            No responses recorded yet. Share the confidential guest link to begin collecting dietary profiles.
+            No responses recorded yet. Share the guest link to begin collecting dietary profiles.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -180,6 +181,7 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                 <tr className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] text-[10.5px] font-mono font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
                   <th className="px-6 py-3.5">Guest</th>
                   <th className="px-4 py-3.5">Hard Restrictions</th>
+                  <th className="px-4 py-3.5">Complex & Special</th>
                   <th className="px-4 py-3.5">Soft Preferences</th>
                   <th className="px-4 py-3.5">Contact</th>
                   <th className="px-6 py-3.5 text-right">Details</th>
@@ -229,6 +231,26 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                         </div>
                       ) : (
                         <span className="font-serif text-[11px] italic text-[var(--dash-text-muted)]">None reported</span>
+                      )}
+                    </td>
+
+                    <td className="max-w-[220px] px-4 py-4">
+                      {response.complexRestrictions && response.complexRestrictions.length > 0 ? (
+                        <div className="space-y-1">
+                          {response.complexRestrictions.slice(0, 2).map((req, i) => (
+                            <div key={i} className="flex items-center gap-1.5 truncate font-serif text-[11.5px] text-[#b45309]" title={req}>
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-xs bg-[#f59e0b]" />
+                              <span className="truncate">{req}</span>
+                            </div>
+                          ))}
+                          {response.complexRestrictions.length > 2 && (
+                            <span className="font-mono text-[10px] font-semibold text-[#b45309]">
+                              +{response.complexRestrictions.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="font-serif text-[11px] italic text-[var(--dash-text-muted)]">—</span>
                       )}
                     </td>
 

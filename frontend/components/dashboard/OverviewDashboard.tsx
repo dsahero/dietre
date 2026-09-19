@@ -41,6 +41,8 @@ import {
   ChevronRight,
   MoveHorizontal,
   Layers,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 export type RestaurantSortOption = 'best_fit' | 'closest';
@@ -69,7 +71,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
     () => toRestaurantCardData(match.restaurants, responses, guestTokenById, checklistNotesByRestaurant),
     [match.restaurants, responses, guestTokenById, checklistNotesByRestaurant]
   );
-  const eventDetails = useMemo(() => toEventDetails(event), [event]);
+  const eventDetails = useMemo(() => toEventDetails(event, responses), [event, responses]);
   const severity = useMemo(() => toSeverityBreakdown(responses), [responses]);
 
   const [activeNavId, setActiveNavId] = useState<string>('overview');
@@ -239,6 +241,68 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
               <span className="text-[var(--dash-text-soft)] italic">
                 <strong className="font-serif not-italic font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</strong> expected banquet guests
               </span>
+            </div>
+          </div>
+
+          {/* Dual Ledger: 1) Event Detail Limits & 2) Complex Dietary Restrictions */}
+          <div className="mt-3.5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {/* 1) Event Detail Limits */}
+            <div className="rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3 shadow-2xs">
+              <div className="flex items-center justify-between mb-2 border-b border-[var(--dash-border)] pb-1.5">
+                <span className="font-heading text-[11.5px] font-bold uppercase tracking-wider text-[var(--dash-text)] flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-xs bg-[var(--dash-accent)]" />
+                  1. Event Detail Limits
+                </span>
+                <span className="font-mono text-[9px] text-[var(--dash-text-muted)] uppercase tracking-wider">Host Parameters</span>
+              </div>
+              {eventDetails.limitations ? (
+                <p className="font-serif italic text-xs text-[var(--dash-text-soft)] line-clamp-2" title={eventDetails.limitations}>
+                  &ldquo;{eventDetails.limitations}&rdquo;
+                </p>
+              ) : (
+                <p className="font-serif italic text-xs text-[var(--dash-text-muted)]">
+                  Standard radius ({eventDetails.maxDistanceRadius}) and budget ({eventDetails.maxBudget}) enforced.
+                </p>
+              )}
+              {eventDetails.limitationsChecklist && eventDetails.limitationsChecklist.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {eventDetails.limitationsChecklist.map((c) => (
+                    <span key={c.id} className="rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] px-1.5 py-0.5 font-mono text-[9.5px] text-[var(--dash-text-soft)]">
+                      ✓ {c.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2) Complex Dietary Restrictions */}
+            <div className="rounded-sm border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-3 shadow-2xs">
+              <div className="flex items-center justify-between mb-2 border-b border-[#f59e0b]/20 pb-1.5">
+                <span className="font-heading text-[11.5px] font-bold uppercase tracking-wider text-[#b45309] flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-xs bg-[#f59e0b]" />
+                  2. Complex Dietary Restrictions
+                </span>
+                <span className="ink-stamp px-1.5 py-0.2 text-[8.5px] font-bold text-[#b45309] border-[#b45309]">
+                  Gemini Audited
+                </span>
+              </div>
+              {eventDetails.complexRequirementsSummary && eventDetails.complexRequirementsSummary.length > 0 ? (
+                <div className="space-y-1">
+                  {eventDetails.complexRequirementsSummary.map((req, idx) => (
+                    <div key={idx} className="flex items-start gap-1.5 font-serif text-[11.5px] leading-snug text-[var(--dash-text)]">
+                      <span className="text-[#f59e0b] font-bold">•</span>
+                      <span>{req}</span>
+                    </div>
+                  ))}
+                  <p className="mt-1 font-serif text-[10.5px] italic text-[var(--dash-text-muted)]">
+                    Checked across all restaurant menus to verify separation, surfaces, and preparation rules.
+                  </p>
+                </div>
+              ) : (
+                <p className="font-serif italic text-xs text-[var(--dash-text-muted)]">
+                  No compound or relational dietary rules submitted yet. (e.g. kosher meat/dairy separation, cross-contamination).
+                </p>
+              )}
             </div>
           </div>
         </header>

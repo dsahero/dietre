@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { DietForm } from "@/frontend/components/diet-form";
+import { ParticipantView } from "@/frontend/components/participant-view";
 import { ModeBanner } from "@/frontend/components/mode-banner";
 import { SiteHeader } from "@/frontend/components/site-header";
 import { ParticipantThemeToggle } from "@/frontend/components/participant-theme-toggle";
-import { getEvent } from "@/backend/lib/db";
+import { getEvent, getHost } from "@/backend/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +16,18 @@ export default async function ResponderPage({
   const event = await getEvent(id);
   if (!event) notFound();
 
+  const host = await getHost(event.host_id).catch(() => null);
+  const hostName = host?.name ?? "Event Host";
+
   return (
     <div className="flex min-h-full flex-col">
       <ModeBanner />
       <SiteHeader quiet />
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
-        <div className="paper-grain relative rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 sm:p-7 shadow-[0_4px_16px_rgba(25,12,6,0.12)] mb-8">
+        <div className="paper-grain relative rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 sm:p-7 shadow-[0_4px_16px_rgba(25,12,6,0.12)] mb-6">
           <div className="flex items-start justify-between gap-3 mb-2">
             <span className="ink-stamp px-2 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)]">
-              Confidential Guest Manifest
+              Guest Dietary Intake
             </span>
             <ParticipantThemeToggle />
           </div>
@@ -33,10 +36,10 @@ export default async function ResponderPage({
             {event.location} · {new Date(event.date).toLocaleDateString()}
           </p>
           <div className="mt-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-xs text-[var(--dash-text-soft)] font-serif leading-relaxed">
-            <strong className="text-[var(--dash-text)]">Zero names on file.</strong> DietRe records what you cannot eat, not who you are. Email is strictly optional and only used if the host has nothing that works for you.
+            Choose your preferred intake method below: converse with the <strong>Concierge Chatbot</strong> or use the <strong>Direct Form</strong>. We&apos;ll record your requirements so the host can find catering that accommodates you safely.
           </div>
         </div>
-        <DietForm eventId={event.id} />
+        <ParticipantView eventId={event.id} eventName={event.name} hostName={hostName} />
       </main>
     </div>
   );

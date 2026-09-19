@@ -186,6 +186,12 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                     {restaurant.dietaryConflicts.length === 1 ? '' : 's'} not covered here
                   </div>
                 )}
+                {restaurant.complexNotes && restaurant.complexNotes.length > 0 && (
+                  <div className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-[#b45309]">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#f59e0b]" />
+                    {restaurant.complexNotes.length} complex rule audit{restaurant.complexNotes.length === 1 ? '' : 's'} recorded
+                  </div>
+                )}
               </>
             )}
 

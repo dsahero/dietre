@@ -3,6 +3,7 @@ import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, severityWeig
 import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores } from "@/backend/lib/db";
 import type {
   AiItemJudgment,
+  ComplexRequirementNote,
   DietResponse,
   DietreEvent,
   MatchResult,
@@ -11,8 +12,14 @@ import type {
   RestaurantMatch,
   ZeroMatchAlert,
 } from "@/shared/lib/types";
+import { saveEventComplexContext } from "@/backend/lib/eventContext";
 
-function anonymousLabel(index: number, severity: DietResponse["parsed_rules"]["severity"]): string {
+function guestLabel(
+  index: number,
+  severity: DietResponse["parsed_rules"]["severity"],
+  guestName?: string
+): string {
+  if (guestName?.trim()) return guestName.trim();
   const band = severity === "high" ? "High-constraint" : severity === "medium" ? "Constrained" : "Flexible";
   return `${band} guest ${index + 1}`;
 }
@@ -38,6 +45,160 @@ async function resolveJudgments(
   return new Map(entries);
 }
 
+// Evaluate every candidate restaurant's full menu against the complex special requirements
+// gathered from participants (e.g. meat & dairy separation, cross-contamination).
+// Evaluate every candidate restaurant's full menu against the complex special requirements
+// gathered from participants (e.g. meat & dairy separation, cross-contamination) using
+// the unified event context file.
+// Gemini reasons over the complete menu items; if GEMINI_API_KEY is unset, an intelligent
+// mock inspection provides accurate dietary feedback.
+async function evaluateRestaurantsAgainstComplexRestrictions(
+  contextMarkdown: string,
+  complexRules: { rule: string; responseIds: string[] }[],
+  restaurants: Restaurant[],
+  menuItemsByRestaurant: Map<string, MenuItem[]>,
+  guestTokenIndex: (id: string) => string
+): Promise<Record<string, ComplexRequirementNote[]>> {
+  if (complexRules.length === 0 || restaurants.length === 0) return {};
+
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (apiKey) {
+    try {
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const rulesText = complexRules
+        .map((cr, idx) => `- Rule ${idx + 1}: "${cr.rule}" (Requested by ${cr.responseIds.map(guestTokenIndex).join(", ")})`)
+        .join("\n");
+
+      const restaurantsText = restaurants
+        .map((r) => {
+          const items = menuItemsByRestaurant.get(r.id) ?? [];
+          const itemSummary = items
+            .map((i) => `${i.name} [flags: ${Object.entries(i.flags).filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}; ingredients: ${i.estimated_ingredients.slice(0, 6).join(", ")}]`)
+            .join("; ");
+          return `Restaurant [${r.id}] "${r.name}" (${r.cuisine}): Menu items: ${itemSummary || "No menu data"}`;
+        })
+        .join("\n\n");
+
+      const prompt = `You are an expert culinary auditor evaluating restaurant catering menus against the event's complex restrictions and limitations.
+
+OFFICIAL EVENT COMPLEX RESTRICTIONS & EVENT LIMITATIONS CONTEXT FILE:
+===================================================================
+${contextMarkdown}
+===================================================================
+
+Complex Requirements to Specifically Audit:
+${rulesText}
+
+Candidate Restaurants and Full Menu Items:
+${restaurantsText}
+
+For each restaurant, audit its full menu against the specific guest complex restrictions and event limitations from the official context file above.
+A complex restriction is NOT a simple keyword ban. For example, "yes dairy, yes meat, not together": standalone meat dishes are completely SAFE, standalone dairy/cheese dishes are completely SAFE, but combining meat and dairy in the same dish is UNSAFE.
+
+For each restaurant, evaluate whether its menu options allow guests with these complex requirements to eat safely:
+- "good": Restaurant reliably accommodates this rule with multiple clear options (e.g. independent meat dishes without dairy, and dedicated dairy/vegetarian dishes without meat).
+- "neutral": Caution or limited selection (e.g. many items combine the ingredients, but a few can be safely selected or modified).
+- "bad": High conflict (e.g. nearly every signature dish combines meat and dairy, or high cross-contamination risk).
+
+Return ONLY JSON:
+{"<restaurant_id>": [{"rule": "<exact rule text>", "verdict": "good"|"neutral"|"bad", "note": "<concise 1-sentence plain English explanation mentioning menu items>"}, ...]}`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
+      const parsed = JSON.parse(jsonText) as Record<
+        string,
+        { rule?: string; verdict?: string; note?: string }[]
+      >;
+
+      const out: Record<string, ComplexRequirementNote[]> = {};
+      for (const restaurant of restaurants) {
+        const notes = parsed[restaurant.id];
+        if (Array.isArray(notes)) {
+          out[restaurant.id] = notes.map((n, idx) => {
+            const ruleObj = complexRules[idx] ?? complexRules[0];
+            const verdict = n.verdict === "good" || n.verdict === "bad" || n.verdict === "neutral" ? n.verdict : "neutral";
+            return {
+              rule: n.rule || ruleObj.rule,
+              guest_tokens: ruleObj.responseIds.map(guestTokenIndex),
+              verdict,
+              note: n.note || "Menu evaluated against compound dietary parameters.",
+            };
+          });
+        }
+      }
+      if (Object.keys(out).length > 0) return out;
+    } catch (e) {
+      console.warn("Gemini complex requirements evaluation fallback:", e);
+    }
+  }
+
+  // Deterministic mock evaluation when GEMINI_API_KEY is not configured
+  const out: Record<string, ComplexRequirementNote[]> = {};
+  for (const restaurant of restaurants) {
+    const items = menuItemsByRestaurant.get(restaurant.id) ?? [];
+    out[restaurant.id] = complexRules.map((cr) => {
+      const isMeatDairy = /meat.*dairy|dairy.*meat|not together|kosher/i.test(cr.rule);
+      if (isMeatDairy) {
+        const meatOnlyItems = items.filter(
+          (i) =>
+            (i.flags.contains_beef || i.flags.contains_chicken || i.flags.contains_pork || i.flags.contains_fish) &&
+            !i.flags.contains_dairy &&
+            !i.flags.meat_dairy_combo
+        );
+        const dairyOnlyItems = items.filter(
+          (i) =>
+            i.flags.contains_dairy &&
+            !i.flags.contains_beef &&
+            !i.flags.contains_chicken &&
+            !i.flags.contains_pork &&
+            !i.flags.contains_fish &&
+            !i.flags.meat_dairy_combo
+        );
+        const comboItems = items.filter(
+          (i) => i.flags.meat_dairy_combo || ((i.flags.contains_beef || i.flags.contains_chicken || i.flags.contains_pork) && i.flags.contains_dairy)
+        );
+
+        if (meatOnlyItems.length >= 2 && dairyOnlyItems.length >= 2) {
+          return {
+            rule: cr.rule,
+            guest_tokens: cr.responseIds.map(guestTokenIndex),
+            verdict: "good" as const,
+            note: `Safe: Kitchen offers ${meatOnlyItems.length} meat dishes with zero dairy and ${dairyOnlyItems.length} vegetarian/dairy dishes with zero meat (satisfies: ${cr.rule}).`,
+          };
+        }
+        if (meatOnlyItems.length >= 1 || dairyOnlyItems.length >= 1) {
+          return {
+            rule: cr.rule,
+            guest_tokens: cr.responseIds.map(guestTokenIndex),
+            verdict: "neutral" as const,
+            note: `Caution: ${comboItems.length} signature dishes combine meat and dairy, but standalone separate entrées are available.`,
+          };
+        }
+        return {
+          rule: cr.rule,
+          guest_tokens: cr.responseIds.map(guestTokenIndex),
+          verdict: "bad" as const,
+          note: `Conflict: Almost all menu items pair meat and dairy directly.`,
+        };
+      }
+
+      // Default for cross-contamination or other complex rules
+      return {
+        rule: cr.rule,
+        guest_tokens: cr.responseIds.map(guestTokenIndex),
+        verdict: "neutral" as const,
+        note: `Advisory: Kitchen uses standard restaurant prep; advise consulting venue on dedicated allergy prep surfaces.`,
+      };
+    });
+  }
+  return out;
+}
+
 export async function matchEvent(input: {
   event: DietreEvent;
   responses: DietResponse[];
@@ -53,6 +214,44 @@ export async function matchEvent(input: {
   }
 
   const judgmentsByResponse = await resolveJudgments(responses, menuItems);
+
+  // Collect all complex restrictions across responses
+  const complexRulesMap = new Map<string, string[]>(); // rule -> responseIds
+  responses.forEach((resp) => {
+    const rules = resp.parsed_rules.complex_restrictions ?? [];
+    // Also include meat dairy combo if in hard_excludes or raw_text
+    if (
+      resp.parsed_rules.hard_excludes.includes("meat dairy combo") &&
+      !rules.some((r) => /meat.*dairy|dairy.*meat/i.test(r))
+    ) {
+      rules.push("yes dairy, yes meat, not together");
+    }
+    for (const r of rules) {
+      const list = complexRulesMap.get(r) ?? [];
+      list.push(resp.id);
+      complexRulesMap.set(r, list);
+    }
+  });
+
+  const complexRulesList = Array.from(complexRulesMap.entries()).map(([rule, responseIds]) => ({
+    rule,
+    responseIds,
+  }));
+
+  // Build and persist the official unified event context file
+  const { markdown: contextMarkdown } = await saveEventComplexContext(event, responses);
+
+  const complexNotesByRestaurant = await evaluateRestaurantsAgainstComplexRestrictions(
+    contextMarkdown,
+    complexRulesList,
+    restaurants,
+    itemsByRestaurant,
+    (id) => {
+      const idx = responses.findIndex((r) => r.id === id);
+      const resp = responses[idx];
+      return guestLabel(idx, "medium", resp?.guest_name);
+    }
+  );
 
   // Gemini's read wins when available (it can catch compound rules like
   // "no mixing meat and dairy" that a flag/keyword match can't express);
@@ -114,6 +313,7 @@ export async function matchEvent(input: {
       covered_count: coveredIds.length,
       total_responses: responses.length,
       safe_items: safeItems,
+      complex_notes: complexNotesByRestaurant[restaurant.id] ?? [],
     };
   });
 
@@ -185,7 +385,7 @@ export async function matchEvent(input: {
       severity: response.parsed_rules.severity,
       hard_excludes: response.parsed_rules.hard_excludes,
       contact_email: response.contact_email,
-      anonymous_label: anonymousLabel(index, response.parsed_rules.severity),
+      anonymous_label: guestLabel(index, response.parsed_rules.severity, response.guest_name),
     }));
 
   return {

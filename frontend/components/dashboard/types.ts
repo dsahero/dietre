@@ -31,11 +31,11 @@ export interface RestaurantTrait {
   category?: string;
 }
 
-// A pointer to one anonymous response — enough to look it up and open its
-// detail modal, without ever carrying a name.
+// A pointer to one guest response — enough to look it up and open its
+// detail modal.
 export interface GuestRef {
   responseId: string;
-  token: string; // "Guest 07"
+  token: string; // Participant name or "Guest 07"
 }
 
 // A menu item this restaurant can safely serve, and who it's safe for.
@@ -76,6 +76,7 @@ export interface RestaurantCardData {
   suggestedMenuItems: SuggestedMenuItem[];
   menuDataThin: boolean; // true when we have no menu items at all for this restaurant
   checklistNotes: RestaurantChecklistNote[]; // Gemini's read on the host's free-text limitations, per venue
+  complexNotes: ComplexRequirementNote[]; // Gemini's read on participant complex/compound dietary requirements
 }
 
 // One constraint Gemini pulled out of the host's free-text limitations,
@@ -94,6 +95,14 @@ export interface RestaurantChecklistNote {
   note: string;
 }
 
+// Gemini's evaluation of candidate restaurant menus against complex/compound restrictions
+export interface ComplexRequirementNote {
+  rule: string;
+  guestTokens?: string[];
+  verdict: 'good' | 'neutral' | 'bad';
+  note: string;
+}
+
 export interface EventDetails {
   name: string;
   address: string;
@@ -104,14 +113,17 @@ export interface EventDetails {
   expectedHeadcount: number;
   limitations: string;
   limitationsChecklist: LimitationChecklistItem[];
+  complexRequirementsSummary?: string[];
 }
 
-// A single anonymous guest response — never a name. See dietre's anonymity-by-design rule.
+// A single guest response with their submitted words and parsed rules.
 export interface GuestResponse {
   id: string;
-  token: string; // "Guest 07" — the only identifier ever shown
+  token: string; // Participant name or "Guest 07"
+  guestName?: string;
   rawText: string; // the guest's own words; source of truth, always shown alongside the parsed rules
   hardExcludes: string[];
+  complexRestrictions?: string[];
   softPreferences: string[];
   severity: 'high' | 'medium' | 'low';
   contactEmail?: string;

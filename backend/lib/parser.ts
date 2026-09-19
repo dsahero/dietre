@@ -96,15 +96,40 @@ function unique(values: string[]): string[] {
 export function parseDietaryText(raw: string): ParsedRules {
   const text = raw.toLowerCase();
   const hard: string[] = [];
+  const complex: string[] = [];
   const soft: string[] = [];
 
   const addHard = (...items: string[]) => hard.push(...items);
+  const addComplex = (...items: string[]) => complex.push(...items);
   const addSoft = (...items: string[]) => soft.push(...items);
+
+  // Detect compound / conditional meat & dairy separation rules (e.g. kosher style, can only eat dairy and meat separately, no mixing meat and dairy)
+  const isMeatDairyComboOnly =
+    /(meat|beef|poultry|chicken|pork)\s*(and|&|\+|\/|,|\s+)*\s*(dairy|milk|cheese)\s*(together|combo|mix(ing)?|combined|separat(e|ely)|not together|apart|distinct)/i.test(text) ||
+    /(dairy|milk|cheese)\s*(and|&|\+|\/|,|\s+)*\s*(meat|beef|poultry|chicken|pork)\s*(together|combo|mix(ing)?|combined|separat(e|ely)|not together|apart|distinct)/i.test(text) ||
+    /(can\s*only|only)\s*eat\s*(dairy|milk|cheese|meat|beef)\s*(and|&|\+|,|\s+)*\s*(meat|beef|dairy|milk|cheese)\s*separat/i.test(text) ||
+    /(mix(ing)?\s*(meat|dairy|milk)|can('?t|not|never)\s*(eat|mix|have)\s*(meat|dairy|milk)\s*(and|&|\+)\s*(dairy|milk|meat)\s*together)/i.test(text) ||
+    /\bkosher\b/i.test(text) ||
+    (/(dairy|milk)/i.test(text) && /(meat|beef)/i.test(text) && /(separat|not together|don'?t mix|never mix|no mix|apart)/i.test(text));
+
+  if (isMeatDairyComboOnly) {
+    addComplex("yes dairy, yes meat, not together");
+    addHard("meat dairy combo");
+    if (/\bkosher\b/.test(text)) {
+      addHard("pork", "shellfish");
+      addSoft("kosher");
+    }
+  }
+
+  // Cross-contamination special requirements
+  if (/(cross[- ]contamination|dedicated (fryer|prep|surface|kitchen)|separate (fryer|prep|cookware))/i.test(text)) {
+    addComplex("Strict cross-contamination parameter: requires dedicated prep surfaces or fryer");
+  }
 
   if (/\bvegan\b/.test(text) || /no animal/.test(text) || /plant[- ]based/.test(text)) {
     addHard("meat", "dairy", "egg", "animal products");
     addSoft("plant-based");
-  } else if (/\bvegetarian\b/.test(text) || /no meat/.test(text)) {
+  } else if (/\bvegetarian\b/.test(text) || /no meat\b/.test(text)) {
     addHard("meat", "fish", "shellfish");
     addSoft("vegetarian");
   }
@@ -113,13 +138,15 @@ export function parseDietaryText(raw: string): ParsedRules {
     addHard("pork", "alcohol");
     addSoft("halal");
   }
-  if (/\bkosher\b/.test(text)) {
-    addHard("pork", "shellfish", "meat dairy combo");
-    addSoft("kosher");
-  }
 
   const allergyOrBan = (pattern: RegExp, exclude: string, forceHard = false) => {
     if (!pattern.test(text)) return;
+    // If user only bans combining meat and dairy, do NOT ban standalone dairy or standalone meat/beef (they are NOT allergic to milk!)
+    if (isMeatDairyComboOnly && (exclude === "dairy" || exclude === "beef" || exclude === "meat")) {
+      if (!/(allergic to (dairy|milk|beef)|lactose intolerant|strictly no dairy|never eat dairy|no meat at all)/i.test(text)) {
+        return;
+      }
+    }
     const allowedHere = new RegExp(
       `\\b${exclude.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?\\b[^\\.\\n]{0,16}\\b(fine|ok|okay|alright|allowed)\\b`,
       "i"
@@ -166,6 +193,7 @@ export function parseDietaryText(raw: string): ParsedRules {
 
   return {
     hard_excludes: unique(hard),
+    complex_restrictions: unique(complex),
     soft_preferences: unique(soft),
     severity,
   };
@@ -185,11 +213,13 @@ export async function parseDietaryWithGemini(raw: string): Promise<{
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const prompt = `You parse dietary needs for catering. Return ONLY JSON with this shape:
-{"hard_excludes": string[], "soft_preferences": string[], "severity": "high"|"medium"|"low"}
+{"hard_excludes": string[], "complex_restrictions": string[], "soft_preferences": string[], "severity": "high"|"medium"|"low"}
 Rules:
-- hard_excludes: allergens, religious bans, vegan/vegetarian exclusions (use short tokens like pork, gluten, dairy, shellfish, peanuts, tree nuts, soy, sesame, egg, alcohol, meat, fish, meat dairy combo, animal products)
-- soft_preferences: tastes, spice, cuisine leanings, "no cilantro" if dislike not allergy
-- severity: high for medical/allergy/celiac, medium for religious/ethical (halal, kosher, vegan), low for taste
+- hard_excludes: simple banned ingredients (e.g. pork, shellfish, peanuts, tree nuts, gluten, soy, sesame, egg, alcohol).
+CRITICAL: If the guest states they can eat meat and dairy separately (e.g. "can only eat dairy and meat separately", "kosher", "no mixing meat and dairy"), DO NOT put "dairy" or "milk" or "meat" in hard_excludes! They are NOT allergic to milk. Instead, put "meat dairy combo" in hard_excludes and put "yes dairy, yes meat, not together" in complex_restrictions.
+- complex_restrictions: compound, conditional, or special rules that cannot be reduced to a single banned ingredient. E.g. "yes dairy, yes meat, not together", "Strict celiac cross-contamination tolerance (requires dedicated fryer/prep)".
+- soft_preferences: tastes, spice, cuisine leanings, "no cilantro" if dislike not allergy.
+- severity: high for medical/allergy/celiac, medium for religious/ethical (halal, kosher, vegan), low for taste.
 Text:
 ${raw}`;
     const result = await model.generateContent(prompt);
@@ -199,6 +229,7 @@ ${raw}`;
     return {
       rules: {
         hard_excludes: unique(parsed.hard_excludes ?? []),
+        complex_restrictions: unique(parsed.complex_restrictions ?? []),
         soft_preferences: unique(parsed.soft_preferences ?? []),
         severity:
           parsed.severity === "high" || parsed.severity === "medium" || parsed.severity === "low"
@@ -238,10 +269,11 @@ export async function judgeResponseAgainstMenuWithGemini(
       )
       .join("\n");
 
-    const prompt = `You are checking a catering menu against one guest's dietary rules, stated in their own words. Pay special attention to compound or combination rules a simple ingredient-keyword match would miss — e.g. "don't mix meat and dairy" (a dish is unsafe if it contains BOTH, even if neither ingredient alone is excluded), cross-contamination phrasing, or rules that depend on how ingredients are combined rather than a single banned ingredient.
+    const prompt = `You are checking a catering menu against one guest's dietary rules, stated in their own words. Pay special attention to compound or combination rules a simple ingredient-keyword match would miss — e.g. "don't mix meat and dairy" (a dish is unsafe if it contains BOTH, even if neither ingredient alone is excluded; dishes containing only meat or only dairy are SAFE), cross-contamination phrasing, or rules that depend on how ingredients are combined rather than a single banned ingredient.
 
 Guest's own words: "${response.raw_text}"
 Hard restrictions (must never be present): ${response.parsed_rules.hard_excludes.join(", ") || "none"}
+Complex & Special Requirements: ${response.parsed_rules.complex_restrictions?.join(", ") || "none"}
 Soft preferences (not a safety issue): ${response.parsed_rules.soft_preferences.join(", ") || "none"}
 Severity: ${response.parsed_rules.severity}
 
@@ -250,7 +282,7 @@ ${menuSummary}
 
 Return ONLY JSON, an object keyed by item id, each value shaped exactly like:
 {"safe": boolean, "uncertain": boolean, "reasoning": string}
-- safe: false if the item conflicts with any hard restriction, including compound rules.
+- safe: false if the item conflicts with any hard restriction or complex rule (e.g. if the guest cannot mix meat and dairy, a dish with both is UNSAFE; a meat-only dish with zero dairy is SAFE; a dairy-only dish with zero meat is SAFE).
 - uncertain: true if the ingredient list is too vague/thin to be confident either way (be honest — don't guess past what the data supports).
 - reasoning: one short sentence a host could read and immediately understand.
 Include every item id. No prose outside the JSON.`;
@@ -297,6 +329,17 @@ function excludeHitsFlags(exclude: string, flags: MenuFlags): boolean {
       itemHasFlag(flags, "contains_shellfish")
     );
   }
+  if (key === "meat dairy combo" || key === "meat and dairy") {
+    if (itemHasFlag(flags, "meat_dairy_combo")) return true;
+    const hasMeat =
+      itemHasFlag(flags, "contains_pork") ||
+      itemHasFlag(flags, "contains_beef") ||
+      itemHasFlag(flags, "contains_chicken") ||
+      itemHasFlag(flags, "contains_fish") ||
+      itemHasFlag(flags, "contains_shellfish");
+    const hasDairy = itemHasFlag(flags, "contains_dairy");
+    return hasMeat && hasDairy;
+  }
   const mapped = EXCLUDE_TO_FLAGS[key];
   if (mapped && mapped.length > 0) {
     return mapped.some((flag) => itemHasFlag(flags, flag));
@@ -320,6 +363,28 @@ export function itemConflicts(item: MenuItem, rules: ParsedRules): string[] {
       hits.push(exclude);
     }
   }
+
+  // Check complex restrictions against menu item
+  if (rules.complex_restrictions && rules.complex_restrictions.length > 0) {
+    for (const cr of rules.complex_restrictions) {
+      if (/meat\s*(and|&|\+)\s*dairy/i.test(cr)) {
+        const hasMeat =
+          itemHasFlag(item.flags, "contains_pork") ||
+          itemHasFlag(item.flags, "contains_beef") ||
+          itemHasFlag(item.flags, "contains_chicken") ||
+          itemHasFlag(item.flags, "contains_fish") ||
+          itemHasFlag(item.flags, "contains_shellfish") ||
+          item.estimated_ingredients.some((i) => /(beef|steak|pork|bacon|chicken|ham|lamb|sausage|fish|salmon)/i.test(i));
+        const hasDairy =
+          itemHasFlag(item.flags, "contains_dairy") ||
+          item.estimated_ingredients.some((i) => /(cheese|dairy|milk|butter|parmesan|cream|cheddar|mozzarella)/i.test(i));
+        if (item.flags.meat_dairy_combo || (hasMeat && hasDairy)) {
+          hits.push("meat dairy combo");
+        }
+      }
+    }
+  }
+
   return unique(hits);
 }
 

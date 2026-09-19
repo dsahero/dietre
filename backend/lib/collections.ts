@@ -243,7 +243,8 @@ export function responseToGuest(response: DietResponse): Record<string, unknown>
   return {
     event_id: response.event_id,
     anon_token: response.id,
-    name: null,
+    name: response.guest_name ?? null,
+    guest_name: response.guest_name ?? null,
     email: response.contact_email ?? null,
     transcript: response.raw_text,
     raw_text: response.raw_text,
@@ -262,6 +263,12 @@ export function docToResponse(id: string, doc: Record<string, unknown>): DietRes
   return {
     id: asString(doc.id, id),
     event_id: asString(doc.event_id),
+    guest_name:
+      typeof doc.guest_name === "string"
+        ? doc.guest_name
+        : typeof doc.name === "string" && doc.name !== "null"
+          ? doc.name
+          : undefined,
     raw_text: asString(doc.raw_text, asString(doc.transcript)),
     parsed_rules: {
       hard_excludes: asStringArray(parsed.hard_excludes),

@@ -40,6 +40,7 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
   const [showConflicts, setShowConflicts] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showChecklist, setShowChecklist] = useState(true);
+  const [showComplexNotes, setShowComplexNotes] = useState(true);
 
   const getMatchBadgeColor = (pct: number) => {
     if (pct >= 85) return 'text-[#4ade80] bg-[#22c55e]/20 border-[#22c55e]/50';
@@ -219,7 +220,7 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
           )}
         </div>
 
-        {/* Host limitations checklist — Gemini's provisional read, never shown as fact */}
+        {/* 1) Host limitations checklist — Gemini's provisional read, never shown as fact */}
         {restaurant.checklistNotes.length > 0 && (
           <div className="space-y-3">
             <button
@@ -229,7 +230,7 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
             >
               <span className="flex items-center gap-1.5">
                 <Info className="h-4 w-4 text-[var(--dash-accent)]" />
-                Event Limitations Check
+                1. Event Detail Limits Check
                 <span className="ink-stamp px-1.5 py-0.5 text-[9px] font-semibold text-[#eab308] border-[#eab308]">
                   Estimated
                 </span>
@@ -260,6 +261,59 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
                     <div className="flex-1">
                       <p className="font-heading text-xs font-bold text-[var(--dash-text)]">{note.label}</p>
                       <p className="mt-0.5 font-serif text-[11.5px] leading-relaxed text-[var(--dash-text-soft)]">{note.note}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2) Complex Dietary Restrictions Check — Gemini's menu audit for compound rules */}
+        {restaurant.complexNotes && restaurant.complexNotes.length > 0 && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowComplexNotes(!showComplexNotes)}
+              className="flex w-full items-center justify-between text-xs font-heading font-bold uppercase tracking-wider text-[#b45309] cursor-pointer"
+            >
+              <span className="flex items-center gap-1.5">
+                <Stamp className="h-4 w-4 text-[#f59e0b]" />
+                2. Complex Dietary Restrictions Audit
+                <span className="ink-stamp px-1.5 py-0.5 text-[9px] font-semibold text-[#b45309] border-[#b45309]">
+                  Gemini Audited
+                </span>
+              </span>
+              {showComplexNotes ? <ChevronUp className="h-4 w-4 text-[var(--dash-text-muted)]" /> : <ChevronDown className="h-4 w-4 text-[var(--dash-text-muted)]" />}
+            </button>
+            {showComplexNotes && (
+              <div className="space-y-2">
+                {restaurant.complexNotes.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-3 rounded-sm border p-3 shadow-2xs ${
+                      item.verdict === 'good'
+                        ? 'border-[#22c55e]/40 bg-[#22c55e]/5'
+                        : item.verdict === 'bad'
+                          ? 'border-[#ef4444]/40 bg-[#ef4444]/5'
+                          : 'border-[#f59e0b]/40 bg-[#f59e0b]/5'
+                    }`}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {item.verdict === 'good' && <CheckCircle2 className="h-4 w-4 text-[#22c55e]" />}
+                      {item.verdict === 'bad' && <AlertTriangle className="h-4 w-4 text-[#ef4444]" />}
+                      {item.verdict === 'neutral' && <MinusCircle className="h-4 w-4 text-[#f59e0b]" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-heading text-xs font-bold text-[var(--dash-text)]">{item.rule}</p>
+                        {item.guestTokens && item.guestTokens.map((tok) => (
+                          <span key={tok} className="rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] px-1.5 py-0.2 font-mono text-[9px] text-[var(--dash-text-soft)]">
+                            {tok}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="mt-1 font-serif text-[11.5px] leading-relaxed text-[var(--dash-text-soft)]">{item.note}</p>
                     </div>
                   </div>
                 ))}

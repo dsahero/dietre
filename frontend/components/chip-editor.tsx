@@ -15,6 +15,7 @@ export function ChipEditor({
   onChange: (next: ParsedRules) => void;
 }) {
   const [hardDraft, setHardDraft] = useState("");
+  const [complexDraft, setComplexDraft] = useState("");
   const [softDraft, setSoftDraft] = useState("");
 
   function addChip(kind: "hard_excludes" | "soft_preferences", value: string) {
@@ -28,6 +29,19 @@ export function ChipEditor({
     onChange({ ...rules, [kind]: rules[kind].filter((item) => item !== token) });
   }
 
+  function addComplexChip(value: string) {
+    const token = value.trim();
+    if (!token) return;
+    const current = rules.complex_restrictions ?? [];
+    const next = Array.from(new Set([...current, token]));
+    onChange({ ...rules, complex_restrictions: next });
+  }
+
+  function removeComplexChip(token: string) {
+    const current = rules.complex_restrictions ?? [];
+    onChange({ ...rules, complex_restrictions: current.filter((item) => item !== token) });
+  }
+
   return (
     <div className="space-y-5">
       <ChipGroup
@@ -37,11 +51,26 @@ export function ChipEditor({
         draft={hardDraft}
         setDraft={setHardDraft}
         variant="hard"
+        placeholder="Add an exclude, e.g. peanuts"
         onAdd={(value) => {
           addChip("hard_excludes", value);
           setHardDraft("");
         }}
         onRemove={(token) => removeChip("hard_excludes", token)}
+      />
+      <ChipGroup
+        label="Complex restrictions"
+        hint="Relational rules (e.g. 'yes dairy, yes meat, not together'), preparation constraints, or dedicated fryer needs."
+        tokens={rules.complex_restrictions ?? []}
+        draft={complexDraft}
+        setDraft={setComplexDraft}
+        variant="complex"
+        placeholder="e.g. yes dairy, yes meat, not together"
+        onAdd={(value) => {
+          addComplexChip(value);
+          setComplexDraft("");
+        }}
+        onRemove={(token) => removeComplexChip(token)}
       />
       <ChipGroup
         label="Soft preferences"
@@ -50,6 +79,7 @@ export function ChipEditor({
         draft={softDraft}
         setDraft={setSoftDraft}
         variant="soft"
+        placeholder="Add a preference, e.g. spicy"
         onAdd={(value) => {
           addChip("soft_preferences", value);
           setSoftDraft("");
@@ -89,6 +119,7 @@ function ChipGroup({
   draft,
   setDraft,
   variant,
+  placeholder,
   onAdd,
   onRemove,
 }: {
@@ -97,7 +128,8 @@ function ChipGroup({
   tokens: string[];
   draft: string;
   setDraft: (value: string) => void;
-  variant: "hard" | "soft";
+  variant: "hard" | "soft" | "complex";
+  placeholder?: string;
   onAdd: (value: string) => void;
   onRemove: (token: string) => void;
 }) {
@@ -114,12 +146,16 @@ function ChipGroup({
           <Badge
             key={token}
             variant={variant === "hard" ? "destructive" : "secondary"}
-            className="gap-1 pr-1"
+            className={`gap-1 pr-1 ${
+              variant === "complex"
+                ? "bg-[#f59e0b]/20 text-[#b45309] border border-[#f59e0b]/40 font-serif font-medium"
+                : ""
+            }`}
           >
             {token}
             <button
               type="button"
-              className="rounded-full p-0.5 hover:bg-black/10"
+              className="rounded-full p-0.5 hover:bg-black/10 cursor-pointer"
               onClick={() => onRemove(token)}
               aria-label={`Remove ${token}`}
             >
@@ -138,7 +174,14 @@ function ChipGroup({
               onAdd(draft);
             }
           }}
-          placeholder={variant === "hard" ? "Add an exclude, e.g. sesame" : "Add a preference, e.g. spicy"}
+          placeholder={
+            placeholder ||
+            (variant === "hard"
+              ? "Add an exclude, e.g. sesame"
+              : variant === "complex"
+              ? "e.g. yes dairy, yes meat, not together"
+              : "Add a preference, e.g. spicy")
+          }
         />
         <Button type="button" variant="outline" onClick={() => onAdd(draft)}>
           Add

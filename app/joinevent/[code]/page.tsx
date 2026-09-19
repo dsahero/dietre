@@ -53,7 +53,7 @@ export default async function JoinEventPage({
 
           <span className="ink-stamp absolute -top-3 right-6 flex items-center gap-1.5 bg-[var(--dash-surface-raised)] px-2.5 py-1 text-[9.5px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)] shadow-2xs">
             <Stamp className="h-3 w-3" />
-            Confidential Banquet Manifest
+            Table Guest Intake
           </span>
 
           {/* Invite header */}
@@ -89,9 +89,9 @@ export default async function JoinEventPage({
             </div>
           </div>
 
-          {/* Privacy note */}
+          {/* Note */}
           <div className="mt-6 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3.5 text-xs leading-relaxed text-[var(--dash-text-muted)] font-serif">
-            <strong className="text-[var(--dash-text-soft)] font-sans">Zero names on file.</strong> DietRe records what you cannot eat, not who you are. The host sees dietary requirements, not identities.
+            <strong className="text-[var(--dash-text-soft)] font-sans">Dietary care.</strong> Provide your name and parameters below so the host and kitchen can select a restaurant and menu items that accommodate everyone safely.
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export default async function JoinEventPage({
         <div className="mb-3 flex items-center gap-2 px-1">
           <MessageSquareText className="h-4 w-4 text-[var(--dash-accent)] stroke-[1.75]" />
           <p className="text-sm font-semibold text-[var(--dash-text-soft)] font-serif">
-            A short intake conversation — no forms, no checkboxes
+            A short intake conversation with the banquet concierge
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export default async function JoinEventPage({
         />
 
         <p className="mt-4 text-center font-mono text-[10.5px] uppercase tracking-wider text-[var(--dash-text-muted)]">
-          Anonymous by design · dietre never identifies you
+          Dietary intake concierge · dietre caters to everyone
         </p>
       </main>
     </div>

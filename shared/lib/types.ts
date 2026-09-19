@@ -61,6 +61,10 @@ export type DietreEvent = {
 
 export type ParsedRules = {
   hard_excludes: string[];
+  // Compound, conditional, or special rules that cannot be reduced to a single
+  // banned ingredient (e.g. "cannot eat meat and dairy together in the same dish,
+  // but can eat meat alone or dairy alone", cross-contamination tolerance, etc.)
+  complex_restrictions?: string[];
   soft_preferences: string[];
   severity: Severity;
 };
@@ -68,6 +72,7 @@ export type ParsedRules = {
 export type DietResponse = {
   id: string;
   event_id: string;
+  guest_name?: string;
   raw_text: string;
   parsed_rules: ParsedRules;
   contact_email?: string;
@@ -122,6 +127,14 @@ export type SafeMenuItem = {
   uncertain: boolean;
 };
 
+// Gemini's menu-wide evaluation for a candidate restaurant against one complex rule
+export type ComplexRequirementNote = {
+  rule: string;
+  guest_tokens?: string[];
+  verdict: "good" | "neutral" | "bad";
+  note: string;
+};
+
 export type RestaurantMatch = {
   restaurant: Restaurant;
   distance_miles: number;
@@ -132,6 +145,7 @@ export type RestaurantMatch = {
   covered_count: number;
   total_responses: number;
   safe_items: SafeMenuItem[];
+  complex_notes?: ComplexRequirementNote[];
 };
 
 export type ZeroMatchAlert = {

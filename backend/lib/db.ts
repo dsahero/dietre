@@ -312,13 +312,28 @@ export async function createResponse(response: DietResponse): Promise<DietRespon
   if (useFirestore()) {
     await ensureFirestoreSeed();
     await setDocument(COLLECTIONS.guests, response.id, responseToGuest(response));
-    return response;
+  } else {
+    await enqueueWrite(async () => {
+      const store = await readJsonStore();
+      store.responses.push(response);
+      await persistJson(store);
+    });
   }
-  await enqueueWrite(async () => {
-    const store = await readJsonStore();
-    store.responses.push(response);
-    await persistJson(store);
-  });
+
+  // Asynchronously update the single event complex context file
+  void (async () => {
+    try {
+      const event = await getEvent(response.event_id);
+      if (event) {
+        const allResponses = await listResponses(response.event_id);
+        const { saveEventComplexContext } = await import("@/backend/lib/eventContext");
+        await saveEventComplexContext(event, allResponses);
+      }
+    } catch (e) {
+      console.warn("Event complex context background write failed:", e);
+    }
+  })();
+
   return response;
 }
 

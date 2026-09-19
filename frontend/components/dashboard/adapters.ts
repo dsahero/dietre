@@ -16,11 +16,22 @@ function textureForId(id: string): RestaurantCardData['textureType'] {
   return TEXTURES[hash % TEXTURES.length];
 }
 
-export function guestToken(index: number): string {
-  return `Guest ${String(index + 1).padStart(2, '0')}`;
+export function guestToken(index: number, guestName?: string): string {
+  return guestName?.trim() ? guestName.trim() : `Guest ${String(index + 1).padStart(2, '0')}`;
 }
 
-export function toEventDetails(event: DietreEvent): EventDetails {
+export function toEventDetails(event: DietreEvent, responses?: DietResponse[]): EventDetails {
+  const complexRequirementsSet = new Set<string>();
+  if (responses) {
+    for (const r of responses) {
+      if (r.parsed_rules?.complex_restrictions) {
+        for (const c of r.parsed_rules.complex_restrictions) {
+          complexRequirementsSet.add(c);
+        }
+      }
+    }
+  }
+
   return {
     name: event.name,
     address: event.location,
@@ -31,6 +42,7 @@ export function toEventDetails(event: DietreEvent): EventDetails {
     expectedHeadcount: event.expected_headcount,
     limitations: event.limitations ?? '',
     limitationsChecklist: event.limitations_checklist ?? [],
+    complexRequirementsSummary: Array.from(complexRequirementsSet),
   };
 }
 
@@ -40,9 +52,11 @@ export function toGuestResponses(
 ): GuestResponse[] {
   return responses.map((response, index) => ({
     id: response.id,
-    token: guestToken(index),
+    token: guestToken(index, response.guest_name),
+    guestName: response.guest_name,
     rawText: response.raw_text,
     hardExcludes: response.parsed_rules.hard_excludes,
+    complexRestrictions: response.parsed_rules.complex_restrictions ?? [],
     softPreferences: response.parsed_rules.soft_preferences,
     severity: response.parsed_rules.severity,
     contactEmail: response.contact_email,
@@ -107,6 +121,7 @@ export function toRestaurantCardData(
       suggestedMenuItems,
       menuDataThin: match.safe_items.length === 0 && match.covered_count === 0,
       checklistNotes: checklistNotesByRestaurant?.get(match.restaurant.id) ?? [],
+      complexNotes: match.complex_notes ?? [],
     };
   });
 }
@@ -167,7 +182,7 @@ export function toSeverityBreakdown(
 
 export function buildGuestTokenIndex(responses: DietResponse[]): Map<string, string> {
   const map = new Map<string, string>();
-  responses.forEach((response, index) => map.set(response.id, guestToken(index)));
+  responses.forEach((response, index) => map.set(response.id, guestToken(index, response.guest_name)));
   return map;
 }
 

@@ -118,7 +118,7 @@ export function ZeroMatchPanel({ alerts }: { alerts: ZeroMatchAlert[] }) {
           <div className="overflow-hidden">
             <div className="px-5 pb-5 pt-2 space-y-3 border-t border-[var(--dash-border)] bg-[var(--dash-surface)]/60">
               <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">
-                Guest labels remain strictly anonymous. Email contact appears only if provided for host clarification.
+                Email contact appears only if provided for direct host clarification.
               </p>
               <ul className="space-y-2.5">
                 {alerts.map((alert) => (

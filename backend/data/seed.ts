@@ -1068,6 +1068,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-1",
     event_id: DEMO_EVENT_ID,
+    guest_name: "David M.",
     raw_text: "Severe peanut and tree nut allergy — anaphylaxis. Please no nuts anywhere on the plate.",
     parsed_rules: {
       hard_excludes: ["peanuts", "tree nuts"],
@@ -1080,6 +1081,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-2",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Maya L.",
     raw_text: "I'm vegan. No animal products at all — meat, dairy, egg, honey.",
     parsed_rules: {
       hard_excludes: ["meat", "dairy", "egg", "honey", "animal products"],
@@ -1091,6 +1093,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-3",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Tariq A.",
     raw_text: "Halal only. No pork or alcohol. Spicy food is great.",
     parsed_rules: {
       hard_excludes: ["pork", "alcohol"],
@@ -1102,6 +1105,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-4",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Sarah K.",
     raw_text: "Celiac disease. Gluten will make me sick. Dairy is fine.",
     parsed_rules: {
       hard_excludes: ["gluten", "wheat"],
@@ -1113,6 +1117,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-5",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Lucas R.",
     raw_text: "I eat almost everything. Just please no cilantro — I can't stand it.",
     parsed_rules: {
       hard_excludes: [],
@@ -1124,9 +1129,11 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-6",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Eli G.",
     raw_text: "Keeping kosher-style: no pork, no shellfish, and don't mix meat with dairy.",
     parsed_rules: {
       hard_excludes: ["pork", "shellfish", "meat dairy combo"],
+      complex_restrictions: ["yes dairy, yes meat, not together"],
       soft_preferences: ["kosher"],
       severity: "medium",
     },
@@ -1135,6 +1142,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-7",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Priya N.",
     raw_text: "Vegetarian. Eggs and dairy are okay. Prefer lighter plates if possible.",
     parsed_rules: {
       hard_excludes: ["meat", "fish", "shellfish"],
@@ -1146,6 +1154,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-8",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Chloe T.",
     raw_text: "Allergic to sesame and soy. Pretty severe — hives and swelling.",
     parsed_rules: {
       hard_excludes: ["sesame", "soy"],
@@ -1157,6 +1166,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-9",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Hannah W.",
     raw_text:
       "Anaphylactic to peanuts, tree nuts, sesame, soy, shellfish, and gluten. Also vegan. This is a medical restriction.",
     parsed_rules: {
@@ -1170,6 +1180,7 @@ export const SEED_DEMO_RESPONSES: DietResponse[] = [
   {
     id: "resp-demo-10",
     event_id: DEMO_EVENT_ID,
+    guest_name: "Noah B.",
     raw_text:
       "Anaphylactic to rice, corn, legumes (beans, lentils, chickpeas), potatoes, and nightshades, plus all the usual: peanuts, tree nuts, sesame, soy, gluten, and animal products.",
     parsed_rules: {
@@ -1236,6 +1247,7 @@ export const SEED_EVENT_2_RESPONSES: DietResponse[] = [
   {
     id: "resp-wic-1",
     event_id: SEED_EVENT_2_ID,
+    guest_name: "Emma S.",
     raw_text: "Vegetarian, no fish either. Dairy and eggs are fine.",
     parsed_rules: {
       hard_excludes: ["meat", "fish", "shellfish"],
@@ -1247,6 +1259,7 @@ export const SEED_EVENT_2_RESPONSES: DietResponse[] = [
   {
     id: "resp-wic-2",
     event_id: SEED_EVENT_2_ID,
+    guest_name: "Olivia D.",
     raw_text: "Lactose intolerant — dairy gives me real trouble. Everything else is fine.",
     parsed_rules: {
       hard_excludes: ["dairy"],
@@ -1258,6 +1271,7 @@ export const SEED_EVENT_2_RESPONSES: DietResponse[] = [
   {
     id: "resp-wic-3",
     event_id: SEED_EVENT_2_ID,
+    guest_name: "Sophia C.",
     raw_text: "No restrictions, but I'd love something with fresh veggies if it's easy.",
     parsed_rules: {
       hard_excludes: [],
@@ -1269,6 +1283,7 @@ export const SEED_EVENT_2_RESPONSES: DietResponse[] = [
   {
     id: "resp-wic-4",
     event_id: SEED_EVENT_2_ID,
+    guest_name: "Ava M.",
     raw_text: "Severe shellfish allergy — throat swelling. Please keep it far away from my food.",
     parsed_rules: {
       hard_excludes: ["shellfish"],
@@ -1281,6 +1296,7 @@ export const SEED_EVENT_2_RESPONSES: DietResponse[] = [
   {
     id: "resp-wic-5",
     event_id: SEED_EVENT_2_ID,
+    guest_name: "Isabella K.",
     raw_text: "Gluten-free, diagnosed celiac. Cross-contamination matters to me.",
     parsed_rules: {
       hard_excludes: ["gluten", "wheat"],
@@ -1312,9 +1328,11 @@ export const SEED_EVENT_3_RESPONSES: DietResponse[] = [
   {
     id: "resp-tailgate-1",
     event_id: SEED_EVENT_3_ID,
+    guest_name: "Daniel F.",
     raw_text: "Keep kosher — no pork, no shellfish, no mixing meat and dairy.",
     parsed_rules: {
       hard_excludes: ["pork", "shellfish", "meat dairy combo"],
+      complex_restrictions: ["yes dairy, yes meat, not together"],
       soft_preferences: ["kosher"],
       severity: "medium",
     },
@@ -1323,6 +1341,7 @@ export const SEED_EVENT_3_RESPONSES: DietResponse[] = [
   {
     id: "resp-tailgate-2",
     event_id: SEED_EVENT_3_ID,
+    guest_name: "Rachel V.",
     raw_text: "Vegan, and I'd rather not have anything ultra-processed if there's a choice.",
     parsed_rules: {
       hard_excludes: ["meat", "dairy", "egg", "honey", "animal products"],
@@ -1334,6 +1353,7 @@ export const SEED_EVENT_3_RESPONSES: DietResponse[] = [
   {
     id: "resp-tailgate-3",
     event_id: SEED_EVENT_3_ID,
+    guest_name: "Marcus P.",
     raw_text: "Diabetic — try to avoid heavy sugar sauces, but not a hard rule.",
     parsed_rules: {
       hard_excludes: [],
@@ -1345,6 +1365,7 @@ export const SEED_EVENT_3_RESPONSES: DietResponse[] = [
   {
     id: "resp-tailgate-4",
     event_id: SEED_EVENT_3_ID,
+    guest_name: "Liam H.",
     raw_text: "Tree nut allergy, confirmed by allergist. Peanuts are fine, tree nuts are not.",
     parsed_rules: {
       hard_excludes: ["tree nuts"],
@@ -1357,6 +1378,7 @@ export const SEED_EVENT_3_RESPONSES: DietResponse[] = [
   {
     id: "resp-tailgate-5",
     event_id: SEED_EVENT_3_ID,
+    guest_name: "Jessica W.",
     raw_text: "Eat everything, no restrictions, no preferences. Surprise me.",
     parsed_rules: {
       hard_excludes: [],

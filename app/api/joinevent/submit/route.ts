@@ -6,12 +6,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
       eventId: string;
+      guestName?: string;
       parsedRules: ParsedRules;
       contactEmail?: string;
       rawSummary?: string;
     };
 
-    const { eventId, parsedRules, contactEmail, rawSummary } = body;
+    const { eventId, guestName, parsedRules, contactEmail, rawSummary } = body;
 
     if (!eventId || !parsedRules) {
       return NextResponse.json({ error: "Missing eventId or parsedRules" }, { status: 400 });
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
     await createResponse({
       id: crypto.randomUUID(),
       event_id: eventId,
+      guest_name: guestName?.trim() || undefined,
       raw_text: rawSummary ?? "Submitted via chatbot",
       parsed_rules: parsedRules,
       contact_email: contact || undefined,

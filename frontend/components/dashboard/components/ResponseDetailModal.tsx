@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GuestResponse } from '../types';
-import { X, ShieldAlert, Heart, Mail, Copy, Check, ExternalLink, Calendar, MessageSquare } from 'lucide-react';
+import { X, ShieldAlert, Heart, Mail, Copy, Check, ExternalLink, Calendar, MessageSquare, Layers } from 'lucide-react';
 
 interface ResponseDetailModalProps {
   response: GuestResponse | null;
@@ -41,11 +41,11 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
       <div className="animate-in fade-in zoom-in-95 relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-md border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] shadow-2xl duration-200">
-        {/* Header — no avatar, no name: the token is the only identifier */}
+        {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--dash-border)] bg-[var(--dash-surface)] px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <h2 id="response-token-title" className="font-mono text-base font-bold tracking-tight text-[var(--dash-text)]">
-              {response.token}
+            <h2 id="response-token-title" className="font-heading text-lg font-bold tracking-tight text-[var(--dash-text)]">
+              {response.guestName || response.token}
             </h2>
             <span
               className={`rounded-xs border px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-wider ${severityBadge(
@@ -118,6 +118,37 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
             )}
           </div>
 
+          {/* Complex & Compound restrictions */}
+          {response.complexRestrictions && response.complexRestrictions.length > 0 && (
+            <div className="rounded-xs border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4 shadow-2xs">
+              <div className="mb-3 flex items-center justify-between border-b border-[#f59e0b]/30 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[#f59e0b]/30 bg-[#f59e0b]/15 text-[#b45309]">
+                    <Layers className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[#b45309]">Complex & Compound Restrictions</h3>
+                    <p className="font-serif italic text-[11px] text-[var(--dash-text-muted)]">Relational rules, kitchen surfaces, and cross-contact limits</p>
+                  </div>
+                </div>
+                <span className="rounded-xs border border-[#f59e0b]/30 bg-[#f59e0b]/15 px-2 py-0.5 font-mono text-[10px] font-bold text-[#b45309]">
+                  {response.complexRestrictions.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {response.complexRestrictions.map((req, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2.5 rounded-xs border border-[#f59e0b]/30 bg-[var(--dash-surface-raised)] p-3 font-serif text-xs leading-relaxed text-[var(--dash-text)] shadow-2xs"
+                  >
+                    <span className="mt-1 h-2 w-2 shrink-0 rounded-xs bg-[#f59e0b]" />
+                    <span>{req}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Soft preferences */}
           <div className="rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs">
             <div className="mb-3 flex items-center justify-between border-b border-[var(--dash-border)] pb-2.5">
@@ -159,8 +190,8 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
                 <Mail className="h-3.5 w-3.5" />
               </div>
               <div>
-                <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">Optional Contact Email</h3>
-                <p className="font-serif italic text-[11px] text-[var(--dash-text-muted)]">Only used to follow up on a zero-match — never shown to other guests</p>
+                <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">Contact Email</h3>
+                <p className="font-serif italic text-[11px] text-[var(--dash-text-muted)]">Used to follow up on a zero-match or clarify requirements</p>
               </div>
             </div>
 
