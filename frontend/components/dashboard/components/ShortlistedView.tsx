@@ -1,5 +1,5 @@
 import React from 'react';
-import { RestaurantCardData, EventDetails } from '../types';
+import { RestaurantCardData } from '../types';
 import { RestaurantCard } from './RestaurantCard';
 import { Bookmark, UtensilsCrossed } from 'lucide-react';
 
@@ -7,7 +7,6 @@ interface ShortlistedViewProps {
   restaurants: RestaurantCardData[];
   shortlistedIds: string[];
   onToggleShortlist: (id: string) => void;
-  eventDetails: EventDetails;
   onExploreMore: () => void;
   onClickDetails?: (restaurant: RestaurantCardData) => void;
 }
@@ -16,7 +15,6 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
   restaurants,
   shortlistedIds,
   onToggleShortlist,
-  eventDetails,
   onExploreMore,
   onClickDetails,
 }) => {
@@ -64,7 +62,6 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
               isShortlisted={true}
               onToggleShortlist={onToggleShortlist}
               onClickDetails={onClickDetails}
-              eventDetails={eventDetails}
             />
           ))}
         </section>

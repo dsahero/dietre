@@ -2,7 +2,7 @@ export interface NavItem {
   id: string;
   label: string;
   badge?: string;
-  iconName?: 'utensils' | 'bookmark' | 'users' | 'file-text' | 'library';
+  iconName?: 'utensils' | 'bookmark' | 'users' | 'map';
 }
 
 export interface StatMetric {
@@ -31,95 +31,66 @@ export interface RestaurantTrait {
   category?: string;
 }
 
+// A menu item this restaurant can safely serve, and who it's safe for.
 export interface SuggestedMenuItem {
   id: string;
-  quantity: number; // e.g., 4, 3, 2, 1
   name: string;
   price: number;
-  dietaryCategory: string;
-  targetAudienceLabel: string;
-  participantIds: string[];
-  participantNames: string[];
-  notes?: string;
+  coveredGuestTokens: string[]; // e.g. ["Guest 01", "Guest 04"]
+  uncertain: boolean; // AI-inferred ingredients not yet human-confirmed
 }
 
+// A response this restaurant fails to cover, and why.
 export interface DietaryConflict {
-  participantId: string;
-  participantName: string;
-  dietaryIssue: string;
-  severity: 'Critical' | 'Moderate' | 'Preference';
-  reason: string;
-}
-
-export interface EstimatedCostBreakdown {
-  attendeeCount: number;
-  dietaryCount: number;
-  basePricePerGuest: number;
-  baseFoodTotal: number;
-  dietarySurcharge: number;
-  serviceAndGratuity: number;
-  totalEstimatedCost: number;
-  averagePerGuest: number;
+  responseId: string;
+  guestToken: string;
+  hardExcludes: string[];
+  severity: 'high' | 'medium' | 'low';
 }
 
 export interface RestaurantCardData {
   id: string;
   name: string;
   cuisine: string;
-  distance: string;
-  pricePerPerson: string;
-  capacity: string;
-  rating: number;
+  location: string;
+  distanceMiles: number;
+  withinRadius: boolean;
+  withinBudget: boolean;
+  priceLevel: 1 | 2 | 3;
+  lat: number;
+  lng: number;
   textureType: 'sand' | 'rust' | 'marble';
-  traits: RestaurantTrait[]; // [0] = good, [1] = neutral, [2] = bad (not every place has all 3)
-  address?: string;
-  phone?: string;
-  matchPercentage: number; // e.g. 75, 92, 58, 83
-  matchedParticipantIds: string[];
+  matchPercentage: number; // weighted coverage %, 0-100
+  coveredCount: number; // responses covered
+  totalResponses: number; // denominator — never show matchPercentage without this
+  hasUnconfirmedItems: boolean; // true if any safe item relies on a low-confidence AI ingredient guess
+  matchedGuestTokens: string[];
   dietaryConflicts: DietaryConflict[];
-  estimatedCost: EstimatedCostBreakdown;
   suggestedMenuItems: SuggestedMenuItem[];
-  about?: string;
+  menuDataThin: boolean; // true when we have no menu items at all for this restaurant
 }
 
 export interface EventDetails {
   name: string;
-  limitations: string;
-  maxBudget: string;
-  maxDistanceRadius: string;
   address: string;
-  date?: string;
-  budgetMode?: 'per_guest' | 'overall';
-  budgetAmount?: number;
-  overallBudgetTotal?: number;
-  maxDistanceMiles?: number;
-  attendeeCount?: number;
+  date: string;
+  maxDistanceRadius: string; // display string, e.g. "5 miles"
+  radiusMiles: number;
+  maxBudget: '$' | '$$' | '$$$';
+  expectedHeadcount: number;
 }
 
-export interface ChatTranscriptMessage {
+// A single anonymous guest response — never a name. See DietRe's anonymity-by-design rule.
+export interface GuestResponse {
   id: string;
-  sender: 'ai' | 'participant';
-  text: string;
-  timestamp: string;
-}
-
-export interface Participant {
-  id: string;
-  name: string;
-  role: string;
-  company: string;
-  email?: string;
-  phone?: string;
-  tableGroup?: string;
-  rsvpStatus: 'Confirmed' | 'Pending' | 'Waitlist';
-  foodRestrictions: string[]; // e.g. ["Gluten-Free (Celiac)", "Severe Shellfish Allergy"]
-  foodPreferences: string[];  // e.g. ["Mediterranean / Seafood", "Medium-Rare Beef", "Dry Red Wine"]
-  dietaryCategory: 'Standard' | 'Gluten-Free' | 'Vegan' | 'Vegetarian' | 'Halal' | 'Kosher' | 'Severe Allergy';
-  aiIntakeStatus: 'Completed' | 'Partial' | 'Needs Review';
-  aiChatTranscript: ChatTranscriptMessage[];
-  notes?: string;
+  token: string; // "Guest 07" — the only identifier ever shown
+  rawText: string; // the guest's own words; source of truth, always shown alongside the parsed rules
+  hardExcludes: string[];
+  softPreferences: string[];
+  severity: 'high' | 'medium' | 'low';
+  contactEmail?: string;
+  submittedAt: string;
+  hasZeroMatch: boolean; // no restaurant anywhere covers this response's hard excludes
 }
 
 export type FeatureCardData = RestaurantCardData;
-
-
