@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DEMO_EVENT_ID } from "@/backend/data/seed";
-import { getSession } from "@/backend/lib/auth";
-import { getEvent, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
+import { DEMO_EVENT_ID, SEED_EVENT_2_ID, SEED_EVENT_3_ID } from "@/backend/data/seed";
+import { getSession, hostIdFromEmail } from "@/backend/lib/auth";
+import { getEvent, getHost, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
 import { matchEvent } from "@/backend/lib/matching";
 import { ModeBanner } from "@/frontend/components/mode-banner";
 import { SharePanel } from "@/frontend/components/share-panel";
@@ -23,7 +23,24 @@ export default async function EventDashboardPage({
   if (!event) notFound();
 
   const session = await getSession();
-  const isHost = session?.host_id === event.host_id || event.id === DEMO_EVENT_ID;
+  const isDemo =
+    event.id === DEMO_EVENT_ID ||
+    event.id === SEED_EVENT_2_ID ||
+    event.id === SEED_EVENT_3_ID;
+
+  let isHost = session?.host_id === event.host_id || isDemo;
+
+  if (!isHost && session?.email) {
+    const sessionEmail = session.email.trim().toLowerCase();
+    if (event.host_id === hostIdFromEmail(sessionEmail)) {
+      isHost = true;
+    } else {
+      const eventHost = await getHost(event.host_id);
+      if (eventHost && eventHost.email.trim().toLowerCase() === sessionEmail) {
+        isHost = true;
+      }
+    }
+  }
 
   if (!isHost) {
     return (

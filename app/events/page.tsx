@@ -9,7 +9,10 @@ export default async function EventsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [events, profile] = await Promise.all([listEventsByHost(session.host_id), getHost(session.host_id)]);
+  const [events, profile] = await Promise.all([
+    listEventsByHost(session.host_id, session.email),
+    getHost(session.host_id),
+  ]);
   const eventsWithCounts: EventWithResponseCount[] = await Promise.all(
     events.map(async (event) => ({
       ...event,

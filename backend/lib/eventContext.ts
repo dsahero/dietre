@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 import type { DietreEvent, DietResponse } from "@/shared/lib/types";
 
@@ -25,7 +26,12 @@ export interface EventComplexContext {
   aggregatedHardExcludes: string[];
 }
 
-const CONTEXT_DIR = path.join(process.cwd(), ".data", "events");
+function getContextDir(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production") {
+    return path.join(os.tmpdir(), "dietre_events");
+  }
+  return path.join(process.cwd(), ".data", "events");
+}
 
 function guestToken(index: number): string {
   return `Guest ${String(index + 1).padStart(2, "0")}`;
@@ -139,20 +145,29 @@ export async function saveEventComplexContext(
   responses: DietResponse[]
 ): Promise<{ context: EventComplexContext; markdown: string; jsonPath: string; mdPath: string }> {
   const { context, markdown } = buildEventComplexContext(event, responses);
-  await fs.mkdir(CONTEXT_DIR, { recursive: true });
+  let jsonPath = "";
+  let mdPath = "";
 
-  const jsonPath = path.join(CONTEXT_DIR, `${event.id}_complex_context.json`);
-  const mdPath = path.join(CONTEXT_DIR, `${event.id}_complex_context.md`);
+  try {
+    const dir = getContextDir();
+    await fs.mkdir(dir, { recursive: true });
 
-  await fs.writeFile(jsonPath, JSON.stringify(context, null, 2), "utf8");
-  await fs.writeFile(mdPath, markdown, "utf8");
+    jsonPath = path.join(dir, `${event.id}_complex_context.json`);
+    mdPath = path.join(dir, `${event.id}_complex_context.md`);
+
+    await fs.writeFile(jsonPath, JSON.stringify(context, null, 2), "utf8");
+    await fs.writeFile(mdPath, markdown, "utf8");
+  } catch (err) {
+    console.warn("Notice: could not write complex context file to disk (continuing with in-memory context):", err);
+  }
 
   return { context, markdown, jsonPath, mdPath };
 }
 
 export async function readEventComplexContext(eventId: string): Promise<string | null> {
   try {
-    const mdPath = path.join(CONTEXT_DIR, `${eventId}_complex_context.md`);
+    const dir = getContextDir();
+    const mdPath = path.join(dir, `${eventId}_complex_context.md`);
     return await fs.readFile(mdPath, "utf8");
   } catch {
     return null;
