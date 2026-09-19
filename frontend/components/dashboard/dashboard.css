@@ -82,16 +82,18 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 36px;
-  max-width: 840px;
+  width: 100%;
+  max-width: 100%;
   margin-left: 0;
 }
 
 /* Top Section: Donut Chart & Audience Stats Card */
 .overview-top-row {
   display: flex;
-  align-items: center;
-  gap: 48px;
-  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 32px;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 /* Donut Chart Container */
@@ -150,7 +152,7 @@ html, body {
 /* Audience Stats Card */
 .audience-stats-card {
   flex: 1;
-  min-width: 280px;
+  min-width: 0;
   height: 250px;
   max-height: 250px;
   background-color: #261d1a;
@@ -238,9 +240,10 @@ html, body {
 
 /* Content Cards Section */
 .content-cards-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   gap: 18px;
+  width: 100%;
 }
 
 .content-card {
