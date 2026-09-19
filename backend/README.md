@@ -17,7 +17,9 @@ Credentials (first match wins for writes):
 
 Also read (optional): `GEMINI_API_KEY`, `PLACES_API_KEY`, `AUTH_SECRET`.
 
-**No auto-seed.** `restaurants` / `menu_items` stay empty until acquisition writes them; `guests` only from submit/parse; `restaurant_scores` only from live `matchEvent` when there is data. Optional demo load: set `DIETRE_SEED=1` and call `seedDemoDataIfEnabled()` (never runs on API hit by itself).
+**No auto-seed.** `restaurants` / `menu_items` stay empty until acquisition writes them; `guests` only from submit/parse (always with `event_id`; `preference_vector` / `parsed_rules` stored on that guest); `restaurant_scores` only from live `matchEvent` for that event (empty guests → empty scores). Optional demo load: set `DIETRE_SEED=1` and call `seedDemoDataIfEnabled()` (never runs on API hit by itself).
+
+`listResponses(eventId)` / `listRestaurantScores(eventId)` query by `event_id` only. `matchEvent` scores restaurants against those guests alone.
 
 Organizer auth: Firebase Auth ID token (`firebaseToken` on `POST /api/auth/login`) when the frontend has `NEXT_PUBLIC_FIREBASE_*`. Mock email/password hosts otherwise (`password_hash` on `organizers`).
 

@@ -287,10 +287,12 @@ export async function updateEvent(
 }
 
 export async function listResponses(eventId: string): Promise<DietResponse[]> {
+  if (!eventId) return [];
   if (useFirestore()) {
     const docs = await queryDocuments(COLLECTIONS.guests, "event_id", "EQUAL", eventId);
     return docs
       .map((doc) => docToResponse(doc.id, doc))
+      .filter((response) => response.event_id === eventId)
       .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at));
   }
   return (await readJsonStore()).responses
@@ -299,12 +301,21 @@ export async function listResponses(eventId: string): Promise<DietResponse[]> {
 }
 
 export async function createResponse(response: DietResponse): Promise<DietResponse> {
+  if (!response.event_id?.trim()) {
+    throw new Error("Guest response requires event_id");
+  }
+  // Normalize so stored guests always carry the event association.
+  const normalized: DietResponse = {
+    ...response,
+    event_id: response.event_id.trim(),
+  };
+
   if (useFirestore()) {
-    await setDocument(COLLECTIONS.guests, response.id, responseToGuest(response));
+    await setDocument(COLLECTIONS.guests, normalized.id, responseToGuest(normalized));
   } else {
     await enqueueWrite(async () => {
       const store = await readJsonStore();
-      store.responses.push(response);
+      store.responses.push(normalized);
       await persistJson(store);
     });
   }
@@ -312,9 +323,9 @@ export async function createResponse(response: DietResponse): Promise<DietRespon
   // Asynchronously update the single event complex context file
   void (async () => {
     try {
-      const event = await getEvent(response.event_id);
+      const event = await getEvent(normalized.event_id);
       if (event) {
-        const allResponses = await listResponses(response.event_id);
+        const allResponses = await listResponses(normalized.event_id);
         const { saveEventComplexContext } = await import("@/backend/lib/eventContext");
         await saveEventComplexContext(event, allResponses);
       }
@@ -323,7 +334,7 @@ export async function createResponse(response: DietResponse): Promise<DietRespon
     }
   })();
 
-  return response;
+  return normalized;
 }
 
 export async function getHost(hostId: string): Promise<HostRecord | null> {
@@ -432,23 +443,70 @@ export async function saveResponseJudgments(
   });
 }
 
-export async function saveRestaurantScores(scores: RestaurantScoreDoc[]): Promise<void> {
-  if (scores.length === 0) return;
+export async function listRestaurantScores(eventId: string): Promise<RestaurantScoreDoc[]> {
+  if (!eventId) return [];
   if (useFirestore()) {
-    await commitWrites(
-      scores.map((score) => ({
-        collection: COLLECTIONS.restaurant_scores,
-        id: scoreDocId(score.event_id, score.restaurant_id),
-        data: { ...score },
-      }))
-    );
+    const docs = await queryDocuments(COLLECTIONS.restaurant_scores, "event_id", "EQUAL", eventId);
+    return docs
+      .map((doc) => doc as RestaurantScoreDoc & { id: string })
+      .filter((doc) => doc.event_id === eventId && typeof doc.restaurant_id === "string")
+      .map((doc) => ({
+        event_id: eventId,
+        restaurant_id: doc.restaurant_id,
+        per_guest_scores: doc.per_guest_scores ?? {},
+        group_scores: {
+          utilitarian: Number(doc.group_scores?.utilitarian ?? 0),
+          rawlsian_min: Number(doc.group_scores?.rawlsian_min ?? 0),
+        },
+        conflicts: Array.isArray(doc.conflicts) ? doc.conflicts : [],
+        ranks: {
+          utilitarian: Number(doc.ranks?.utilitarian ?? 0),
+          rawlsian: Number(doc.ranks?.rawlsian ?? 0),
+        },
+        coverage_pct: Number(doc.coverage_pct ?? 0),
+        weighted_coverage_pct: Number(doc.weighted_coverage_pct ?? 0),
+        computed_at: String(doc.computed_at ?? ""),
+      }));
+  }
+  return (await readJsonStore()).restaurant_scores.filter((score) => score.event_id === eventId);
+}
+
+/**
+ * Replace all restaurant_scores for one event. Pass an empty array to clear
+ * (empty event / no guests → empty scores). Never mixes scores across events.
+ */
+export async function saveRestaurantScores(
+  scores: RestaurantScoreDoc[],
+  eventId?: string
+): Promise<void> {
+  const eid = (eventId ?? scores[0]?.event_id)?.trim();
+  if (!eid) return;
+  // Reject accidental cross-event writes.
+  const scoped = scores.filter((score) => score.event_id === eid);
+
+  if (useFirestore()) {
+    const existing = await queryDocuments(COLLECTIONS.restaurant_scores, "event_id", "EQUAL", eid);
+    const nextIds = new Set(scoped.map((score) => scoreDocId(score.event_id, score.restaurant_id)));
+    for (const old of existing) {
+      if (!nextIds.has(old.id)) {
+        await deleteDocument(COLLECTIONS.restaurant_scores, old.id);
+      }
+    }
+    if (scoped.length > 0) {
+      await commitWrites(
+        scoped.map((score) => ({
+          collection: COLLECTIONS.restaurant_scores,
+          id: scoreDocId(score.event_id, score.restaurant_id),
+          data: { ...score },
+        }))
+      );
+    }
     return;
   }
   await enqueueWrite(async () => {
     const store = await readJsonStore();
-    const eventId = scores[0]?.event_id;
-    store.restaurant_scores = store.restaurant_scores.filter((score) => score.event_id !== eventId);
-    store.restaurant_scores.push(...scores);
+    store.restaurant_scores = store.restaurant_scores.filter((score) => score.event_id !== eid);
+    store.restaurant_scores.push(...scoped);
     await persistJson(store);
   });
 }

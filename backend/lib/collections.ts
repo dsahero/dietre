@@ -240,16 +240,30 @@ export function eventPatchToDoc(
 }
 
 export function responseToGuest(response: DietResponse): Record<string, unknown> {
+  const event_id = response.event_id?.trim();
+  if (!event_id) {
+    throw new Error("Guest documents require a non-empty event_id");
+  }
+  const hard_excludes = response.parsed_rules.hard_excludes ?? [];
+  const parsed_rules: ParsedRules = {
+    hard_excludes,
+    soft_preferences: response.parsed_rules.soft_preferences ?? [],
+    severity: response.parsed_rules.severity,
+    ...(response.parsed_rules.complex_restrictions?.length
+      ? { complex_restrictions: response.parsed_rules.complex_restrictions }
+      : {}),
+  };
   return {
-    event_id: response.event_id,
+    event_id,
     anon_token: response.id,
     name: response.guest_name ?? null,
     guest_name: response.guest_name ?? null,
     email: response.contact_email ?? null,
     transcript: response.raw_text,
     raw_text: response.raw_text,
-    parsed_rules: response.parsed_rules,
-    preference_vector: response.parsed_rules.hard_excludes,
+    parsed_rules,
+    // Hard excludes only — soft prefs stay on parsed_rules; never global.
+    preference_vector: hard_excludes,
     confidence: guestConfidence(response.parsed_rules.severity),
     conflict_followups: [],
     contact_email: response.contact_email ?? null,
@@ -260,6 +274,12 @@ export function responseToGuest(response: DietResponse): Record<string, unknown>
 export function docToResponse(id: string, doc: Record<string, unknown>): DietResponse {
   const parsed = asRecord(doc.parsed_rules);
   const severity = parsed.severity;
+  // Prefer parsed_rules.hard_excludes; fall back to preference_vector so older
+  // guest docs still yield event-scoped excludes for matching.
+  const hardFromRules = asStringArray(parsed.hard_excludes);
+  const hard_excludes =
+    hardFromRules.length > 0 ? hardFromRules : asStringArray(doc.preference_vector);
+  const complex = asStringArray(parsed.complex_restrictions);
   return {
     id: asString(doc.id, id),
     event_id: asString(doc.event_id),
@@ -271,8 +291,9 @@ export function docToResponse(id: string, doc: Record<string, unknown>): DietRes
           : undefined,
     raw_text: asString(doc.raw_text, asString(doc.transcript)),
     parsed_rules: {
-      hard_excludes: asStringArray(parsed.hard_excludes),
+      hard_excludes,
       soft_preferences: asStringArray(parsed.soft_preferences),
+      complex_restrictions: complex.length > 0 ? complex : undefined,
       severity: severity === "high" || severity === "medium" ? severity : "low",
     },
     contact_email:

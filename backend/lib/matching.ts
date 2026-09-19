@@ -205,12 +205,47 @@ export async function matchEvent(input: {
   restaurants: Restaurant[];
   menuItems: MenuItem[];
 }): Promise<MatchResult> {
-  const { event, responses, restaurants, menuItems } = input;
+  const { event, restaurants, menuItems } = input;
+  // Never mix guests across events — only score against this event's guests.
+  const responses = input.responses.filter((response) => response.event_id === event.id);
+
   const itemsByRestaurant = new Map<string, MenuItem[]>();
   for (const item of menuItems) {
     const list = itemsByRestaurant.get(item.restaurant_id) ?? [];
     list.push(item);
     itemsByRestaurant.set(item.restaurant_id, list);
+  }
+
+  // Empty event (no guests) → empty scores (clear cache); still surface
+  // candidate restaurants with zero coverage so the host UI is not blank.
+  if (responses.length === 0) {
+    void saveRestaurantScores([], event.id).catch((error) => {
+      console.error("restaurant_scores clear failed", error);
+    });
+    const maxPrice = priceLevelFromBudget(event.budget_range);
+    const rankedEmpty: RestaurantMatch[] = restaurants
+      .map((restaurant) => {
+        const distance = haversineMiles(event, restaurant);
+        return {
+          restaurant,
+          distance_miles: Math.round(distance * 10) / 10,
+          within_radius: distance <= event.radius + 0.05,
+          within_budget: restaurant.price_level <= maxPrice,
+          coverage_pct: 0,
+          weighted_coverage_pct: 0,
+          covered_count: 0,
+          total_responses: 0,
+          safe_items: [],
+          complex_notes: [],
+        };
+      })
+      .sort((a, b) => a.distance_miles - b.distance_miles);
+    return {
+      restaurants: rankedEmpty,
+      zero_matches: [],
+      response_count: 0,
+      expected_headcount: event.expected_headcount,
+    };
   }
 
   const judgmentsByResponse = await resolveJudgments(responses, menuItems);
@@ -373,7 +408,8 @@ export async function matchEvent(input: {
           weighted_coverage_pct: row.weighted_coverage_pct,
           computed_at,
         };
-      })
+      }),
+      event.id
     );
   }
 

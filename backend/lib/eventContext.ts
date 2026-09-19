@@ -35,11 +35,14 @@ export function buildEventComplexContext(
   event: DietreEvent,
   responses: DietResponse[]
 ): { context: EventComplexContext; markdown: string } {
+  // Only guests tied to this event — never aggregate across events.
+  const eventResponses = responses.filter((resp) => resp.event_id === event.id);
+
   // Aggregate complex restrictions across all responses
   const ruleToTokens = new Map<string, { tokens: string[]; severity: "high" | "medium" | "low" }>();
   const allHardExcludes = new Set<string>();
 
-  responses.forEach((resp, idx) => {
+  eventResponses.forEach((resp, idx) => {
     const token = guestToken(idx);
     for (const h of resp.parsed_rules.hard_excludes) {
       allHardExcludes.add(h);
