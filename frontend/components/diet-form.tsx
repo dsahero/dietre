@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { parseDietAction, submitDietAction, type ParseState, type SubmitState } from "@/app/r/actions";
 import { ChipEditor } from "@/frontend/components/chip-editor";
 import { Alert, AlertDescription, AlertTitle } from "@/frontend/components/ui/alert";
@@ -12,8 +12,32 @@ import { Bot, User, Send, Loader2, CheckCircle2 } from "lucide-react";
 import type { ParsedRules } from "@/shared/lib/types";
 
 export function DietForm({ eventId }: { eventId: string }) {
-  const [parsed, parseAction, parsing] = useActionState(parseDietAction, {} as ParseState);
-  const [submitted, submitAction, submitting] = useActionState(submitDietAction, {} as SubmitState);
+  const [parsed, setParsed] = useState<ParseState>({});
+  const [submitted, setSubmitted] = useState<SubmitState>({});
+  const [parsing, setParsing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleParse(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setParsing(true);
+    try {
+      setParsed(await parseDietAction(parsed, formData));
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setSubmitting(true);
+    try {
+      setSubmitted(await submitDietAction(submitted, formData));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (submitted.ok) {
     return (
@@ -36,7 +60,10 @@ export function DietForm({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-6">
-      <form action={parseAction} className="paper-grain tilt-left space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]">
+      <form
+        onSubmit={handleParse}
+        className="paper-grain tilt-left space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]"
+      >
         {/* Ask name first */}
         <div className="space-y-2">
           <Label htmlFor="name" className="font-heading text-sm font-bold text-[var(--dash-text)]">
@@ -87,7 +114,7 @@ export function DietForm({ eventId }: { eventId: string }) {
           initialName={parsed.name ?? ""}
           raw={parsed.raw ?? ""}
           initialRules={parsed.rules}
-          action={submitAction}
+          onSubmit={handleSubmit}
           submitting={submitting}
         />
       ) : null}
@@ -107,21 +134,24 @@ function SubmitChips({
   initialName,
   raw,
   initialRules,
-  action,
+  onSubmit,
   submitting,
 }: {
   eventId: string;
   initialName: string;
   raw: string;
   initialRules: ParsedRules;
-  action: (formData: FormData) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   submitting: boolean;
 }) {
   const [guestName, setGuestName] = useState(initialName);
   const [rules, setRules] = useState(initialRules);
 
   return (
-    <form action={action} className="paper-grain tilt-right space-y-5 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]">
+    <form
+      onSubmit={onSubmit}
+      className="paper-grain tilt-right space-y-5 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]"
+    >
       <input type="hidden" name="event_id" value={eventId} />
       <input type="hidden" name="raw_text" value={raw} />
       <input type="hidden" name="hard_excludes" value={JSON.stringify(rules.hard_excludes)} />

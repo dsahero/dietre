@@ -1,78 +1,50 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../components/remix/remix.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * App-wide brand palette — one set of tokens for every surface: the host
- * dashboard, the marketing/auth/profile pages, and the guest-facing
- * responder flow. These used to be redefined as literal hex in several
- * places (dashboard.css, share-panel-collapsible, zero-match-panel,
- * join-event-chat, the marketing pages) — the same warm palette typed out
- * again and again, so a theme change in one spot silently didn't apply
- * elsewhere. Defining it once here and consuming `var(--dash-*)`
- * everywhere is what makes the dark/light toggle (and any future palette
- * tweak) apply across the board instead of needing to be hunted down file
- * by file.
- *
- * Status colors (red/green/amber/blue used for match-quality, alerts,
- * severity) stay constant across both themes on purpose: their meaning is
- * the color itself, and usability guidance is to keep semantic status
- * colors consistent rather than inverting them with the surface palette.
- *
- * Toggled via a `data-theme` attribute on <html> (see
- * frontend/lib/use-theme-toggle.ts). The host dashboard/marketing/profile
- * pages and the guest responder flow each persist their own preference
- * under a different localStorage key, so a host's choice never affects
- * what a guest sees and vice versa, even though both read these same
- * tokens.
- *
- * The bare `:root` block is the cardstock/terracotta look — that is the
- * product's actual default identity (a printed banquet ledger, not a dark
- * SaaS dashboard), so it renders on first paint with no JS/toggle needed.
- * `[data-theme="dark"]` is the deliberate secondary "leather ledger at
- * night" mode, opted into via the toggle.
+ * App-wide brand palette — inherited front page aesthetic for Light Mode
+ * and user-provided color swatch for Dark Mode.
  */
 :root {
-  --dash-bg: #ece0c9;
-  --dash-surface: #f8f1e2;
-  --dash-surface-raised: #fbf6ea;
-  --dash-surface-hover: #efe1c4;
-  --dash-border: #d9c39e;
-  --dash-border-strong: #b99a6c;
-  --dash-text: #3a2415;
-  --dash-text-soft: #5c4128;
-  --dash-text-muted: #8a6d4d;
-  --dash-accent: #b9502a;
-  --dash-accent-soft: #8f4020;
-  --dash-accent-deep: #9c4a26;
+  --dash-bg: #FBF6EF;
+  --dash-surface: #F1E9DC;
+  --dash-surface-raised: #FFFFFF;
+  --dash-surface-hover: #EFE7DA;
+  --dash-border: #E2D6C3;
+  --dash-border-strong: #C9B79C;
+  --dash-text: #2B2118;
+  --dash-text-soft: #6B6055;
+  --dash-text-muted: #A69884;
+  --dash-accent: #D7531F;
+  --dash-accent-soft: #E08A54;
+  --dash-accent-deep: #B9502A;
+  --dash-button-tan: #C9B79C;
+  --dash-button-tan-text: #2B2118;
 }
 
-:root[data-theme="dark"] {
-  --dash-bg: #1e1410;
-  --dash-surface: #251712;
-  --dash-surface-raised: #2e1c15;
-  --dash-surface-hover: #3a2418;
-  --dash-border: #4a2f22;
-  --dash-border-strong: #6b4530;
-  --dash-text: #f4e9dc;
-  --dash-text-soft: #e0cec0;
-  --dash-text-muted: #a68d7c;
-  --dash-accent: #c1592f;
-  --dash-accent-soft: #e08a54;
-  --dash-accent-deep: #7d3318;
+:root[data-theme="dark"],
+.dark {
+  --dash-bg: #181614;
+  --dash-surface: #23201C;
+  --dash-surface-raised: #25221E;
+  --dash-surface-hover: #3B3630;
+  --dash-border: #3B3630;
+  --dash-border-strong: #686056;
+  --dash-text: #FBF6EF;
+  --dash-text-soft: #D8C9B8;
+  --dash-text-muted: #A0957B;
+  --dash-accent: #BD5D31;
+  --dash-accent-soft: #D77242;
+  --dash-accent-deep: #9C4A26;
+  --dash-button-tan: #A0957B;
+  --dash-button-tan-text: #181614;
 }
 
-/*
- * Tactile "human craft" utilities — a small, deliberately non-generic set
- * of primitives used to keep the interface feeling like physical paper and
- * ink rather than a glossy template: a stamped-ink badge, a torn/deckle
- * edge for section seams, faint fibrous paper grain, and understated
- * off-square rotations for cards that should feel placed by hand rather
- * than snapped to a grid. See DIETRE design notes for the full rationale —
- * the point is never to be symmetrical, glowing, or glassy.
- */
+/* Tactile craft utilities */
 .ink-stamp {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   text-transform: uppercase;
@@ -113,9 +85,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-display), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-heading: var(--font-display), 'Fraunces', ui-serif, Georgia, serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -155,87 +127,70 @@
 }
 
 :root {
-  --background: oklch(0.975 0.012 85);
-  --foreground: oklch(0.24 0.03 35);
-  --card: oklch(0.99 0.008 85);
-  --card-foreground: oklch(0.24 0.03 35);
-  --popover: oklch(0.99 0.008 85);
-  --popover-foreground: oklch(0.24 0.03 35);
-  --primary: oklch(0.42 0.12 22);
-  --primary-foreground: oklch(0.98 0.01 85);
-  --secondary: oklch(0.94 0.02 75);
-  --secondary-foreground: oklch(0.3 0.04 40);
-  --muted: oklch(0.945 0.015 80);
-  --muted-foreground: oklch(0.48 0.03 50);
-  --accent: oklch(0.93 0.04 70);
-  --accent-foreground: oklch(0.32 0.06 40);
-  --destructive: oklch(0.55 0.18 25);
-  --border: oklch(0.9 0.02 75);
-  --input: oklch(0.9 0.02 75);
-  --ring: oklch(0.55 0.1 25);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  /* Kept small and squared-off on purpose — a large, uniform border-radius
-     across every card/button/modal is one of the strongest "generic AI
-     template" tells. This single token drives Tailwind's whole rounded-*
-     scale (see --radius-* below), so dropping it here reads everywhere as
-     a flatter, cut-cardstock edge instead of a bubbly SaaS pill. */
-  --radius: 0.25rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #FBF6EF;
+  --foreground: #2B2118;
+  --card: #FFFFFF;
+  --card-foreground: #2B2118;
+  --popover: #FFFFFF;
+  --popover-foreground: #2B2118;
+  --primary: #D7531F;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E2D6C3;
+  --secondary-foreground: #2B2118;
+  --muted: #F1E9DC;
+  --muted-foreground: #6B6055;
+  --accent: #F1E9DC;
+  --accent-foreground: #D7531F;
+  --destructive: #B9502A;
+  --border: #E2D6C3;
+  --input: #E2D6C3;
+  --ring: #D7531F;
+  --radius: 0.75rem;
+  --sidebar: #F1E9DC;
+  --sidebar-foreground: #2B2118;
+  --sidebar-primary: #D7531F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EFE7DA;
+  --sidebar-accent-foreground: #D7531F;
+  --sidebar-border: #E2D6C3;
+  --sidebar-ring: #D7531F;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #181614;
+  --foreground: #FBF6EF;
+  --card: #25221E;
+  --card-foreground: #FBF6EF;
+  --popover: #25221E;
+  --popover-foreground: #FBF6EF;
+  --primary: #BD5D31;
+  --primary-foreground: #FFFFFF;
+  --secondary: #3B3630;
+  --secondary-foreground: #FBF6EF;
+  --muted: #23201C;
+  --muted-foreground: #A0957B;
+  --accent: #3B3630;
+  --accent-foreground: #BD5D31;
+  --destructive: #BD5D31;
+  --border: #3B3630;
+  --input: #3B3630;
+  --ring: #BD5D31;
+  --sidebar: #23201C;
+  --sidebar-foreground: #FBF6EF;
+  --sidebar-primary: #BD5D31;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #3B3630;
+  --sidebar-accent-foreground: #BD5D31;
+  --sidebar-border: #3B3630;
+  --sidebar-ring: #BD5D31;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
+    font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
