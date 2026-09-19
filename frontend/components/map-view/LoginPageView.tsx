@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Mail,
@@ -23,11 +23,21 @@ function firebaseConfiguredInBrowser(): boolean {
   );
 }
 
-export function LoginPageView() {
+export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login' | 'signup' | 'forgot-password' }) {
   const router = useRouter();
-  const firebaseOn = firebaseConfiguredInBrowser();
+  const searchParams = useSearchParams();
+  const modeParam = searchParams?.get('mode');
+  const computedMode = modeParam === 'signup' ? 'signup' : (modeParam === 'login' ? 'login' : initialMode);
 
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-password'>(computedMode);
+
+  useEffect(() => {
+    if (modeParam === 'signup' || modeParam === 'login') {
+      setAuthMode(modeParam);
+    }
+  }, [modeParam]);
+
+  const firebaseOn = firebaseConfiguredInBrowser();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

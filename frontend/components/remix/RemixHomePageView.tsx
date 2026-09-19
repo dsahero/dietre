@@ -13,7 +13,7 @@
  *   Section anchors in footer → smooth scroll to section
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { ForkGraphic } from './ForkGraphic';
@@ -27,6 +27,7 @@ import { useTrackProgress } from './useTrackProgress';
 import './remix.css';
 
 // Routes
+const SIGNUP_PATH = '/signup';
 const LOGIN_PATH = '/login';
 const DEMO_EVENT_PATH = '/events/demo-vt-hacks';
 const DEMO_GUEST_FORM_PATH = '/r/demo-vt-hacks';
@@ -36,6 +37,7 @@ export function RemixHomePageView() {
   const greyTrackRef = useRef<HTMLDivElement>(null);
   const greyProgress = useTrackProgress(greyTrackRef);
 
+  const goToSignUp = () => router.push(SIGNUP_PATH);
   const goToLogin = () => router.push(LOGIN_PATH);
   const goToDemo = () => router.push(DEMO_EVENT_PATH);
   const goToGuestForm = () => router.push(DEMO_GUEST_FORM_PATH);
@@ -52,6 +54,11 @@ export function RemixHomePageView() {
   const scrollToFeatures = (e: React.MouseEvent) => {
     e.preventDefault();
     document.getElementById('remix-features')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToRealEvents = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById('remix-real-events')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -83,28 +90,28 @@ export function RemixHomePageView() {
           </button>
           <button
             className="remix-nav-link remix-nav-link-2"
+            onClick={scrollToRealEvents}
+          >
+            Real Events
+          </button>
+          <button
+            className="remix-nav-link remix-nav-link-3"
             onClick={scrollToFeatures}
           >
             Core Features
           </button>
           <button
-            className="remix-nav-link remix-nav-link-3"
+            className="remix-nav-link remix-nav-link-4"
             onClick={goToDemo}
           >
             Live Demo
-          </button>
-          <button
-            className="remix-nav-link remix-nav-link-4"
-            onClick={goToGuestForm}
-          >
-            Guest Form
           </button>
 
           {/* Auth buttons */}
           <button
             id="btn-signup-nav"
             className="remix-btn-signup-nav"
-            onClick={goToLogin}
+            onClick={goToSignUp}
           >
             Sign Up
           </button>
@@ -176,7 +183,7 @@ export function RemixHomePageView() {
         {/* ==========================================================================
             SECTION 3: IMAGE BANNER + GRADIENT OVERLAY
             ========================================================================== */}
-        <div className="remix-banner-image" />
+        <div id="remix-real-events" className="remix-banner-image" />
         <div className="remix-banner-gradient" />
         <motion.h2
           className="remix-banner-title"
@@ -376,11 +383,11 @@ export function RemixHomePageView() {
           Seeded on real Blacksburg kitchens for the demo — create your own event in under a minute.
         </motion.p>
 
-        {/* CTA — Sign Up → /login */}
+        {/* CTA — Sign Up → /signup */}
         <motion.button
           id="btn-cta-signup"
           className="remix-cta-btn-signup"
-          onClick={goToLogin}
+          onClick={goToSignUp}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
@@ -428,11 +435,11 @@ export function RemixHomePageView() {
             Back to top
           </button>
 
-          {/* Sign Up → /login */}
+          {/* Sign Up → /signup */}
           <button
             id="btn-footer-signup"
             className="remix-footer-link remix-footer-link-signup"
-            onClick={goToLogin}
+            onClick={goToSignUp}
           >
             Sign Up
           </button>
