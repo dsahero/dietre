@@ -6,9 +6,9 @@ import {
   SEED_DEMO_RESPONSES,
   SEED_MENU_ITEMS,
   SEED_RESTAURANTS,
-} from "@/data/seed";
-import { hasMongo } from "@/lib/config";
-import type { DataStore, DietResponse, DietreEvent, MenuItem, Restaurant } from "@/lib/types";
+} from "@/backend/data/seed";
+import { hasMongo } from "@/shared/lib/config";
+import type { DataStore, DietResponse, DietreEvent, MenuItem, Restaurant } from "@/shared/lib/types";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
