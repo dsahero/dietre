@@ -173,9 +173,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
         onGoHome={handleGoHome}
       />
 
-      <main
-        className={`main-content transition-all duration-300 ${isSidebarCollapsed ? 'pl-8 sm:pl-16' : 'pl-6 sm:pl-10'}`}
-      >
+      <main className="main-content">
         <header className="main-header">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
