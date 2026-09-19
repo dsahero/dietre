@@ -77,6 +77,7 @@ export function LocationAutocomplete({
       fetch(`/api/places/autocomplete?input=${encodeURIComponent(needle)}`, {
         signal: controller.signal,
       })
+        .then((res) => res.json())
         .then((res) => {
           if (!res.ok) {
             return { suggestions: [], enabled: false };
@@ -92,12 +93,14 @@ export function LocationAutocomplete({
           setSuggestions(data.suggestions ?? []);
           setHighlighted(0);
         })
+        .catch(() => {})
         .catch((err) => {
           if (err.name !== "AbortError") {
             setSuggestions([]);
           }
         })
         .finally(() => setLoading(false));
+    }, 300);
     }, 200);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -116,6 +119,13 @@ export function LocationAutocomplete({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
+  const matches: Array<{ label: string; sub?: string; id: string }> = placesEnabled
+    ? suggestions.map((s) => ({
+        label: s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText,
+        sub: s.secondaryText,
+        id: s.placeId,
+      }))
+    : fallbackMatches.map((label) => ({ label, id: `landmark:${label}` }));
   const matches: Array<{ label: string; sub?: string; id: string }> =
     suggestions.length > 0
       ? suggestions.map((s) => ({
