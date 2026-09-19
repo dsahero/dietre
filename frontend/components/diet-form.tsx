@@ -165,7 +165,7 @@ function SubmitChips({
             Is this right? (Participant Review & Approval)
           </h3>
           <p className="font-serif text-xs text-[var(--dash-text-muted)] mt-0.5">
-            Verify your details below. You can also chat directly with the concierge chatbot below to clarify compound rules.
+            Verify your details below. You can also talk with Concierge below to clarify compound rules.
           </p>
         </div>
         <span className="ink-stamp px-2 py-0.5 text-[8.5px] font-bold text-[var(--dash-accent)]">
@@ -190,7 +190,7 @@ function SubmitChips({
 
       <hr className="deckle-divider" />
 
-      {/* Follow-up Chatbot Section in the Approval stage */}
+      {/* Follow-up Concierge section in the Approval stage */}
       <ApprovalChatbotSection
         eventId={eventId}
         guestName={guestName}
@@ -289,7 +289,7 @@ function ApprovalChatbotSection({
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-[var(--dash-accent)]" />
           <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">
-            Concierge Chatbot Assistant
+            Concierge
           </h4>
           <span className="ink-stamp px-1.5 py-0.2 text-[8.5px] font-bold text-[var(--dash-accent)]">
             AI Helper

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       id: crypto.randomUUID(),
       event_id: eventId,
       guest_name: guestName?.trim() || undefined,
-      raw_text: rawSummary ?? "Submitted via chatbot",
+      raw_text: rawSummary ?? "Submitted via Concierge",
       parsed_rules: parsedRules,
       contact_email: contact || undefined,
       submitted_at: new Date().toISOString(),
