@@ -27,6 +27,9 @@ export default function HomePage() {
               <Button size="lg" variant="outline" asChild>
                 <Link href="/events/demo-vt-hacks">Open the VT Hacks demo</Link>
               </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/map">Explore Map</Link>
+              </Button>
             </div>
           </div>
           <Card className="bg-primary text-primary-foreground">
