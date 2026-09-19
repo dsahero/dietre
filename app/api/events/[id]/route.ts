@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { DEMO_EVENT_ID } from "@/backend/data/seed";
 import { getSession } from "@/backend/lib/auth";
-import { getEvent, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
+import { getEvent, listMenuItems, listResponses, listRestaurants, updateEvent } from "@/backend/lib/db";
 import { matchEvent } from "@/backend/lib/matching";
+import { geocodeBlacksburg } from "@/shared/lib/places";
+import type { BudgetRange } from "@/shared/lib/types";
 
 export async function GET(
   _request: Request,
@@ -52,4 +54,64 @@ export async function GET(
     })),
     match,
   });
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const event = await getEvent(id);
+  if (!event) {
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
+  }
+
+  const session = await getSession();
+  const isHost = session?.host_id === event.host_id || event.id === DEMO_EVENT_ID;
+  if (!isHost) {
+    return NextResponse.json({ error: "Only the host can edit this event." }, { status: 403 });
+  }
+
+  const body = (await request.json()) as {
+    name?: string;
+    location?: string;
+    radius?: number;
+    budget_range?: BudgetRange;
+    expected_headcount?: number;
+  };
+
+  const patch: Parameters<typeof updateEvent>[1] = {};
+  if (body.name !== undefined) {
+    const name = body.name.trim();
+    if (!name) return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
+    patch.name = name;
+  }
+  if (body.location !== undefined) {
+    const location = body.location.trim();
+    if (!location) return NextResponse.json({ error: "Location can't be empty." }, { status: 400 });
+    const place = geocodeBlacksburg(location);
+    patch.location = location;
+    patch.lat = place.lat;
+    patch.lng = place.lng;
+  }
+  if (body.radius !== undefined) {
+    const radius = Number(body.radius);
+    if (!Number.isFinite(radius) || radius <= 0 || radius > 30) {
+      return NextResponse.json({ error: "Radius must be between 0 and 30 miles." }, { status: 400 });
+    }
+    patch.radius = radius;
+  }
+  if (body.budget_range !== undefined) {
+    if (!["$", "$$", "$$$"].includes(body.budget_range)) {
+      return NextResponse.json({ error: "Choose a valid budget range." }, { status: 400 });
+    }
+    patch.budget_range = body.budget_range;
+  }
+  if (body.expected_headcount !== undefined) {
+    const expected_headcount = Number(body.expected_headcount);
+    if (!Number.isFinite(expected_headcount) || expected_headcount < 1) {
+      return NextResponse.json({ error: "Expected headcount must be at least 1." }, { status: 400 });
+    }
+    patch.expected_headcount = expected_headcount;
+  }
+
+  const updated = await updateEvent(id, patch);
+  return NextResponse.json({ event: updated });
 }

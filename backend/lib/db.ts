@@ -146,6 +146,33 @@ export async function createEvent(event: DietreEvent): Promise<DietreEvent> {
   return event;
 }
 
+export async function updateEvent(
+  id: string,
+  patch: Partial<
+    Pick<DietreEvent, "name" | "location" | "lat" | "lng" | "radius" | "budget_range" | "expected_headcount">
+  >
+): Promise<DietreEvent | null> {
+  if (hasMongo()) {
+    const db = await getMongo();
+    await ensureMongoSeed(db);
+    const result = await db
+      .collection<DietreEvent>("events")
+      .findOneAndUpdate({ id }, { $set: patch }, { returnDocument: "after" });
+    return result ? stripId(result) : null;
+  }
+  let updated: DietreEvent | null = null;
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    const event = store.events.find((item) => item.id === id);
+    if (event) {
+      Object.assign(event, patch);
+      updated = event;
+      await persistJson(store);
+    }
+  });
+  return updated;
+}
+
 export async function listResponses(eventId: string): Promise<DietResponse[]> {
   if (hasMongo()) {
     const db = await getMongo();

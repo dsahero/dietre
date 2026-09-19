@@ -1,15 +1,6 @@
 import React from 'react';
 import { NavItem } from '../types';
-import {
-  PanelLeftClose,
-  UtensilsCrossed,
-  Home,
-  ChevronRight,
-  Bookmark,
-  Users,
-  FileText,
-  BookOpen,
-} from 'lucide-react';
+import { PanelLeftClose, UtensilsCrossed, Home, ChevronRight, Bookmark, Users, Map } from 'lucide-react';
 
 interface SidebarProps {
   navItems: NavItem[];
@@ -69,10 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* Full Logo Title & Subtitle */}
               <div className="flex flex-col">
                 <span className="text-sm font-bold tracking-wider text-white uppercase font-serif">
-                  Reserva
+                  DietRe
                 </span>
                 <span className="text-[10px] tracking-widest text-[#a8958c] uppercase font-semibold">
-                  Event Venues
+                  Event Dashboard
                 </span>
               </div>
             </div>
@@ -104,14 +95,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     case 'shortlisted':
                     case 'bookmark':
                       return <Bookmark className={`w-4 h-4 ${isActive ? 'text-[#e29b6e] fill-[#e29b6e]/30' : 'text-[#887872]'}`} />;
-                    case 'participants':
                     case 'users':
                       return <Users className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
-                    case 'reports':
-                    case 'file-text':
-                      return <FileText className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
-                    case 'library':
-                      return <BookOpen className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
+                    case 'map':
+                      return <Map className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
                     case 'overview':
                     default:
                       return <UtensilsCrossed className={`w-4 h-4 ${isActive ? 'text-[#e29b6e]' : 'text-[#887872]'}`} />;
