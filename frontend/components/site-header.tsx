@@ -28,6 +28,9 @@ export async function SiteHeader({ quiet = false }: { quiet?: boolean }) {
                 <Button size="sm" asChild>
                   <Link href="/events/new">New event</Link>
                 </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/profile">Profile</Link>
+                </Button>
                 <LogoutButton />
               </>
             ) : (
