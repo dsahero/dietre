@@ -134,7 +134,7 @@ export function parseDietaryText(raw: string): ParsedRules {
     addSoft("vegetarian");
   }
 
-  if (/\bhalal\b/.test(text)) {
+  if (/\bhalal\b|i'?m\s*halal|imhalal/i.test(text)) {
     addHard("pork", "alcohol");
     addSoft("halal");
   }
@@ -185,9 +185,15 @@ export function parseDietaryText(raw: string): ParsedRules {
   if (/\bhigh protein\b/.test(text)) addSoft("high protein");
 
   let severity: Severity = "low";
-  if (/(allerg|anaphyla|celiac|epi[- ]?pen|medical|will make me sick|anaphyl)/.test(text)) {
+  // Ignore negated "no allergies" so it doesn't inflate severity
+  const severityText = text.replace(/\bno\s+allerg(y|ies)\b/g, " ");
+  if (/(allerg|anaphyla|celiac|epi[- ]?pen|medical|will make me sick|anaphyl)/.test(severityText)) {
     severity = "high";
-  } else if (/(halal|kosher|vegan|vegetarian|religious|hindu|muslim|jewish|ethical)/.test(text)) {
+  } else if (
+    /(halal|kosher|vegan|vegetarian|religious|hindu|muslim|jewish|ethical|intoleran|lactose)/.test(
+      text
+    )
+  ) {
     severity = "medium";
   }
 
@@ -211,7 +217,7 @@ export async function parseDietaryWithGemini(raw: string): Promise<{
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
     const prompt = `You parse dietary needs for catering. Return ONLY JSON with this shape:
 {"hard_excludes": string[], "complex_restrictions": string[], "soft_preferences": string[], "severity": "high"|"medium"|"low"}
 Rules:
@@ -260,7 +266,7 @@ export async function judgeResponseAgainstMenuWithGemini(
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
     const menuSummary = items
       .map(

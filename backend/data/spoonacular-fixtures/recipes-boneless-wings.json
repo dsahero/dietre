@@ -1,0 +1,42 @@
+[
+  {
+    "id": 800001,
+    "title": "Crispy Boneless Chicken Wings",
+    "source": "recipe",
+    "ingredients": ["chicken breast", "flour", "egg", "butter", "hot sauce", "garlic powder", "salt", "pepper", "oil"],
+    "dishTypes": ["appetizer"],
+    "cuisines": ["american"]
+  },
+  {
+    "id": 800002,
+    "title": "Baked Boneless Buffalo Wings",
+    "source": "recipe",
+    "ingredients": ["chicken breast", "breadcrumbs", "egg", "buffalo sauce", "butter", "celery salt", "garlic"],
+    "dishTypes": ["appetizer"],
+    "cuisines": ["american"]
+  },
+  {
+    "id": 800003,
+    "title": "Honey BBQ Boneless Wings",
+    "source": "recipe",
+    "ingredients": ["chicken breast", "flour", "egg", "honey", "bbq sauce", "soy sauce", "garlic", "oil"],
+    "dishTypes": ["appetizer"],
+    "cuisines": ["american"]
+  },
+  {
+    "id": 800004,
+    "title": "Garlic Parmesan Boneless Wings",
+    "source": "recipe",
+    "ingredients": ["chicken breast", "flour", "egg", "parmesan", "butter", "garlic", "parsley", "salt"],
+    "dishTypes": ["appetizer"],
+    "cuisines": ["american"]
+  },
+  {
+    "id": 800005,
+    "title": "Teriyaki Boneless Wings",
+    "source": "recipe",
+    "ingredients": ["chicken breast", "cornstarch", "soy sauce", "brown sugar", "ginger", "garlic", "sesame oil", "oil"],
+    "dishTypes": ["appetizer"],
+    "cuisines": ["asian"]
+  }
+]

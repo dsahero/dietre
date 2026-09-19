@@ -67,7 +67,7 @@ async function evaluateRestaurantsAgainstComplexRestrictions(
     try {
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
       const rulesText = complexRules
         .map((cr, idx) => `- Rule ${idx + 1}: "${cr.rule}" (Requested by ${cr.responseIds.map(guestTokenIndex).join(", ")})`)
