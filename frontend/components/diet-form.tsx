@@ -36,7 +36,11 @@ export function DietForm({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-6">
+<<<<<<< HEAD
       <form action={parseAction} method="post" className="paper-grain tilt-left space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]">
+=======
+      <form action={parseAction} className="space-y-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-2xs">
+>>>>>>> b8a428bcecc3b63c6d89c78c2c01619659c57f7b
         {/* Ask name first */}
         <div className="space-y-2">
           <Label htmlFor="name" className="font-heading text-sm font-bold text-[var(--dash-text)]">
@@ -121,7 +125,11 @@ function SubmitChips({
   const [rules, setRules] = useState(initialRules);
 
   return (
+<<<<<<< HEAD
     <form action={action} method="post" className="paper-grain tilt-right space-y-5 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_2px_10px_rgba(25,12,6,0.08)]">
+=======
+    <form action={action} className="space-y-6 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-6 shadow-2xs">
+>>>>>>> b8a428bcecc3b63c6d89c78c2c01619659c57f7b
       <input type="hidden" name="event_id" value={eventId} />
       <input type="hidden" name="raw_text" value={raw} />
       <input type="hidden" name="hard_excludes" value={JSON.stringify(rules.hard_excludes)} />
