@@ -28,28 +28,63 @@ html, body {
   font-family: var(--font-sans), Georgia, serif;
 }
 
-/* Dashboard Layout */
+/* Dashboard Layout with warm tactile depth and paper ambience */
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
   width: 100%;
   background-color: var(--dash-bg);
+  background-image: 
+    radial-gradient(ellipse at 15% 10%, color-mix(in srgb, var(--dash-surface-hover) 65%, transparent), transparent 60%),
+    radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--dash-surface) 40%, transparent), transparent 70%);
   color: var(--dash-text);
   font-family: var(--font-sans), Georgia, serif;
   position: relative;
   overflow-x: hidden;
 }
 
-/* Left Sidebar Navigation */
+/* Left Sidebar Navigation - tactile cardstock depth with broken hairline */
 .sidebar {
   width: 230px;
   flex-shrink: 0;
   padding: 0;
-  background-color: var(--dash-surface);
-  border-right: 1px solid var(--dash-border);
+  background: linear-gradient(
+    180deg,
+    var(--dash-surface) 0%,
+    color-mix(in srgb, var(--dash-surface) 93%, var(--dash-bg)) 45%,
+    var(--dash-surface) 100%
+  );
+  position: relative;
+  border-right: 1px dashed color-mix(in srgb, var(--dash-border-strong) 60%, transparent);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease,
     background-color 0.15s ease, border-color 0.15s ease;
   will-change: width, transform, opacity;
+}
+
+/* Broken artistic hairline overlay down the sidebar border to avoid sterile 1px look */
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -1px;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--dash-border-strong) 12%,
+    var(--dash-border) 32%,
+    transparent 33%,
+    transparent 36%,
+    var(--dash-border) 37%,
+    var(--dash-border-strong) 64%,
+    transparent 65%,
+    transparent 68%,
+    var(--dash-border) 69%,
+    var(--dash-border-strong) 92%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
 .workspace-label {
@@ -75,13 +110,17 @@ html, body {
   margin-bottom: 36px;
 }
 
+/* Hand-tuned display serif tracking, optical sizing, and ligature behavior */
 .page-title {
   font-family: var(--font-heading), Georgia, serif;
-  font-size: 28px;
+  font-size: 32px;
+  line-height: 1.15;
   font-weight: 700;
   color: var(--dash-text);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.038em;
+  font-feature-settings: "kern" 1, "liga" 1, "dlig" 1;
+  font-optical-sizing: auto;
   display: flex;
   align-items: center;
   gap: 14px;

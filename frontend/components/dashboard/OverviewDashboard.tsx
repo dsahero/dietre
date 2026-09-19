@@ -194,56 +194,51 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
 
       <main className="main-content">
         <header className="main-header">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <div className="mb-2 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--dash-text-muted)]">
-                <span>EVENT</span>
-                <span>•</span>
-                <span className="text-[var(--dash-accent)] font-bold">
+          {/* Typographic Asymmetry: natural line breaks, off-baseline action, no small-caps bullet eyebrow */}
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-baseline">
+            <div className="max-w-2xl">
+              {activeNavId !== 'overview' && (
+                <p className="font-serif italic text-xs text-[var(--dash-accent)] mb-1">
                   {activeNavId === 'shortlisted'
-                    ? 'SHORTLISTED VENUES'
+                    ? 'Shortlisted venues for review'
                     : activeNavId === 'responses'
-                      ? 'GUEST RESPONSES'
-                      : activeNavId === 'map'
-                        ? 'VENUE MAP'
-                        : 'VENUE MATCHING'}
-                </span>
-              </div>
-              <h1 className="page-title font-heading text-2xl font-bold tracking-tight text-[var(--dash-text)] sm:text-3xl">
+                      ? 'Guest dietary roster & constraints'
+                      : 'Venue radius & map'}
+                </p>
+              )}
+              <h1 className="font-heading text-3xl sm:text-4xl font-bold text-[var(--dash-text)] leading-[1.14] tracking-[-0.038em] text-balance">
                 {eventDetails.name}
               </h1>
             </div>
 
+            {/* Asymmetric bespoke action: bare icon, artisan tactile link/button, no box-in-a-box */}
             <button
               type="button"
               onClick={() => setIsEditModalOpen(true)}
-              className="group flex items-center gap-2.5 self-start rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-4 py-2.5 text-[var(--dash-text-soft)] shadow-xs transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] active:scale-98 cursor-pointer"
+              className="group inline-flex items-center gap-2 self-start md:self-baseline py-1.5 px-3 rounded-xs border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--dash-accent)]/15 text-[var(--dash-accent)] transition-colors group-hover:bg-[var(--dash-accent)] group-hover:text-white">
-                <Pencil className="h-3.5 w-3.5" />
-              </div>
-              <span className="font-heading text-sm font-semibold tracking-wide">Edit event details</span>
+              <Pencil className="h-3 w-3 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-rotate-12" />
+              <span className="font-serif text-xs font-medium">Modify event ledger</span>
             </button>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3.5 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div className="flex flex-wrap items-center gap-2.5 text-xs text-[var(--dash-text-soft)]">
-              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--dash-accent)]" />
-                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.address}</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
-                <span className="text-[var(--dash-text-muted)] font-serif">Budget:</span>
-                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.maxBudget}</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
-                <span className="text-[var(--dash-text-muted)] font-serif">Radius:</span>
-                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.maxDistanceRadius}</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-3 py-1.5 shadow-2xs">
-                <span className="text-[var(--dash-text-muted)] font-serif">Expected:</span>
-                <span className="font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</span>
-              </div>
+          {/* Broken grid metadata bar: varied shapes, bare text, stamped seal, judged spacing */}
+          <div className="mt-4 pt-3.5 pb-2.5 border-t border-b border-dashed border-[var(--dash-border)] flex flex-wrap items-baseline justify-between gap-y-2 gap-x-6 text-xs text-[var(--dash-text-soft)]">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 text-[var(--dash-accent)] shrink-0 stroke-[1.75]" />
+              <span className="font-serif font-medium text-[var(--dash-text)] text-[13px]">{eventDetails.address}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 text-xs font-serif">
+              <span className="ink-stamp px-2 py-0.5 text-[9.5px] font-bold text-[var(--dash-accent-deep)] border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] shadow-2xs">
+                {eventDetails.maxBudget} budget
+              </span>
+              <span className="text-[var(--dash-text-muted)]">
+                within <strong className="font-mono text-[11px] text-[var(--dash-text)] font-semibold">{eventDetails.maxDistanceRadius}</strong>
+              </span>
+              <span className="text-[var(--dash-text-soft)] italic">
+                <strong className="font-serif not-italic font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</strong> expected banquet guests
+              </span>
             </div>
           </div>
         </header>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ParsedRules } from "@/shared/lib/types";
-import { Send, Bot, User, Loader2, CheckCircle2, UtensilsCrossed } from "lucide-react";
+import { Send, Bot, User, Loader2, CheckCircle2 } from "lucide-react";
 
 type Message = {
   role: "user" | "assistant";

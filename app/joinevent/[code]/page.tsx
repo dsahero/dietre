@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getEvent, getHost } from "@/backend/lib/db";
 import { JoinEventChat } from "@/frontend/components/join-event-chat";
 import { ParticipantThemeToggle } from "@/frontend/components/participant-theme-toggle";
-import { UtensilsCrossed, MapPin, CalendarDays, Users, Stamp } from "lucide-react";
+import { DietreLogo } from "@/frontend/components/dietre-logo";
+import { MapPin, CalendarDays, Users, Stamp, MessageSquareText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -37,13 +38,8 @@ export default async function JoinEventPage({
       {/* Top brand bar */}
       <header className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] px-6 py-3">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-[var(--dash-accent)]">
-              <UtensilsCrossed className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-sm font-bold tracking-wider text-[var(--dash-text)] font-heading">
-              dietre
-            </span>
+          <div className="flex items-center">
+            <DietreLogo className="h-7 w-auto text-[var(--dash-text)]" />
           </div>
           <ParticipantThemeToggle />
         </div>
@@ -101,10 +97,8 @@ export default async function JoinEventPage({
 
         {/* Chat section */}
         <div className="mb-3 flex items-center gap-2 px-1">
-          <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--dash-accent)]">
-            <UtensilsCrossed className="h-3 w-3 text-white" />
-          </div>
-          <p className="text-sm font-semibold text-[var(--dash-text-soft)]">
+          <MessageSquareText className="h-4 w-4 text-[var(--dash-accent)] stroke-[1.75]" />
+          <p className="text-sm font-semibold text-[var(--dash-text-soft)] font-serif">
             A short intake conversation — no forms, no checkboxes
           </p>
         </div>

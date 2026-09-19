@@ -1,7 +1,7 @@
 import React from 'react';
 import { RestaurantCardData } from '../types';
 import { RestaurantCard } from './RestaurantCard';
-import { Bookmark, UtensilsCrossed } from 'lucide-react';
+import { Bookmark, Utensils } from 'lucide-react';
 
 interface ShortlistedViewProps {
   restaurants: RestaurantCardData[];
@@ -46,7 +46,7 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
             onClick={onExploreMore}
             className="flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-heading font-semibold bg-[var(--dash-surface)] hover:bg-[var(--dash-surface-hover)] text-[var(--dash-text-soft)] hover:text-[var(--dash-text)] border border-[var(--dash-border)] transition-all cursor-pointer shadow-2xs"
           >
-            <UtensilsCrossed className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
+            <Utensils className="w-3.5 h-3.5 text-[var(--dash-accent)] stroke-[1.6]" />
             <span>Browse All Candidates</span>
           </button>
         </div>
