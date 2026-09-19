@@ -1,5 +1,5 @@
-import { haversineMiles, priceLevelFromBudget } from "@/lib/places";
-import { isItemSafeForResponse, severityWeight } from "@/lib/parser";
+import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
+import { isItemSafeForResponse, severityWeight } from "@/backend/lib/parser";
 import type {
   DietResponse,
   DietreEvent,
@@ -8,7 +8,7 @@ import type {
   Restaurant,
   RestaurantMatch,
   ZeroMatchAlert,
-} from "@/lib/types";
+} from "@/shared/lib/types";
 
 function anonymousLabel(index: number, severity: DietResponse["parsed_rules"]["severity"]): string {
   const band = severity === "high" ? "High-constraint" : severity === "medium" ? "Constrained" : "Flexible";
