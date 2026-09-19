@@ -103,7 +103,12 @@ export function parseDietaryText(raw: string): PreferenceVector {
   const addHard = (...items: string[]) => hard.push(...items);
   const addSoft = (...items: string[]) => soft.push(...items);
 
-  if (/\bvegan\b/.test(text) || /no animal/.test(text) || /plant[- ]based/.test(text)) {
+  if (
+    /\bvegan\b/.test(text) ||
+    /no animal/.test(text) ||
+    /animal products/.test(text) ||
+    /plant[- ]based/.test(text)
+  ) {
     addHard("meat", "dairy", "egg", "animal products");
     addSoft("plant-based");
   } else if (/\bvegetarian\b/.test(text) || /no meat/.test(text)) {
@@ -120,6 +125,26 @@ export function parseDietaryText(raw: string): PreferenceVector {
     addSoft("kosher");
   }
 
+  const listMatch = text.match(/anaphyla\w*(?:tic)?(?: to|:)\s*([^\.]+)/i) || text.match(/allergic to\s*([^\.]+)/i);
+  if (listMatch) {
+    const chunk = listMatch[1]
+      .replace(/\([^)]*\)/g, ",")
+      .replace(/\b(plus|all the usual|and also)\b/g, ",");
+    const synonyms: Record<string, string[]> = {
+      nightshades: ["tomato", "pepper", "potato"],
+      nightshade: ["tomato", "pepper", "potato"],
+      legumes: ["beans", "lentils", "chickpeas"],
+      legume: ["beans", "lentils", "chickpeas"],
+      potatoes: ["potato"],
+    };
+    for (const part of chunk.split(/,| and /)) {
+      const token = part.replace(/\b(and|or|the|a|an|to|all|usual)\b/g, " ").replace(/^[:;\-\s]+/, "").trim();
+      if (token.length > 2 && token.length < 40) {
+        addHard(token, ...(synonyms[normalize(token)] ?? []));
+      }
+    }
+  }
+
   const allergyOrBan = (pattern: RegExp, exclude: string, forceHard = false) => {
     if (!pattern.test(text)) return;
     const allowedHere = new RegExp(
@@ -131,6 +156,10 @@ export function parseDietaryText(raw: string): PreferenceVector {
     const around = windowMatch
       ? text.slice(Math.max(0, (windowMatch.index ?? 0) - 40), (windowMatch.index ?? 0) + 40)
       : text;
+    if (exclude === "dairy" && /(mix|combo|together|with meat|meat with)/.test(around)) {
+      addHard("meat dairy combo");
+      return;
+    }
     const isSoft =
       !forceHard &&
       /(prefer|like|hate|can't stand|dont like|don't like|rather not|not a fan)/.test(around) &&
