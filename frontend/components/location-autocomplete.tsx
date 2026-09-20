@@ -48,7 +48,6 @@ export function LocationAutocomplete({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const needle = value.trim();
     if (needle.length < 2) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the debounced query, not derivable during render
       setSuggestions([]);
       setLoading(false);
       return;
@@ -62,12 +61,6 @@ export function LocationAutocomplete({
         signal: controller.signal,
       })
         .then((res) => res.json())
-        .then((res) => {
-          if (!res.ok) {
-            return { suggestions: [], enabled: false };
-          }
-          return res.json();
-        })
         .then((data: { suggestions?: Suggestion[]; enabled?: boolean }) => {
           if (data.enabled === false) {
             setPlacesEnabled(false);
@@ -77,7 +70,6 @@ export function LocationAutocomplete({
           setSuggestions(data.suggestions ?? []);
           setHighlighted(0);
         })
-        .catch(() => {})
         .catch((err) => {
           if (err.name !== "AbortError") {
             setSuggestions([]);
@@ -85,7 +77,6 @@ export function LocationAutocomplete({
         })
         .finally(() => setLoading(false));
     }, 300);
-    }, 200);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -103,30 +94,12 @@ export function LocationAutocomplete({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
-<<<<<<< HEAD
-  const matches: Array<{ label: string; sub?: string; id: string }> = placesEnabled
-    ? suggestions.map((s) => ({
-        label: s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText,
-        sub: s.secondaryText,
-        id: s.placeId,
-      }))
-    : fallbackMatches.map((label) => ({ label, id: `landmark:${label}` }));
-  const matches: Array<{ label: string; sub?: string; id: string }> =
-    suggestions.length > 0
-      ? suggestions.map((s) => ({
-          label: s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText,
-          sub: s.secondaryText,
-          id: s.placeId,
-        }))
-      : fallbackMatches.map((label) => ({ label, id: `landmark:${label}` }));
-=======
   const matches: Array<{ label: string; sub?: string; id: string }> = suggestions.map((s) => ({
     label: s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText,
     sub: s.secondaryText,
     id: s.placeId,
   }));
   const typedEnough = value.trim().length >= 2;
->>>>>>> 0c13aa0ec83735377184870251f4a80d86b436fe
 
   const pick = (match: { label: string; id: string }) => {
     onChange(match.label, match.id);
