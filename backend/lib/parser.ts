@@ -394,10 +394,11 @@ export async function parseDietaryWithGemini(raw: string): Promise<{
 {"hard_excludes": string[], "complex_restrictions": string[], "soft_preferences": string[], "severity": "high"|"medium"|"low"}
 
 Rules:
-- hard_excludes: simple banned ingredients (pork, shellfish, peanuts, tree nuts, gluten, soy, sesame, egg, alcohol, dairy, fish, meat, meat dairy combo, animal products, vegan, vegetarian).
+- hard_excludes: any ingredient they stated as hard (hard no / allergic / cannot / can't / must avoid), not only a closed list. Typical tokens include pork, shellfish, peanuts, tree nuts, gluten, soy, sesame, egg, alcohol, dairy, fish, meat, meat dairy combo, animal products, vegan, vegetarian, onions.
+- "onions are a hard no" → onions in hard_excludes, never soft_preferences.
 - CRITICAL: if the guest can eat meat and dairy SEPARATELY (kosher, "no mixing"), put "meat dairy combo" in hard_excludes and "yes dairy, yes meat, not together" in complex_restrictions. Do NOT put standalone "dairy" or "meat" in hard_excludes.
 - complex_restrictions: compound or conditional rules that can't reduce to a single banned ingredient.
-- soft_preferences: taste/spice/cuisine leanings, "no cilantro" if dislike not allergy.
+- soft_preferences: taste/spice/cuisine leanings only. Never a hard-no item. Never a dish that contains an earlier hard constraint (question that instead).
 - severity: high = medical allergy/celiac, medium = religious/ethical (halal/kosher/vegan), low = taste.
 
 Guest text:

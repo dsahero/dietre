@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ParsedRules, Severity } from "@/shared/lib/types";
+import {
+  classifyConfirmReply,
+  detectStatedContradiction,
+  isEmailQuestion,
+  isListConfirmQuestion,
+  lastAssistantText,
+  promoteHardConstraints,
+  replyIfBlockedSubmit,
+  shouldBlockIntakeSubmit,
+  stripConflictingPreferences,
+  unique,
+  WRAP_UP,
+} from "@/backend/lib/conciergeIntake";
 
 
 export type ChatMessage = {
@@ -59,18 +72,32 @@ Warm and human. Prefer: "Got it — halal, and no dairy for lactose." / "Just to
 Avoid ledger/CRM voice: no "on file", "parameters", "dietary parameters", "reflect your needs accurately", "manifest".
 
 CONFIRMATION (when enough is known)
-Summarize in plain guest language, then ask if it sounds right:
+Summarize in plain guest language, then ask ONE question only. Never a compound "does that sound right or want to change anything?"
 "So for you:
 • Must avoid: …
 • Prep notes: … (omit if none)
 • Prefer but can flex: … (or nothing noted)
-Does that sound right, or want to change anything?"
+Is this list correct?"
 If you cannot extract any restriction they clearly stated, ask again — never confirm empty hard rules in that case.
 
-AFTER THEY CONFIRM ("yes" / "sounds right")
+YES / NO ON THAT QUESTION
+- "Yes" / "that's right" / "correct" (and nothing else to change) = the summary is confirmed. Then optional email, then submit. Do not treat that yes as a request to edit.
+- "No" = the list is not confirmed. Do NOT submit. If they already named the correction in the same message, apply it, then show the updated list and ask again only: "Is this list correct?" If they only said no, ask what to add or change — that is a separate turn.
+- People are terse. A leading "no" after the list question is a correction, never skip-email, never a preference.
+
+HARD vs SOFT (especially after No)
+- "hard no", "allergic", "cannot", "can't", "must avoid", "intolerant", "off limits" → hard_excludes, never soft_preferences.
+- Example: "onions are a hard no for me" → hard_excludes includes "onions". Do not file that as a preference.
+- "prefer" / "like" / "would rather" with no hard language → soft_preferences.
+
+CONTRADICTIONS
+If later text contradicts earlier hard constraints, question it specifically — name both sides. Example: allergic to peanut butter and shrimp, then "I prefer peanut butter shrimp ice cream" → ask about peanut butter / shrimp vs that dish. Do NOT silently put the dish in soft_preferences. Hard constraints stay until they clearly drop them.
+
+AFTER THEY CONFIRM the list ("yes" / "that's right")
 - High severity (allergy/anaphylaxis/celiac): offer optional email for host follow-up if a restaurant can't guarantee safety.
 - Otherwise: optional email, clearly skippable.
 After they answer the email question (or skip), close briefly and emit SUBMIT_JSON.
+Never emit SUBMIT_JSON on the list-confirm turn itself, and never when they said the list is not correct.
 
 SUBMIT (only when finishing the intake — after email step, or after confirm if they already declined email in the same breath)
 End with a warm one-liner, then on its own line:
@@ -78,9 +105,9 @@ SUBMIT_JSON:{"name":"","hard_excludes":[],"complex_restrictions":[],"soft_prefer
 
 JSON rules:
 - name: first name from the chat
-- hard_excludes: short tokens (pork, gluten, dairy, shellfish, peanuts, tree nuts, soy, sesame, egg, alcohol, meat, fish, meat dairy combo, animal products, vegan, vegetarian)
+- hard_excludes: any ingredient or category they stated as hard (not only a closed list). Include onions, cilantro, peanut butter, etc. when they used hard-no / allergy / cannot language. Typical tokens also include pork, gluten, dairy, shellfish, peanuts, tree nuts, soy, sesame, egg, alcohol, meat, fish, meat dairy combo, animal products, vegan, vegetarian.
 - complex_restrictions: prep / compound rules in plain text
-- soft_preferences: tastes only
+- soft_preferences: tastes only — never a hard-no item, never a dish that contains an earlier hard constraint
 - severity: high = allergy/anaphylaxis/celiac; medium = religious/ethical/intolerance; low = taste only or none
 - contact_email: email they gave, or ""
 
@@ -97,14 +124,22 @@ Chat with them to answer questions and adjust rules. Keep replies short (2-4 lin
 CRITICAL:
 - If they can eat meat and dairy separately: hard_excludes gets "meat dairy combo" only — NOT standalone meat or dairy. complex_restrictions gets "yes dairy, yes meat, not together".
 - Other prep rules (dedicated fryer, cross-contam): put in complex_restrictions.
+- "hard no" / allergic / cannot / can't / must avoid → hard_excludes, never soft_preferences.
+- If they prefer a dish that contains an earlier hard constraint, ask specifically (name the conflict). Do not silently add it to soft_preferences.
 
 At the end of EVERY reply, output the full updated rules:
 SUBMIT_JSON:{"name":"${guestName || ""}","hard_excludes":[],"complex_restrictions":[],"soft_preferences":[],"severity":"low","contact_email":""}`;
 }
 
-function unique(arr: string[]): string[] {
-  return [...new Set(arr.map((s) => s.trim().toLowerCase()).filter(Boolean))];
-}
+const CONFIRM_YES_HINT = `
+
+STAGE: the guest just confirmed the list is correct (a clear yes). Treat that as confirmation of the summary only — not a request to edit, and not skipping email. Next: optional email if not already asked. Do not emit SUBMIT_JSON until after they answer or skip email, unless they already gave or declined email in the same breath.`;
+
+const CONFIRM_NO_HINT = `
+
+STAGE: the guest said the list is NOT correct, or they added a correction instead of yes. Do NOT emit SUBMIT_JSON. Do NOT treat a leading "no" as skipping email.
+If they named a change, apply it now: hard no / allergic / cannot / can't / must avoid → hard_excludes (never soft_preferences). Then show the updated list and ask ONLY "Is this list correct?"
+If they only said no, ask what to add or change. One question.`;
 
 // Pulls the first balanced {...} out of text, ignoring code fences and
 // anything the model appends after the JSON.
@@ -125,7 +160,6 @@ function balancedJsonObject(text: string): string | null {
   return null;
 }
 
-const WRAP_UP = /all set|the host will|got everything|you're done|you are done|that's everything/i;
 const SKIP_ANSWER = /^(no|nope|skip|none|no thanks|no thank you|n\/a|pass)\b/i;
 
 function extractSubmitJson(
@@ -185,9 +219,30 @@ export async function POST(req: NextRequest) {
   }
 
   const isClarify = mode === "clarify";
-  const systemInstruction = isClarify
+  const lastAsk = lastAssistantText(history);
+  const askedListConfirm = !isClarify && isListConfirmQuestion(lastAsk);
+  const askedEmail = !isClarify && isEmailQuestion(lastAsk);
+  const confirmReply = askedListConfirm ? classifyConfirmReply(userMessage) : null;
+  const priorUserTexts = history
+    .filter((m) => m.role === "user")
+    .map((m) => m.text)
+    .filter((t) => t && t !== "hello");
+  const contradiction = !isClarify
+    ? detectStatedContradiction(priorUserTexts, userMessage)
+    : null;
+  const blockSubmit = !isClarify
+    ? shouldBlockIntakeSubmit({ askedListConfirm, confirmReply, contradiction })
+    : false;
+
+  let systemInstruction = isClarify
     ? clarifyPrompt(guestName, currentRules)
     : SYSTEM_PROMPT;
+  if (askedListConfirm) {
+    systemInstruction += confirmReply === "yes" ? CONFIRM_YES_HINT : CONFIRM_NO_HINT;
+  }
+  if (contradiction) {
+    systemInstruction += `\n\nCONTRADICTION THIS TURN: earlier hard constraints include ${contradiction.hards.join(", ")}. The guest just said: "${contradiction.mention}". Do NOT add that to soft_preferences. Ask one specific question naming ${contradiction.hards.join(" / ")} vs that dish. Do not emit SUBMIT_JSON.`;
+  }
 
   // Gemini requires chat history to start with a user turn — the UI boots with
   // an assistant greeting, so prepend the bootstrap "hello" when needed.
@@ -221,9 +276,14 @@ export async function POST(req: NextRequest) {
 
         // The model sometimes closes the chat ("you're all set") without the
         // SUBMIT_JSON line. Ask once for just the JSON so the answers are saved.
-        const answeredEmailStep = userMessage.includes("@") || SKIP_ANSWER.test(userMessage.trim());
+        // Only after the email question — a leading "no" on list-confirm is a
+        // correction, not skip-email.
+        const answeredEmailStep =
+          askedEmail &&
+          (userMessage.includes("@") || SKIP_ANSWER.test(userMessage.trim()));
         if (
           !isClarify &&
+          !blockSubmit &&
           history.length >= 4 &&
           answeredEmailStep &&
           !replyText.includes("SUBMIT_JSON:") &&
@@ -250,8 +310,22 @@ export async function POST(req: NextRequest) {
     if (replyText == null) throw lastError;
 
     const extracted = extractSubmitJson(replyText);
+    const userTexts = [...priorUserTexts, userMessage].filter((t) => t && t !== "hello");
+    const blockOpts = {
+      askedListConfirm,
+      confirmReply,
+      contradiction,
+      userMessage,
+    };
+
     if (extracted) {
-      const rules = extracted.rules;
+      let rules = promoteHardConstraints(extracted.rules, userTexts);
+      if (blockSubmit) {
+        return NextResponse.json({
+          reply: replyIfBlockedSubmit(extracted.reply || replyText, blockOpts),
+        } satisfies ChatResponse);
+      }
+      rules = stripConflictingPreferences(rules);
       return NextResponse.json({
         reply: extracted.reply || "You're all set — the host will use this for the table.",
         guestName: extracted.guestName || guestName,
@@ -265,6 +339,12 @@ export async function POST(req: NextRequest) {
         // Clarify mode updates chips live; intake mode finishes the conversation
         done: isClarify ? false : true,
       } satisfies ChatResponse & { contactEmail?: string });
+    }
+
+    if (blockSubmit) {
+      return NextResponse.json({
+        reply: replyIfBlockedSubmit(replyText, blockOpts),
+      } satisfies ChatResponse);
     }
 
     return NextResponse.json({ reply: replyText } satisfies ChatResponse);
