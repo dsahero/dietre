@@ -4,7 +4,7 @@ import {
   eventBudgetCap,
   predictRestaurantCost,
 } from "@/shared/lib/predictedCost";
-import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, scorePreferencesWithGemini, severityWeight } from "@/backend/lib/parser";
+import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, scoreAllPreferencesWithGemini, severityWeight } from "@/backend/lib/parser";
 import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores, updateEvent } from "@/backend/lib/db";
 import { withTimeout } from "@/backend/lib/with-timeout";
 import type {
@@ -238,7 +238,10 @@ function bayesianUtility(
 
   if (complexVerdict === "good") alpha += 2;
   else if (complexVerdict === "bad") beta += 3;
-  else if (complexVerdict === "neutral") beta += 1;
+  // "neutral" is treated as no signal: the mock stub returns neutral for every
+  // complex-rule guest before Gemini runs, so penalizing it would drag every
+  // restaurant's utility down to ~0.33 whenever any guest has a complex rule.
+  // A real Gemini "neutral" also means "can't tell" — same treatment.
 
   return alpha / (alpha + beta);
 }
@@ -475,13 +478,10 @@ export async function matchEvent(input: {
   const restaurantsWithMenus = restaurants.filter((r) => (itemsByRestaurant.get(r.id)?.length ?? 0) > 0);
   if (!cachedPrefSignals && hasAnyPreferences && restaurantsWithMenus.length > 0) {
     void (async () => {
-      const computed: Record<string, Record<string, PreferenceSignal>> = {};
-      for (const response of responses) {
-        if (!response.parsed_rules.soft_preferences?.length) continue;
-        const signals = await scorePreferencesWithGemini(response, restaurantsWithMenus);
-        if (signals) computed[response.id] = signals;
-      }
-      if (Object.keys(computed).length > 0) {
+      // Single batched call: all pref-having guests × all candidate
+      // restaurants in one Gemini request (vs. N sequential calls).
+      const computed = await scoreAllPreferencesWithGemini(responses, restaurantsWithMenus);
+      if (computed && Object.keys(computed).length > 0) {
         await updateEvent(event.id, {
           preference_signals: computed,
           preference_signals_signature: prefCacheKey,

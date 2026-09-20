@@ -13,6 +13,7 @@ export type DiscoveredRestaurant = {
   priceLevel: 1 | 2 | 3;
   cuisine: string;
   websiteUri?: string;
+  phone?: string;
 };
 
 const AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
@@ -291,6 +292,36 @@ export async function resolvePlace(placeId: string): Promise<ResolvedPlace | nul
   }
 }
 
+// Fetch just the contact fields (phone + website) for one stored place, used
+// to backfill restaurants discovered before phone was in the field mask.
+export async function fetchPlaceContact(
+  placeId: string
+): Promise<{ phone?: string; website?: string } | null> {
+  const apiKey = process.env.PLACES_API_KEY;
+  if (!apiKey || !placeId.trim() || !isGooglePlaceId(placeId)) return null;
+  try {
+    const res = await withTimeout(
+      fetch(`${PLACE_DETAILS_URL}/${encodeURIComponent(detailsPlaceId(placeId))}`, {
+        method: "GET",
+        headers: {
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "nationalPhoneNumber,websiteUri",
+        },
+      }),
+      4000,
+      "places contact details"
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { nationalPhoneNumber?: string; websiteUri?: string };
+    return {
+      phone: data.nationalPhoneNumber?.trim() || undefined,
+      website: data.websiteUri?.trim() || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function mapPriceLevel(googlePriceLevel: string | undefined): 1 | 2 | 3 {
   switch (googlePriceLevel) {
     case "PRICE_LEVEL_FREE":
@@ -432,6 +463,7 @@ async function searchNearbyOnce(
             "places.types",
             "places.location",
             "places.websiteUri",
+            "places.nationalPhoneNumber",
           ].join(","),
         },
         body: JSON.stringify({
@@ -458,6 +490,7 @@ async function searchNearbyOnce(
         priceLevel?: string;
         types?: string[];
         websiteUri?: string;
+        nationalPhoneNumber?: string;
         location?: { latitude?: number; longitude?: number };
       }>;
     };
@@ -474,6 +507,7 @@ async function searchNearbyOnce(
         priceLevel: mapPriceLevel(p.priceLevel),
         cuisine: cuisineFromTypes(p.types),
         websiteUri: p.websiteUri,
+        phone: p.nationalPhoneNumber,
       });
     }
     return { items: out, rawCount: places.length };

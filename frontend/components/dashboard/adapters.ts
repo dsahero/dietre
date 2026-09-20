@@ -158,6 +158,7 @@ export function toRestaurantCardData(
       checklistNotes: checklistNotesByRestaurant?.get(match.restaurant.id) ?? [],
       complexNotes: match.complex_notes ?? [],
       website: match.restaurant.website,
+      phone: match.restaurant.phone,
       menuUrls: (match.restaurant.menu_urls ?? []).map((u) => ({
         kind: u.kind,
         label: u.label,

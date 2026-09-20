@@ -49,6 +49,8 @@ export type EventDoc = {
   checklist_notes_by_restaurant?: DietreEvent["checklist_notes_by_restaurant"];
   preference_signals?: Record<string, Record<string, PreferenceSignal>>;
   preference_signals_signature?: string;
+  ai_overview?: DietreEvent["ai_overview"];
+  ai_overview_signature?: string;
 };
 
 /** Firestore guest shape mirrors DietResponse (Gemini/chat submit fields only). */
@@ -176,6 +178,8 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     google_place_id: event.google_place_id ?? null,
     preference_signals: event.preference_signals ?? {},
     preference_signals_signature: event.preference_signals_signature ?? "",
+    ai_overview: event.ai_overview ?? null,
+    ai_overview_signature: event.ai_overview_signature ?? "",
     collaborators: event.collaborators ?? [],
     pending_invites: event.pending_invites ?? [],
     collaborator_emails: event.collaborator_emails ?? [],
@@ -223,6 +227,12 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
         : undefined,
     preference_signals_signature:
       typeof doc.preference_signals_signature === "string" ? doc.preference_signals_signature : undefined,
+    ai_overview:
+      doc.ai_overview && typeof doc.ai_overview === "object"
+        ? (doc.ai_overview as DietreEvent["ai_overview"])
+        : undefined,
+    ai_overview_signature:
+      typeof doc.ai_overview_signature === "string" ? doc.ai_overview_signature : undefined,
     candidate_restaurant_ids: Array.isArray(doc.candidate_restaurant_ids)
       ? doc.candidate_restaurant_ids.filter((x): x is string => typeof x === "string")
       : undefined,
@@ -273,6 +283,8 @@ export function eventPatchToDoc(
       | "google_place_id"
       | "preference_signals"
       | "preference_signals_signature"
+      | "ai_overview"
+      | "ai_overview_signature"
       | "candidate_restaurant_ids"
       | "collaborators"
       | "pending_invites"
@@ -305,6 +317,8 @@ export function eventPatchToDoc(
   if (patch.google_place_id !== undefined) data.google_place_id = patch.google_place_id;
   if (patch.preference_signals !== undefined) data.preference_signals = patch.preference_signals;
   if (patch.preference_signals_signature !== undefined) data.preference_signals_signature = patch.preference_signals_signature;
+  if (patch.ai_overview !== undefined) data.ai_overview = patch.ai_overview;
+  if (patch.ai_overview_signature !== undefined) data.ai_overview_signature = patch.ai_overview_signature;
   if (patch.candidate_restaurant_ids !== undefined) data.candidate_restaurant_ids = patch.candidate_restaurant_ids;
   if (patch.collaborators !== undefined) data.collaborators = patch.collaborators;
   if (patch.pending_invites !== undefined) data.pending_invites = patch.pending_invites;
@@ -426,6 +440,8 @@ export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): 
     accessibility: { dine_in: true, is_preliminary: true },
     review_evidence: [],
     menu_item_ids: menuItemIds,
+    ...(restaurant.phone ? { phone: restaurant.phone } : {}),
+    ...(restaurant.phone_checked_at ? { phone_checked_at: restaurant.phone_checked_at } : {}),
     ...(restaurant.menu_urls?.length ? { menu_urls: restaurant.menu_urls } : {}),
   };
 }
@@ -444,6 +460,10 @@ export function docToRestaurant(id: string, doc: Record<string, unknown>): Resta
     lng: asNumber(doc.lng, asNumber(coords[0])),
     ...(typeof doc.google_place_id === "string" ? { google_place_id: doc.google_place_id } : {}),
     ...(typeof doc.website === "string" && doc.website ? { website: doc.website } : {}),
+    ...(typeof doc.phone === "string" && doc.phone ? { phone: doc.phone } : {}),
+    ...(typeof doc.phone_checked_at === "string" && doc.phone_checked_at
+      ? { phone_checked_at: doc.phone_checked_at }
+      : {}),
     ...(doc.menu_status === "pending" ||
     doc.menu_status === "ready" ||
     doc.menu_status === "none" ||

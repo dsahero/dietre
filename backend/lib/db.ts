@@ -715,6 +715,8 @@ export async function updateEvent(
       | "google_place_id"
       | "preference_signals"
       | "preference_signals_signature"
+      | "ai_overview"
+      | "ai_overview_signature"
       | "candidate_restaurant_ids"
       | "collaborators"
       | "pending_invites"

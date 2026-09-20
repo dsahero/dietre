@@ -7,6 +7,7 @@ import { ModalPortal } from '@/frontend/components/ui/modal-portal';
 interface RestaurantDetailModalProps {
   isOpen: boolean;
   restaurant: RestaurantCardData | null;
+  aiSummary?: string;
   isShortlisted: boolean;
   onToggleShortlist: (id: string) => void;
   onClose: () => void;
@@ -18,6 +19,7 @@ interface RestaurantDetailModalProps {
 export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   isOpen,
   restaurant,
+  aiSummary,
   isShortlisted,
   onToggleShortlist,
   onClose,
@@ -41,6 +43,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
       >
         <RestaurantDetailContent
           restaurant={restaurant}
+          aiSummary={aiSummary}
           isShortlisted={isShortlisted}
           onToggleShortlist={onToggleShortlist}
           onClose={onClose}

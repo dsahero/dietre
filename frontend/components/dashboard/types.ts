@@ -111,6 +111,7 @@ export interface RestaurantCardData {
   checklistNotes: RestaurantChecklistNote[]; // Gemini's read on the host's free-text limitations, per venue
   complexNotes: ComplexRequirementNote[]; // Gemini's read on participant complex/compound dietary requirements
   website?: string; // Google Places websiteUri, when provided
+  phone?: string; // Google Places national phone number, when provided
   menuUrls: MenuUrlEntry[]; // Links/PDFs found during webscraping
 }
 

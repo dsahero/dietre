@@ -96,6 +96,22 @@ export type DietreEvent = {
   collaborators?: Collaborator[];
   pending_invites?: PendingInvite[];
   collaborator_emails?: string[];
+  // Cached host-facing AI overview (event summary + per-restaurant blurbs),
+  // regenerated only when ai_overview_signature (a cheap hash of guest
+  // responses + candidate restaurants) changes or the host clicks Regenerate.
+  // Keeps a plain dashboard reload from spending a Gemini call.
+  ai_overview?: EventAiOverview;
+  ai_overview_signature?: string;
+};
+
+// Host-facing AI narration cached on the event document (see aiOverview.ts).
+export type EventAiOverview = {
+  headline: string;
+  why_chosen: string;
+  recommendations: string[];
+  restaurants: Record<string, string>;
+  source: "ai" | "fallback";
+  generated_at: string;
 };
 
 export type Collaborator = {
@@ -158,6 +174,11 @@ export type Restaurant = {
   // Google Places id for discovered restaurants.
   google_place_id?: string;
   website?: string;
+  // National-format phone number from Google Places, when available.
+  phone?: string;
+  // When we last asked Places for this restaurant's contact details, so the
+  // backfill doesn't re-query venues that genuinely have no phone listed.
+  phone_checked_at?: string;
   // Menu acquisition state for discovered restaurants.
   menu_status?: "pending" | "ready" | "none" | "failed";
   menu_checked_at?: string;

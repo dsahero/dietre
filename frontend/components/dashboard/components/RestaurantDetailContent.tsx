@@ -20,10 +20,14 @@ import {
   ExternalLink,
   FileUp,
   Loader2,
+  Sparkles,
+  Phone,
 } from 'lucide-react';
 
 export interface RestaurantDetailContentProps {
   restaurant: RestaurantCardData;
+  /** AI-generated "why this venue ranked here" summary, when available. */
+  aiSummary?: string;
   isShortlisted: boolean;
   onToggleShortlist: (id: string) => void;
   onClose: () => void;
@@ -44,6 +48,7 @@ const PRICE_SOURCE_HINT: Record<RestaurantCardData['predictedCostSource'], strin
 
 export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = ({
   restaurant,
+  aiSummary,
   isShortlisted,
   onToggleShortlist,
   onClose,
@@ -161,6 +166,16 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
               <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
             </a>
           )}
+          {restaurant.phone && (
+            <a
+              href={`tel:${restaurant.phone.replace(/[^\d+]/g, '')}`}
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 ml-3 inline-flex items-center gap-1.5 text-xs font-heading font-semibold text-[var(--dash-accent)] transition-colors hover:text-[var(--dash-accent-soft)]"
+            >
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <span>{restaurant.phone}</span>
+            </a>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -190,6 +205,17 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
 
       {/* Body */}
       <div className={`flex-1 space-y-6 overflow-y-auto text-[var(--dash-text-soft)] ${headPad}`}>
+        {/* AI "why this venue" summary — grounded in the match numbers */}
+        {aiSummary && (
+          <div className="rounded-md border border-[var(--dash-accent)]/40 bg-[var(--dash-accent)]/5 p-4 shadow-2xs">
+            <span className="mb-1.5 flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+              <Sparkles className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
+              AI take on this venue
+            </span>
+            <p className="font-serif text-sm leading-relaxed text-[var(--dash-text-soft)]">{aiSummary}</p>
+          </div>
+        )}
+
         {/* Match summary — score is never shown without its denominator */}
         <div className="space-y-4 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-4 shadow-2xs">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

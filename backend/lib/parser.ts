@@ -446,6 +446,9 @@ ${raw}`;
 // candidate restaurants at once. Returns one PreferenceSignal per
 // restaurant — direction (positive/negative/neutral) and strength (1–3)
 // — which the caller feeds into a Beta(1,1) prior update.
+//
+// Prefer `scoreAllPreferencesWithGemini` below for event-scale scoring: it
+// batches every guest into a single call, cutting quota burn ~Nx.
 
 export async function scorePreferencesWithGemini(
   response: DietResponse,
@@ -459,7 +462,9 @@ export async function scorePreferencesWithGemini(
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
-      model: "gemini-3.6-flash",
+      // flash-lite has a separate, much larger free-tier quota than 3.6-flash
+      // (which capped at 20/day and silently killed preference scoring).
+      model: "gemini-3.5-flash-lite",
     });
 
     const prefsText = prefs.join(", ");
@@ -505,7 +510,103 @@ For "neutral" direction always use strength 1.`;
       };
     }
     return out;
-  } catch {
+  } catch (err) {
+    console.warn(
+      `[scorePreferencesWithGemini] failed for guest ${response.id} (${response.parsed_rules.soft_preferences?.join(", ")}):`,
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
+// Multi-guest batch: score every pref-having guest against every candidate
+// restaurant in a single Gemini call. For an 18-guest event this collapses
+// 18 sequential requests into one, keeping us well under free-tier quotas
+// and cutting wall-clock from ~100s to ~10s. Returns a map keyed by
+// response_id -> restaurant_id -> PreferenceSignal. Guests missing from
+// the model's output are filled in with neutral(1) so the caller can still
+// treat them as "scored" (they contribute 0.5 utility, same as a real
+// neutral verdict).
+export async function scoreAllPreferencesWithGemini(
+  responses: DietResponse[],
+  restaurants: Restaurant[],
+): Promise<Record<string, Record<string, PreferenceSignal>> | null> {
+  const guests = responses.filter((r) => r.parsed_rules.soft_preferences?.length);
+  if (guests.length === 0 || restaurants.length === 0) return null;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
+      model: "gemini-3.5-flash-lite",
+    });
+
+    const guestsText = guests
+      .map(
+        (g) =>
+          `- id: ${g.id} | prefs: "${g.parsed_rules.soft_preferences.join(", ")}"`,
+      )
+      .join("\n");
+    const restaurantsText = restaurants
+      .map((r) => `- id: ${r.id} | "${r.name}" | cuisine: ${r.cuisine}`)
+      .join("\n");
+
+    const prompt = `You are evaluating restaurant options against each guest's soft preferences (taste, style, cuisine leanings — NOT safety constraints).
+
+Guests:
+${guestsText}
+
+Restaurants:
+${restaurantsText}
+
+For every (guest, restaurant) pair, judge whether the restaurant's cuisine type or style aligns with that guest's stated preferences.
+
+Return ONLY JSON keyed by guest id, then restaurant id:
+{"<guest_id>": {"<restaurant_id>": {"direction": "positive"|"negative"|"neutral", "strength": 1|2|3}}}
+
+direction: "positive" = preference aligns, "negative" = preference conflicts, "neutral" = no relevant signal.
+strength: 1 = weak/vague, 2 = clear relevant match or mismatch, 3 = strong obvious alignment or conflict.
+For "neutral" direction always use strength 1.
+Include every guest id and every restaurant id — no omissions. Do not include commentary.`;
+
+    // Scale timeout with payload size: the batched prompt asks the model
+    // to reason over guests × restaurants, so it's much slower than a
+    // per-guest call. Floor 30s, cap 90s.
+    const pairs = guests.length * restaurants.length;
+    const timeoutMs = Math.min(90_000, Math.max(30_000, 15_000 + pairs * 150));
+    const result = await withTimeout(
+      model.generateContent(prompt),
+      timeoutMs,
+      "Preference signal scoring (batch)",
+    );
+    const text = result.response.text().trim();
+    const parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "")) as Record<
+      string,
+      Record<string, { direction?: string; strength?: number }>
+    >;
+
+    const out: Record<string, Record<string, PreferenceSignal>> = {};
+    for (const guest of guests) {
+      const perGuest = parsed[guest.id] ?? {};
+      const signals: Record<string, PreferenceSignal> = {};
+      for (const restaurant of restaurants) {
+        const entry = perGuest[restaurant.id];
+        const dir = entry?.direction;
+        const str = entry?.strength;
+        signals[restaurant.id] = {
+          direction: dir === "positive" || dir === "negative" ? dir : "neutral",
+          strength: str === 1 || str === 2 || str === 3 ? str : 1,
+        };
+      }
+      out[guest.id] = signals;
+    }
+    return out;
+  } catch (err) {
+    console.warn(
+      `[scoreAllPreferencesWithGemini] batch of ${guests.length} guest(s) × ${restaurants.length} restaurant(s) failed:`,
+      err instanceof Error ? err.message : err,
+    );
     return null;
   }
 }

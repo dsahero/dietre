@@ -14,6 +14,7 @@ import { ResponseDetailModal } from './components/ResponseDetailModal';
 import { ShortlistedView } from './components/ShortlistedView';
 import { RestaurantDetailModal } from './components/RestaurantDetailModal';
 import { ProcessPanel, type LogEntry, type ProcessStatus } from './components/ProcessPanel';
+import { AiOverviewCard, type EventOverviewData } from './components/AiOverviewCard';
 
 // Leaflet touches `window` at module load time, so it can never be evaluated
 // during SSR — load it client-only, the same way the original map module did.
@@ -151,6 +152,46 @@ export default function OverviewDashboard({
 
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCardData | null>(null);
   const [isRestaurantModalOpen, setIsRestaurantModalOpen] = useState<boolean>(false);
+
+  // AI event overview + per-restaurant summaries (POST /api/events/[id]/overview).
+  const [aiOverview, setAiOverview] = useState<EventOverviewData | null>(null);
+  const [aiRestaurantSummaries, setAiRestaurantSummaries] = useState<Record<string, string>>({});
+  const [aiOverviewLoading, setAiOverviewLoading] = useState<boolean>(false);
+  const [aiOverviewError, setAiOverviewError] = useState<string | null>(null);
+
+  const fetchAiOverview = React.useCallback(async (force = false) => {
+    setAiOverviewLoading(true);
+    setAiOverviewError(null);
+    try {
+      const res = await fetch(`/api/events/${event.id}/overview${force ? '?force=1' : ''}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as {
+        event: EventOverviewData;
+        restaurants: Record<string, string>;
+      };
+      setAiOverview(data.event);
+      setAiRestaurantSummaries(data.restaurants ?? {});
+    } catch (err) {
+      setAiOverviewError(err instanceof Error ? err.message : 'unknown error');
+    } finally {
+      setAiOverviewLoading(false);
+    }
+  }, [event.id]);
+
+  // Auto-generate once per load when there's a table to talk about. This hits
+  // the cache on the server, so a plain reload costs no Gemini call.
+  useEffect(() => {
+    if (responses.length === 0) return;
+    if (aiOverview || aiOverviewLoading) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a one-time async fetch, not deriving render state
+    void fetchAiOverview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when responses first exist
+  }, [responses.length]);
 
   const [shortlistedIds, setShortlistedIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<RestaurantSortOption>('best_fit');
@@ -570,6 +611,15 @@ export default function OverviewDashboard({
                 <ZeroMatchPanel alerts={match.zero_matches} />
               </div>
 
+              {responses.length > 0 && (
+                <AiOverviewCard
+                  overview={aiOverview}
+                  loading={aiOverviewLoading}
+                  error={aiOverviewError}
+                  onRegenerate={() => fetchAiOverview(true)}
+                />
+              )}
+
               {responses.length === 0 ? (
                 <div className="rounded-md border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 text-center shadow-xs">
                   <h3 className="mb-1 font-heading text-lg font-bold text-[var(--dash-text)]">No responses yet</h3>
@@ -694,6 +744,7 @@ export default function OverviewDashboard({
       <RestaurantDetailModal
         isOpen={isRestaurantModalOpen}
         restaurant={selectedRestaurant}
+        aiSummary={selectedRestaurant ? aiRestaurantSummaries[selectedRestaurant.id] : undefined}
         isShortlisted={selectedRestaurant ? shortlistedIds.includes(selectedRestaurant.id) : false}
         onToggleShortlist={handleToggleShortlist}
         onClose={() => {

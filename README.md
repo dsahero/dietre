@@ -116,8 +116,8 @@ Guest intake ────────────── Gemini concierge chat  �
         │
         ▼
 Matching engine ─────────── per-guest × per-dish safety check
-                            severity-weighted coverage
-                            Beta preference nudge
+                            severity-weighted coverage (3× / 2× / 1×)
+                            Beta-Bernoulli preference nudge (±20 pts)
                             menu-confidence tier
         │
         ▼
