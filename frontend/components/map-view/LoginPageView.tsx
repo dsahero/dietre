@@ -199,7 +199,7 @@ export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login'
       id="login-page"
       className="min-h-screen w-full bg-[var(--dash-bg)] flex flex-col items-center justify-center p-4 sm:p-6 text-[var(--dash-text)] select-none"
     >
-      <div className="w-full max-w-md flex items-center justify-between mb-4 px-2">
+      <div className="w-full max-w-md flex items-center mb-4 px-2">
         <Link
           href="/"
           className="flex items-center gap-1.5 text-xs font-semibold text-[var(--dash-text-soft)] hover:text-[var(--dash-text)] cursor-pointer bg-[var(--dash-surface-raised)] hover:bg-[var(--dash-surface-hover)] px-3 py-1.5 rounded-sm border border-[var(--dash-border)] transition-all shadow-2xs font-heading"
@@ -207,50 +207,19 @@ export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login'
           <ArrowLeft className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
           <span>Back Home</span>
         </Link>
-
-        <div className="flex items-center gap-2">
-          {authMode === 'login' ? (
-            <button
-              id="link-top-to-signup"
-              type="button"
-              onClick={() => {
-                setErrorMessage(null);
-                setAuthMode('signup');
-              }}
-              className="text-xs font-bold text-[var(--dash-accent)] underline hover:text-[var(--dash-accent-deep)] cursor-pointer font-heading"
-            >
-              Sign Up
-            </button>
-          ) : (
-            <button
-              id="link-top-to-login"
-              type="button"
-              onClick={() => {
-                setErrorMessage(null);
-                setAuthMode('login');
-              }}
-              className="text-xs font-bold text-[var(--dash-accent)] underline hover:text-[var(--dash-accent-deep)] cursor-pointer font-heading"
-            >
-              Log In
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="w-full max-w-md bg-[var(--dash-surface-raised)] rounded-md border-2 border-[var(--dash-border-strong)] shadow-[0_4px_16px_rgba(25,12,6,0.1)] overflow-hidden transition-all duration-300">
         <div className="bg-[var(--dash-surface)] border-b border-[var(--dash-border)] p-6 text-center space-y-1.5">
-          <span className="ink-stamp inline-block px-2 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)] mb-1">
-            Host Authentication
-          </span>
           <h2 className="text-2xl font-bold font-heading text-[var(--dash-text)] tracking-tight">
             {authMode === 'login' && 'Host Sign In'}
             {authMode === 'signup' && 'Create Host Account'}
             {authMode === 'forgot-password' && 'Reset Host Password'}
           </h2>
-          <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">
-            {authMode === 'login' && 'Sign in to review candidate venues and access your banquet ledgers'}
-            {authMode === 'signup' && 'Register as a banquet host to begin collecting confidential dietary profiles'}
-            {authMode === 'forgot-password' && 'Enter your registered host email to recover access'}
+          <p className="text-xs text-[var(--dash-text-muted)]">
+            {authMode === 'login' && 'Sign in to create and manage your events.'}
+            {authMode === 'signup' && 'Create a host account to start collecting guest responses.'}
+            {authMode === 'forgot-password' && 'Enter your registered host email.'}
           </p>
         </div>
 
