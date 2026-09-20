@@ -1,16 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-<<<<<<< HEAD
 import { DEMO_EVENT_ID, SEED_EVENT_2_ID, SEED_EVENT_3_ID } from "@/backend/data/seed";
 import { getSession, hostIdFromEmail } from "@/backend/lib/auth";
 import { getEvent, getHost, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
 import { matchEvent } from "@/backend/lib/matching";
-=======
-import { DEMO_EVENT_ID } from "@/backend/data/seed";
-import { getSession } from "@/backend/lib/auth";
-import { getEvent, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
-import { matchEvent } from "@/backend/lib/restaurant_matching";
->>>>>>> d8fd5cf8550b1a0c6e6c2dddf2deeb5a579a2e8c
 import { ModeBanner } from "@/frontend/components/mode-banner";
 import { SharePanel } from "@/frontend/components/share-panel";
 import { SiteHeader } from "@/frontend/components/site-header";

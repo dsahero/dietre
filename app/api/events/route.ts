@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/backend/lib/auth";
 import { createEvent, listEventsByHost } from "@/backend/lib/db";
-import { resolvePlace } from "@/backend/lib/placesDiscovery";
+import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
 import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
 import type { BudgetRange, DietreEvent } from "@/shared/lib/types";
 
@@ -32,12 +32,6 @@ export async function POST(request: Request) {
   if (!name || !date || !location) {
     return NextResponse.json({ error: "Name, date, and location are required." }, { status: 400 });
   }
-  if (!place_id) {
-    return NextResponse.json(
-      { error: "Pick a location from the suggestions before creating the event." },
-      { status: 400 }
-    );
-  }
   if (!budget_range || !["$", "$$", "$$$"].includes(budget_range)) {
     return NextResponse.json({ error: "Choose a budget range." }, { status: 400 });
   }
@@ -48,16 +42,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Expected headcount must be at least 1." }, { status: 400 });
   }
 
-  const resolved = await resolvePlace(place_id);
+  const resolved = await resolveEventLocation(place_id, location);
   if (!resolved) {
     return NextResponse.json(
-      { error: "Could not resolve that location. Pick another suggestion." },
+      { error: "Could not find that address. Pick a suggestion or try a more complete address." },
       { status: 400 }
     );
   }
   const lat = resolved.lat;
   const lng = resolved.lng;
-  const googlePlaceId = place_id;
+  const googlePlaceId = place_id || null;
 
   const event: DietreEvent = {
     id: crypto.randomUUID(),
