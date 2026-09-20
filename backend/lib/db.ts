@@ -18,10 +18,12 @@ import {
   COLLECTIONS,
   commitWrites,
   deleteDocument,
+  deleteDocuments,
   getDocument,
   hasFirestore,
   listDocuments,
   patchDocument,
+  queryByPrefix,
   queryDocuments,
   setDocument,
 } from "@/backend/lib/firestore";
@@ -31,6 +33,7 @@ import type {
   DataStore,
   DietResponse,
   DietreEvent,
+  EventInvite,
   HostRecord,
   MenuItem,
   Restaurant,
@@ -40,7 +43,7 @@ import type {
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
 
-type JsonStore = DataStore & { restaurant_scores: RestaurantScoreDoc[] };
+type JsonStore = DataStore & { restaurant_scores: RestaurantScoreDoc[]; event_invites: EventInvite[] };
 
 let writeQueue: Promise<void> = Promise.resolve();
 
@@ -53,6 +56,7 @@ function emptyStore(): JsonStore {
     hosts: [],
     ai_judgments: [],
     restaurant_scores: [],
+    event_invites: [],
   };
 }
 
@@ -487,14 +491,159 @@ export async function listEventsByHost(hostId: string, email?: string): Promise<
         scrubEventCandidateRestaurantIds(doc.id, asStringArray(doc.candidate_restaurant_ids))
       )
     );
+
+    // Events other people shared with this account: one array-contains query.
+    const sharedEmail = email?.trim().toLowerCase();
+    if (sharedEmail) {
+      const shared = await queryDocuments(COLLECTIONS.events, "collaborator_emails", "ARRAY_CONTAINS", sharedEmail);
+      for (const d of shared) {
+        if (!seenEventIds.has(d.id)) {
+          seenEventIds.add(d.id);
+          allDocs.push(d as Record<string, unknown> & { id: string });
+        }
+      }
+    }
     return allDocs
       .map((doc) => docToEvent(doc.id, doc))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
   const store = await readJsonStore();
+  const sharedEmail = email?.trim().toLowerCase();
   return store.events
-    .filter((event) => hostIds.has(event.host_id))
+    .filter(
+      (event) =>
+        hostIds.has(event.host_id) || Boolean(sharedEmail && (event.collaborator_emails ?? []).includes(sharedEmail))
+    )
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+/** One document read, no restaurant/menu scrubbing — for endpoints that only need the event itself. */
+export async function getEventLean(id: string): Promise<DietreEvent | null> {
+  if (useFirestore()) {
+    const doc = await getDocument(COLLECTIONS.events, id);
+    return doc ? docToEvent(doc.id, doc) : null;
+  }
+  return (await readJsonStore()).events.find((event) => event.id === id) ?? null;
+}
+
+/** Registered accounts whose email starts with `prefix` (typeahead). */
+export async function searchHostsByEmailPrefix(prefix: string, limit = 5): Promise<Array<{ email: string; name: string }>> {
+  const needle = prefix.trim().toLowerCase();
+  if (needle.length < 3) return [];
+  if (useFirestore()) {
+    const docs = await queryByPrefix<{ email?: string; name?: string }>(COLLECTIONS.organizers, "email", needle, limit);
+    return docs
+      .filter((doc) => typeof doc.email === "string" && doc.email)
+      .map((doc) => ({ email: String(doc.email), name: String(doc.name ?? "") }));
+  }
+  return (await readJsonStore()).hosts
+    .filter((host) => host.email.toLowerCase().startsWith(needle))
+    .slice(0, limit)
+    .map((host) => ({ email: host.email, name: host.name }));
+}
+
+export function inviteDocId(email: string, eventId: string): string {
+  return `${email.trim().toLowerCase()}__${eventId}`;
+}
+
+export async function createInvite(invite: Omit<EventInvite, "id">): Promise<EventInvite> {
+  const full: EventInvite = { ...invite, email: invite.email.trim().toLowerCase(), id: inviteDocId(invite.email, invite.event_id) };
+  if (useFirestore()) {
+    const { id, ...data } = full;
+    await setDocument(COLLECTIONS.event_invites, id, data);
+    return full;
+  }
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    store.event_invites = [...store.event_invites.filter((item) => item.id !== full.id), full];
+    await persistJson(store);
+  });
+  return full;
+}
+
+export async function listInvitesForEmail(email: string): Promise<EventInvite[]> {
+  const needle = email.trim().toLowerCase();
+  if (!needle) return [];
+  if (useFirestore()) {
+    const docs = await queryDocuments<Record<string, unknown>>(COLLECTIONS.event_invites, "email", "EQUAL", needle);
+    return docs.map((doc) => ({
+      id: doc.id,
+      email: String(doc.email ?? needle),
+      event_id: String(doc.event_id ?? ""),
+      event_name: String(doc.event_name ?? ""),
+      invited_by_id: String(doc.invited_by_id ?? ""),
+      invited_by_name: String(doc.invited_by_name ?? ""),
+      invited_at: String(doc.invited_at ?? ""),
+    }));
+  }
+  return (await readJsonStore()).event_invites.filter((invite) => invite.email === needle);
+}
+
+export async function getInvite(id: string): Promise<EventInvite | null> {
+  if (useFirestore()) {
+    const doc = await getDocument<Record<string, unknown>>(COLLECTIONS.event_invites, id);
+    if (!doc) return null;
+    return {
+      id: doc.id,
+      email: String(doc.email ?? ""),
+      event_id: String(doc.event_id ?? ""),
+      event_name: String(doc.event_name ?? ""),
+      invited_by_id: String(doc.invited_by_id ?? ""),
+      invited_by_name: String(doc.invited_by_name ?? ""),
+      invited_at: String(doc.invited_at ?? ""),
+    };
+  }
+  return (await readJsonStore()).event_invites.find((invite) => invite.id === id) ?? null;
+}
+
+export async function deleteInvite(id: string): Promise<void> {
+  if (useFirestore()) {
+    await deleteDocument(COLLECTIONS.event_invites, id);
+    return;
+  }
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    store.event_invites = store.event_invites.filter((invite) => invite.id !== id);
+    await persistJson(store);
+  });
+}
+
+/**
+ * Delete an event and everything hanging off it. Queries guests and scores once
+ * each and removes them with batched commits instead of one call per doc.
+ */
+export async function deleteEventCascade(event: DietreEvent): Promise<void> {
+  const invitedEmails = (event.pending_invites ?? []).map((invite) => invite.email);
+  if (useFirestore()) {
+    const [guests, scores] = await Promise.all([
+      queryDocuments(COLLECTIONS.guests, "event_id", "EQUAL", event.id),
+      queryDocuments(COLLECTIONS.restaurant_scores, "event_id", "EQUAL", event.id),
+    ]);
+    await Promise.all([
+      deleteDocuments(COLLECTIONS.guests, guests.map((doc) => doc.id)),
+      deleteDocuments(COLLECTIONS.restaurant_scores, scores.map((doc) => doc.id)),
+      deleteDocuments(
+        COLLECTIONS.event_invites,
+        invitedEmails.map((email) => inviteDocId(email, event.id))
+      ),
+    ]);
+    await deleteDocument(COLLECTIONS.events, event.id);
+    const organizer = await getDocument<{ events?: string[] }>(COLLECTIONS.organizers, event.host_id);
+    if (organizer && Array.isArray(organizer.events) && organizer.events.includes(event.id)) {
+      await patchDocument(COLLECTIONS.organizers, event.host_id, {
+        events: organizer.events.filter((id) => id !== event.id),
+      });
+    }
+    return;
+  }
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    store.events = store.events.filter((item) => item.id !== event.id);
+    store.responses = store.responses.filter((item) => item.event_id !== event.id);
+    store.restaurant_scores = store.restaurant_scores.filter((item) => item.event_id !== event.id);
+    store.event_invites = store.event_invites.filter((item) => item.event_id !== event.id);
+    await persistJson(store);
+  });
 }
 
 export async function getEvent(id: string): Promise<DietreEvent | null> {
@@ -561,6 +710,9 @@ export async function updateEvent(
       | "preference_signals"
       | "preference_signals_signature"
       | "candidate_restaurant_ids"
+      | "collaborators"
+      | "pending_invites"
+      | "collaborator_emails"
     >
   >
 ): Promise<DietreEvent | null> {
@@ -584,6 +736,28 @@ export async function updateEvent(
     }
   });
   return updated;
+}
+
+/** Patch an event without the restaurant/menu scrub updateEvent runs (one write, no extra reads). */
+export async function patchEventLean(
+  id: string,
+  patch: Partial<Pick<DietreEvent, "collaborators" | "pending_invites" | "collaborator_emails">>
+): Promise<DietreEvent | null> {
+  if (useFirestore()) {
+    const updated = await patchDocument(COLLECTIONS.events, id, eventPatchToDoc(patch));
+    return updated ? docToEvent(id, updated) : null;
+  }
+  let result: DietreEvent | null = null;
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    const event = store.events.find((item) => item.id === id);
+    if (event) {
+      Object.assign(event, patch);
+      result = event;
+      await persistJson(store);
+    }
+  });
+  return result;
 }
 
 export async function listResponses(eventId: string): Promise<DietResponse[]> {

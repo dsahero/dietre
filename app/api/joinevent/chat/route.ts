@@ -335,7 +335,7 @@ export async function POST(req: NextRequest) {
           soft_preferences: rules.soft_preferences,
           severity: rules.severity,
         },
-        contactEmail: rules.contact_email,
+        contactEmail: extracted.rules.contact_email,
         // Clarify mode updates chips live; intake mode finishes the conversation
         done: isClarify ? false : true,
       } satisfies ChatResponse & { contactEmail?: string });

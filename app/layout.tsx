@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Fraunces, Inter } from "next/font/google";
 import { TooltipProvider } from "@/frontend/components/ui/tooltip";
+import { InviteNotifications } from "@/frontend/components/invite-notifications";
 import "@/frontend/styles/globals.css";
 
 const inter = Inter({
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <TooltipProvider>{children}</TooltipProvider>
+        <InviteNotifications />
       </body>
     </html>
   );

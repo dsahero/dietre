@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Stamp } from 'lucide-react';
+import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Stamp, Trash2 } from 'lucide-react';
 import { EventDetails } from '../types';
 import { LocationAutocomplete } from '@/frontend/components/location-autocomplete';
 
@@ -18,11 +18,15 @@ interface EditEventModalProps {
   onClose: () => void;
   eventDetails: EventDetails;
   onSave: (patch: EventEditPatch) => Promise<void>;
+  /** Provided only for the event owner; shows a Delete event button. */
+  onDelete?: () => Promise<void>;
 }
 
 const BUDGET_OPTIONS: Array<'$' | '$$' | '$$$'> = ['$', '$$', '$$$'];
 
-export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose, eventDetails, onSave }) => {
+export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose, eventDetails, onSave, onDelete }) => {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // Remounted via a `key` on the parent's open state, so these initializers
   // only need to run once per open.
   const [name, setName] = useState(eventDetails.name);
@@ -37,6 +41,19 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete the event.');
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +147,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             )}
             {address.trim() && !placeId && !searchEnabled && (
               <p className="mt-1 font-serif text-[11px] italic text-[var(--dash-text-muted)]">
-                Type the full address. We'll geocode it when you save.
+                Type the full address. We&apos;ll geocode it when you save.
               </p>
             )}
           </div>
@@ -229,6 +246,44 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
               </div>
             )}
           </div>
+
+          {onDelete && (
+            <div className="rounded-xs border border-[#ef4444]/30 bg-[#ef4444]/5 p-3">
+              {confirmingDelete ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-[#c24134]">
+                    Delete this event, its guest responses and scores for everyone? This can&apos;t be undone.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDelete(false)}
+                      disabled={deleting}
+                      className="cursor-pointer rounded-xs border border-[var(--dash-border)] px-3 py-1.5 text-xs text-[var(--dash-text-soft)] hover:text-[var(--dash-text)]"
+                    >
+                      Keep event
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="cursor-pointer rounded-xs bg-[#dc2626] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+                    >
+                      {deleting ? 'Deleting…' : 'Yes, delete event'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                  className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-[#c24134] hover:underline"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete event
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-3 border-t border-[var(--dash-border)] pt-4">
             <button

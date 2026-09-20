@@ -83,6 +83,39 @@ export type DietreEvent = {
   // This event's own restaurant list (ids into the restaurants collection),
   // generated from its confirmed address + radius. Undefined on legacy events.
   candidate_restaurant_ids?: string[];
+  // Sharing: people who were invited and accepted (same permissions as the
+  // owner except removing the owner / deleting the event), and invites not yet
+  // answered. Emails are lowercased. collaborator_emails is a flat copy used
+  // for the "events shared with me" query.
+  collaborators?: Collaborator[];
+  pending_invites?: PendingInvite[];
+  collaborator_emails?: string[];
+};
+
+export type Collaborator = {
+  email: string;
+  host_id?: string;
+  name?: string;
+  added_at: string;
+  added_by?: string;
+};
+
+// One outstanding invitation, stored as its own doc (id `<email>__<eventId>`)
+// so an invitee's notifications are a single query by email.
+export type EventInvite = {
+  id: string;
+  email: string;
+  event_id: string;
+  event_name: string;
+  invited_by_id: string;
+  invited_by_name: string;
+  invited_at: string;
+};
+
+export type PendingInvite = {
+  email: string;
+  invited_by_name: string;
+  invited_at: string;
 };
 
 export type ParsedRules = {

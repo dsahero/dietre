@@ -174,6 +174,9 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     google_place_id: event.google_place_id ?? null,
     preference_signals: event.preference_signals ?? {},
     preference_signals_signature: event.preference_signals_signature ?? "",
+    collaborators: event.collaborators ?? [],
+    pending_invites: event.pending_invites ?? [],
+    collaborator_emails: event.collaborator_emails ?? [],
   };
 }
 
@@ -218,6 +221,29 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
     candidate_restaurant_ids: Array.isArray(doc.candidate_restaurant_ids)
       ? doc.candidate_restaurant_ids.filter((x): x is string => typeof x === "string")
       : undefined,
+    collaborators: Array.isArray(doc.collaborators)
+      ? doc.collaborators
+          .map((c) => asRecord(c))
+          .filter((c) => typeof c.email === "string" && c.email)
+          .map((c) => ({
+            email: asString(c.email),
+            host_id: typeof c.host_id === "string" ? c.host_id : undefined,
+            name: typeof c.name === "string" ? c.name : undefined,
+            added_at: asString(c.added_at),
+            added_by: typeof c.added_by === "string" ? c.added_by : undefined,
+          }))
+      : [],
+    pending_invites: Array.isArray(doc.pending_invites)
+      ? doc.pending_invites
+          .map((p) => asRecord(p))
+          .filter((p) => typeof p.email === "string" && p.email)
+          .map((p) => ({
+            email: asString(p.email),
+            invited_by_name: asString(p.invited_by_name),
+            invited_at: asString(p.invited_at),
+          }))
+      : [],
+    collaborator_emails: asStringArray(doc.collaborator_emails),
   };
 }
 
@@ -241,6 +267,9 @@ export function eventPatchToDoc(
       | "preference_signals"
       | "preference_signals_signature"
       | "candidate_restaurant_ids"
+      | "collaborators"
+      | "pending_invites"
+      | "collaborator_emails"
     >
   >
 ): Record<string, unknown> {
@@ -268,6 +297,9 @@ export function eventPatchToDoc(
   if (patch.preference_signals !== undefined) data.preference_signals = patch.preference_signals;
   if (patch.preference_signals_signature !== undefined) data.preference_signals_signature = patch.preference_signals_signature;
   if (patch.candidate_restaurant_ids !== undefined) data.candidate_restaurant_ids = patch.candidate_restaurant_ids;
+  if (patch.collaborators !== undefined) data.collaborators = patch.collaborators;
+  if (patch.pending_invites !== undefined) data.pending_invites = patch.pending_invites;
+  if (patch.collaborator_emails !== undefined) data.collaborator_emails = patch.collaborator_emails;
   return data;
 }
 
