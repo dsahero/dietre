@@ -142,7 +142,7 @@ export function RemixHomePageView() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           >
-            Collect anonymous diets. Match the catering.
+            a smarter way to cater
           </motion.h2>
           <motion.p
             className="remix-hero-support"
@@ -151,7 +151,7 @@ export function RemixHomePageView() {
             transition={{ duration: 0.65, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
           >
             Guests describe what they can eat in their own words. You get
-            restaurant rankings and safe menu options — no names required.
+            restaurant rankings and safe menu options.
           </motion.p>
           <motion.div
             className="remix-hero-cta-row"
