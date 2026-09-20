@@ -12,6 +12,7 @@ export type DiscoveredRestaurant = {
   lng: number;
   priceLevel: 1 | 2 | 3;
   cuisine: string;
+  websiteUri?: string;
 };
 
 const AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
@@ -367,6 +368,7 @@ export async function discoverNearbyRestaurants(
       lng: entry.lng,
       priceLevel: entry.priceLevel,
       cuisine: entry.cuisine,
+      websiteUri: entry.websiteUri,
     }));
 }
 
@@ -391,6 +393,7 @@ async function searchNearbyOnce(
             "places.priceLevel",
             "places.types",
             "places.location",
+            "places.websiteUri",
           ].join(","),
         },
         body: JSON.stringify({
@@ -416,6 +419,7 @@ async function searchNearbyOnce(
         formattedAddress?: string;
         priceLevel?: string;
         types?: string[];
+        websiteUri?: string;
         location?: { latitude?: number; longitude?: number };
       }>;
     };
@@ -431,6 +435,7 @@ async function searchNearbyOnce(
         lng: p.location.longitude,
         priceLevel: mapPriceLevel(p.priceLevel),
         cuisine: cuisineFromTypes(p.types),
+        websiteUri: p.websiteUri,
       });
     }
     return out;

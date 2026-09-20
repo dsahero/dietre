@@ -8,6 +8,7 @@ import {
   suggestEventDetailsFromLimitations,
 } from "@/backend/lib/limitations";
 import { matchEvent } from "@/backend/lib/matching";
+import { attachStoredScores } from "@/backend/lib/scoreConfidence";
 import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
 import { discoverAndUpsertRestaurants, ensureEventRestaurants } from "@/backend/lib/restaurantDiscovery";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
@@ -42,7 +43,11 @@ export async function GET(
     ensureEventRestaurants(event),
     listMenuItems(),
   ]);
-  const match = await matchEvent({ event, responses, restaurants, menuItems });
+  const match = await attachStoredScores(
+    event,
+    responses,
+    await matchEvent({ event, responses, restaurants, menuItems })
+  );
   return NextResponse.json({
     event,
     responses: responses.map((response, index) => ({

@@ -9,11 +9,22 @@ import type {
   DietreEvent,
   MatchResult,
   MenuItem,
+  MenuStats,
   Restaurant,
   RestaurantMatch,
   ZeroMatchAlert,
 } from "@/shared/lib/types";
 import { saveEventComplexContext } from "@/backend/lib/eventContext";
+
+function menuStatsFor(items: MenuItem[]): MenuStats {
+  const total = items.length;
+  const pct = (count: number) => (total === 0 ? 0 : Math.round((count / total) * 100));
+  return {
+    item_count: total,
+    explicit_ingredient_pct: pct(items.filter((item) => item.estimated_ingredients.length > 0).length),
+    high_confidence_pct: pct(items.filter((item) => item.confidence === "high").length),
+  };
+}
 
 function guestLabel(
   index: number,
@@ -320,6 +331,7 @@ export async function matchEvent(input: {
           total_responses: 0,
           safe_items: [],
           complex_notes: [],
+          menu_stats: menuStatsFor(itemsByRestaurant.get(restaurant.id) ?? []),
         };
       })
       .sort((a, b) => a.distance_miles - b.distance_miles);
@@ -463,6 +475,7 @@ export async function matchEvent(input: {
       total_responses: responses.length,
       safe_items: safeItems,
       complex_notes: complexNotesByRestaurant[restaurant.id] ?? [],
+      menu_stats: menuStatsFor(items),
     };
   });
 

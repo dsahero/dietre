@@ -105,6 +105,10 @@ export type Restaurant = {
   alias_ids?: string[];
   // Google Places id for discovered restaurants.
   google_place_id?: string;
+  website?: string;
+  // Menu acquisition state for discovered restaurants.
+  menu_status?: "pending" | "ready" | "none" | "failed";
+  menu_checked_at?: string;
 };
 
 export type MenuItem = {
@@ -153,6 +157,27 @@ export type ComplexRequirementNote = {
   note: string;
 };
 
+export type MenuStats = {
+  item_count: number;
+  // Share (0-100) of items whose ingredients are explicit, not estimated/missing.
+  explicit_ingredient_pct: number;
+  high_confidence_pct: number;
+};
+
+export type RestaurantConfidence = {
+  // Group score as 0-100; null when there's no menu data to score against.
+  score: number | null;
+  tier: "high" | "medium" | "low" | "unknown";
+  // True when thin/low-confidence menu data capped the tier.
+  data_limited: boolean;
+  // "database" = read from the stored restaurant_scores doc; "live" = computed this render.
+  source: "database" | "live";
+  utilitarian_pct: number;
+  rawlsian_all_covered: boolean;
+  rank_utilitarian: number | null;
+  rank_rawlsian: number | null;
+};
+
 export type RestaurantMatch = {
   restaurant: Restaurant;
   distance_miles: number;
@@ -164,6 +189,8 @@ export type RestaurantMatch = {
   total_responses: number;
   safe_items: SafeMenuItem[];
   complex_notes?: ComplexRequirementNote[];
+  menu_stats?: MenuStats;
+  confidence?: RestaurantConfidence;
 };
 
 export type ZeroMatchAlert = {

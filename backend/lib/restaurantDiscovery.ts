@@ -45,6 +45,7 @@ export async function discoverAndUpsertRestaurants(
       lng: r.lng,
       google_place_id: r.googlePlaceId,
       alias_ids: [`google-${r.googlePlaceId}`],
+      ...(r.websiteUri ? { website: r.websiteUri } : {}),
     }));
     await upsertRestaurants(restaurants);
     return { discovered: found.length, upserted: restaurants.length, ids: restaurants.map((r) => r.id) };

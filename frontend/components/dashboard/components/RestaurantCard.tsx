@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
 import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ConfidenceChip } from './ConfidenceChip';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -59,13 +60,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           ) : (
             <span />
           )}
-          <span
-            className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
-              restaurant.matchPercentage
-            )}`}
-          >
-            {restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
+                restaurant.matchPercentage
+              )}`}
+            >
+              {restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
+            </span>
+            <ConfidenceChip confidence={restaurant.confidence} />
+          </div>
         </div>
 
         <div className="relative z-10 mt-auto">

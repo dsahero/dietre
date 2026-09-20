@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Compass, Filter, Info, Maximize2, Menu, Minimize2, Search, ZoomIn, ZoomOut } from 'lucide-react';
 import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
+import { confidenceTitle } from './ConfidenceChip';
 import { useIsMobile } from '@/frontend/lib/use-is-mobile';
 
 interface MapTabProps {
@@ -414,6 +415,12 @@ export const MapTab: React.FC<MapTabProps> = ({
                           {restaurant.matchPercentage}%
                         </span>
                         <span className="font-mono text-[10px] text-[var(--dash-text-muted)]">{restaurant.distanceMiles} mi</span>
+                        <span
+                          className="font-mono text-[10px] text-[var(--dash-text-soft)]"
+                          title={confidenceTitle(restaurant.confidence)}
+                        >
+                          conf: {restaurant.confidence.tier === 'unknown' ? 'n/a' : restaurant.confidence.tier}
+                        </span>
                       </div>
                     </div>
                   </button>

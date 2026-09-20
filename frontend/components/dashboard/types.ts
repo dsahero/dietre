@@ -55,6 +55,18 @@ export interface DietaryConflict {
   severity: 'high' | 'medium' | 'low';
 }
 
+// Group score (from stored restaurant_scores) adjusted by menu-data quality.
+export interface RestaurantConfidenceData {
+  score: number | null;
+  tier: 'high' | 'medium' | 'low' | 'unknown';
+  dataLimited: boolean;
+  source: 'database' | 'live';
+  utilitarianPct: number;
+  allGuestsCovered: boolean;
+  rankUtilitarian: number | null;
+  rankRawlsian: number | null;
+}
+
 export interface RestaurantCardData {
   id: string;
   name: string;
@@ -75,6 +87,8 @@ export interface RestaurantCardData {
   dietaryConflicts: DietaryConflict[];
   suggestedMenuItems: SuggestedMenuItem[];
   menuDataThin: boolean; // true when we have no menu items at all for this restaurant
+  menuItemCount: number;
+  confidence: RestaurantConfidenceData;
   checklistNotes: RestaurantChecklistNote[]; // Gemini's read on the host's free-text limitations, per venue
   complexNotes: ComplexRequirementNote[]; // Gemini's read on participant complex/compound dietary requirements
 }

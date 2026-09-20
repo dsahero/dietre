@@ -346,6 +346,9 @@ export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): 
         source: "google_places",
         discovered_at: new Date().toISOString(),
         legacy_ids: restaurant.alias_ids ?? [],
+        website: restaurant.website ?? null,
+        menu_status: restaurant.menu_status ?? null,
+        menu_checked_at: restaurant.menu_checked_at ?? null,
       }
     : {};
   return {
@@ -377,6 +380,16 @@ export function docToRestaurant(id: string, doc: Record<string, unknown>): Resta
     lat: asNumber(doc.lat, asNumber(coords[1])),
     lng: asNumber(doc.lng, asNumber(coords[0])),
     ...(typeof doc.google_place_id === "string" ? { google_place_id: doc.google_place_id } : {}),
+    ...(typeof doc.website === "string" && doc.website ? { website: doc.website } : {}),
+    ...(doc.menu_status === "pending" ||
+    doc.menu_status === "ready" ||
+    doc.menu_status === "none" ||
+    doc.menu_status === "failed"
+      ? { menu_status: doc.menu_status }
+      : {}),
+    ...(typeof doc.menu_checked_at === "string" && doc.menu_checked_at
+      ? { menu_checked_at: doc.menu_checked_at }
+      : {}),
     ...(Array.isArray(doc.legacy_ids) && doc.legacy_ids.length
       ? { alias_ids: doc.legacy_ids.filter((x): x is string => typeof x === "string") }
       : {}),
@@ -401,13 +414,16 @@ export function menuItemToDoc(item: MenuItem): Record<string, unknown> {
 }
 
 export function docToMenuItem(id: string, doc: Record<string, unknown>): MenuItem {
-  const confidence = doc.confidence === "low" ? "low" : "high";
+  // Only an explicit "high" counts as confident; a missing/unknown value must
+  // not silently upgrade an item to trusted ingredients.
+  const confidence = doc.confidence === "high" ? "high" : "low";
+  const estimated = asStringArray(doc.estimated_ingredients);
   return {
     id: asString(doc.id, id),
     restaurant_id: asString(doc.restaurant_id),
     name: asString(doc.name),
     description: asString(doc.description),
-    estimated_ingredients: asStringArray(doc.estimated_ingredients),
+    estimated_ingredients: estimated.length > 0 ? estimated : asStringArray(doc.ingredients),
     flags: asRecord(doc.flags) as MenuItem["flags"],
     confidence,
     price: asNumber(doc.price, 0),

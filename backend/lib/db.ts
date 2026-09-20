@@ -281,10 +281,19 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
       const old = placeId ? byPlaceId.get(placeId) : undefined;
       if (old && old.id === restaurant.id && sameRestaurantFields(old, restaurant)) continue;
       if (old && old.id !== restaurant.id) toDelete.push(old.id);
+      // Replacing a doc must not forget its menu state.
+      const merged: Restaurant = old
+        ? {
+            ...restaurant,
+            menu_status: restaurant.menu_status ?? menuStatusOf(old.menu_status),
+            menu_checked_at:
+              restaurant.menu_checked_at ?? (typeof old.menu_checked_at === "string" ? old.menu_checked_at : undefined),
+          }
+        : restaurant;
       writes.push({
         collection: COLLECTIONS.restaurants,
         id: restaurant.id,
-        data: restaurantToDoc(restaurant, asStringArray(old?.menu_item_ids)),
+        data: restaurantToDoc(merged, asStringArray(old?.menu_item_ids)),
       });
     }
     for (const id of toDelete) await deleteDocument(COLLECTIONS.restaurants, id);
@@ -296,14 +305,80 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
     const store = await readJsonStore();
     const incomingPlaceIds = new Set(restaurants.map((r) => r.google_place_id).filter(Boolean));
     const incomingIds = new Set(restaurants.map((r) => r.id));
+    const previous = new Map<string, Restaurant>();
     const kept = store.restaurants.filter((existing) => {
-      if (incomingIds.has(existing.id)) return false;
       const placeId = existing.google_place_id ?? (existing.id.startsWith("google-") ? existing.id.slice(7) : null);
-      return !(placeId && incomingPlaceIds.has(placeId));
+      if (incomingIds.has(existing.id) || (placeId && incomingPlaceIds.has(placeId))) {
+        previous.set(placeId ?? existing.id, existing);
+        return false;
+      }
+      return true;
     });
-    store.restaurants = [...kept, ...restaurants];
+    store.restaurants = [
+      ...kept,
+      ...restaurants.map((restaurant) => {
+        const old = previous.get(restaurant.google_place_id ?? restaurant.id);
+        return old
+          ? {
+              ...restaurant,
+              menu_status: restaurant.menu_status ?? old.menu_status,
+              menu_checked_at: restaurant.menu_checked_at ?? old.menu_checked_at,
+            }
+          : restaurant;
+      }),
+    ];
     await persistJson(store);
   });
+}
+
+/**
+ * Replace one restaurant's menu items (delete the old ones, write the new)
+ * and record the menu state on the restaurant doc. With no items — a failed
+ * or empty scrape — existing items are left alone and only the status is
+ * recorded, so a bad run never erases a good menu.
+ */
+export async function upsertMenuItems(
+  restaurantId: string,
+  items: MenuItem[],
+  status: "ready" | "none" | "failed"
+): Promise<void> {
+  const checkedAt = new Date().toISOString();
+  const finalStatus = items.length === 0 && status === "ready" ? "none" : status;
+
+  if (useFirestore()) {
+    const { menuItemToDoc } = await import("@/backend/lib/collections");
+    const restaurantPatch: Record<string, unknown> = { menu_status: finalStatus, menu_checked_at: checkedAt };
+    if (items.length > 0) {
+      const keep = new Set(items.map((item) => item.id));
+      const existing = await queryDocuments(COLLECTIONS.menu_items, "restaurant_id", "EQUAL", restaurantId);
+      for (const doc of existing) {
+        if (!keep.has(doc.id)) await deleteDocument(COLLECTIONS.menu_items, doc.id);
+      }
+      await commitWrites(
+        items.map((item) => ({ collection: COLLECTIONS.menu_items, id: item.id, data: menuItemToDoc(item) }))
+      );
+      restaurantPatch.menu_item_ids = items.map((item) => item.id);
+    }
+    await patchDocument(COLLECTIONS.restaurants, restaurantId, restaurantPatch);
+    return;
+  }
+
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    if (items.length > 0) {
+      store.menu_items = [...store.menu_items.filter((item) => item.restaurant_id !== restaurantId), ...items];
+    }
+    const restaurant = store.restaurants.find((r) => r.id === restaurantId);
+    if (restaurant) {
+      restaurant.menu_status = finalStatus;
+      restaurant.menu_checked_at = checkedAt;
+    }
+    await persistJson(store);
+  });
+}
+
+function menuStatusOf(value: unknown): Restaurant["menu_status"] {
+  return value === "pending" || value === "ready" || value === "none" || value === "failed" ? value : undefined;
 }
 
 function sameRestaurantFields(doc: Record<string, unknown>, restaurant: Restaurant): boolean {
@@ -313,7 +388,8 @@ function sameRestaurantFields(doc: Record<string, unknown>, restaurant: Restaura
     doc.cuisine === restaurant.cuisine &&
     doc.price_level === restaurant.price_level &&
     doc.lat === restaurant.lat &&
-    doc.lng === restaurant.lng
+    doc.lng === restaurant.lng &&
+    (doc.website || undefined) === (restaurant.website || undefined)
   );
 }
 

@@ -4,6 +4,7 @@ import { DEMO_EVENT_ID, SEED_EVENT_2_ID, SEED_EVENT_3_ID } from "@/backend/data/
 import { getSession, hostIdFromEmail } from "@/backend/lib/auth";
 import { getEvent, getHost, listMenuItems, listResponses } from "@/backend/lib/db";
 import { matchEvent } from "@/backend/lib/matching";
+import { attachStoredScores } from "@/backend/lib/scoreConfidence";
 import { ensureEventRestaurants } from "@/backend/lib/restaurantDiscovery";
 import { ModeBanner } from "@/frontend/components/mode-banner";
 import { SharePanel } from "@/frontend/components/share-panel";
@@ -66,7 +67,11 @@ export default async function EventDashboardPage({
     ensureEventRestaurants(event),
     listMenuItems(),
   ]);
-  const match = await matchEvent({ event, responses, restaurants, menuItems });
+  const match = await attachStoredScores(
+    event,
+    responses,
+    await matchEvent({ event, responses, restaurants, menuItems })
+  );
 
   return (
     <OverviewDashboard
