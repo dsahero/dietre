@@ -43,13 +43,21 @@
 .remix-navbar {
   position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   height: 103px;
   background: #D7531F;
   z-index: 50;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.remix-navbar-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 100%;
 }
 
 /* Logo Mark */
@@ -178,9 +186,9 @@
 .remix-hero-bg {
   position: absolute;
   top: 103px;
-  left: 0;
-  right: 0;
-  width: 100%;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   height: 799px;
   background: radial-gradient(ellipse at 28.51% 66.96%, #FBF6EF 0%, #E2D6C3 75%);
 }
@@ -431,16 +439,16 @@
   position: absolute;
   left: 418px;
   top: 3407px;
-  width: 1022px;
+  width: calc(50vw + 302px);
   height: 825px;
   background: #B3866A url('https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
 }
 
 .remix-banner-gradient {
   position: absolute;
-  left: 0;
-  right: 0;
-  width: 100%;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   top: 3408px;
   height: 824px;
   background: linear-gradient(90deg, #D7531F 54.24%, rgba(113, 44, 16, 0) 93.43%);
@@ -499,9 +507,9 @@
 
 .remix-section-cards-bg {
   position: absolute;
-  left: 0;
-  right: 0;
-  width: 100%;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   top: 4232px;
   height: 810px;
   background: #F1E9DC;
@@ -773,12 +781,20 @@
 
 .remix-footer {
   position: absolute;
-  left: 0;
-  right: 0;
-  width: 100%;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   top: 5599px;
   height: 118px;
   background: #F1E9DC;
+}
+
+.remix-footer-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 100%;
 }
 
 /* Footer Brand Badge */

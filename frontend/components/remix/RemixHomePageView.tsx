@@ -68,60 +68,62 @@ export function RemixHomePageView() {
             SECTION 1: HEADER & HERO
             ========================================================================== */}
         <header className="remix-navbar">
-          {/* Logo mark */}
-          <div className="remix-logo-box">
-            <span className="remix-logo-text">di</span>
-            <div className="remix-logo-fork">
-              <ForkGraphic
-                orientation="horizontal"
-                color="#D7531F"
-                dropShadow="none"
-                style={{ width: '100%', height: '100%' }}
-              />
+          <div className="remix-navbar-inner">
+            {/* Logo mark */}
+            <div className="remix-logo-box">
+              <span className="remix-logo-text">di</span>
+              <div className="remix-logo-fork">
+                <ForkGraphic
+                  orientation="horizontal"
+                  color="#D7531F"
+                  dropShadow="none"
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
             </div>
+
+            {/* Nav links — scroll to main sections */}
+            <button
+              className="remix-nav-link remix-nav-link-1"
+              onClick={scrollToGreySection}
+            >
+              How It Works
+            </button>
+            <button
+              className="remix-nav-link remix-nav-link-2"
+              onClick={scrollToRealEvents}
+            >
+              Real Events
+            </button>
+            <button
+              className="remix-nav-link remix-nav-link-3"
+              onClick={scrollToFeatures}
+            >
+              Core Features
+            </button>
+            <button
+              className="remix-nav-link remix-nav-link-4"
+              onClick={goToDemo}
+            >
+              Live Demo
+            </button>
+
+            {/* Auth buttons */}
+            <button
+              id="btn-signup-nav"
+              className="remix-btn-signup-nav"
+              onClick={goToSignUp}
+            >
+              Sign Up
+            </button>
+            <button
+              id="btn-login-nav"
+              className="remix-btn-login-nav"
+              onClick={goToLogin}
+            >
+              Log In
+            </button>
           </div>
-
-          {/* Nav links — scroll to main sections */}
-          <button
-            className="remix-nav-link remix-nav-link-1"
-            onClick={scrollToGreySection}
-          >
-            How It Works
-          </button>
-          <button
-            className="remix-nav-link remix-nav-link-2"
-            onClick={scrollToRealEvents}
-          >
-            Real Events
-          </button>
-          <button
-            className="remix-nav-link remix-nav-link-3"
-            onClick={scrollToFeatures}
-          >
-            Core Features
-          </button>
-          <button
-            className="remix-nav-link remix-nav-link-4"
-            onClick={goToDemo}
-          >
-            Live Demo
-          </button>
-
-          {/* Auth buttons */}
-          <button
-            id="btn-signup-nav"
-            className="remix-btn-signup-nav"
-            onClick={goToSignUp}
-          >
-            Sign Up
-          </button>
-          <button
-            id="btn-login-nav"
-            className="remix-btn-login-nav"
-            onClick={goToLogin}
-          >
-            Log In
-          </button>
         </header>
 
         {/* HERO SECTION */}
@@ -343,43 +345,45 @@ export function RemixHomePageView() {
             SECTION 6: FOOTER
             ========================================================================== */}
         <footer className="remix-footer">
-          <div className="remix-footer-logo-box">
-            <span className="remix-footer-logo-text">di</span>
-            <div className="remix-footer-logo-fork">
-              <ForkGraphic
-                orientation="horizontal"
-                color="#F1E9DC"
-                dropShadow="none"
-                style={{ width: '100%', height: '100%' }}
-              />
+          <div className="remix-footer-inner">
+            <div className="remix-footer-logo-box">
+              <span className="remix-footer-logo-text">di</span>
+              <div className="remix-footer-logo-fork">
+                <ForkGraphic
+                  orientation="horizontal"
+                  color="#F1E9DC"
+                  dropShadow="none"
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
             </div>
+
+            {/* Back to Top */}
+            <button
+              className="remix-footer-link remix-footer-link-top"
+              onClick={scrollToTop}
+            >
+              Back to top
+            </button>
+
+            {/* Sign Up → /signup */}
+            <button
+              id="btn-footer-signup"
+              className="remix-footer-link remix-footer-link-signup"
+              onClick={goToSignUp}
+            >
+              Sign Up
+            </button>
+
+            {/* Log In → /login */}
+            <button
+              id="btn-footer-login"
+              className="remix-footer-link remix-footer-link-login"
+              onClick={goToLogin}
+            >
+              Log In
+            </button>
           </div>
-
-          {/* Back to Top */}
-          <button
-            className="remix-footer-link remix-footer-link-top"
-            onClick={scrollToTop}
-          >
-            Back to top
-          </button>
-
-          {/* Sign Up → /signup */}
-          <button
-            id="btn-footer-signup"
-            className="remix-footer-link remix-footer-link-signup"
-            onClick={goToSignUp}
-          >
-            Sign Up
-          </button>
-
-          {/* Log In → /login */}
-          <button
-            id="btn-footer-login"
-            className="remix-footer-link remix-footer-link-login"
-            onClick={goToLogin}
-          >
-            Log In
-          </button>
         </footer>
       </main>
     </div>
