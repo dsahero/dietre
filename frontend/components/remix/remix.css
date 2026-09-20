@@ -646,9 +646,12 @@
 
 .remix-cta-card {
   position: absolute;
-  left: 133px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   top: 5137px;
   width: 1174px;
+  max-width: calc(100% - 48px);
   height: auto;
   min-height: 368px;
   background: #D7531F;
