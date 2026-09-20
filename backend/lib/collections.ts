@@ -215,6 +215,9 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
         : undefined,
     preference_signals_signature:
       typeof doc.preference_signals_signature === "string" ? doc.preference_signals_signature : undefined,
+    candidate_restaurant_ids: Array.isArray(doc.candidate_restaurant_ids)
+      ? doc.candidate_restaurant_ids.filter((x): x is string => typeof x === "string")
+      : undefined,
   };
 }
 
@@ -237,6 +240,7 @@ export function eventPatchToDoc(
       | "google_place_id"
       | "preference_signals"
       | "preference_signals_signature"
+      | "candidate_restaurant_ids"
     >
   >
 ): Record<string, unknown> {
@@ -263,6 +267,7 @@ export function eventPatchToDoc(
   if (patch.google_place_id !== undefined) data.google_place_id = patch.google_place_id;
   if (patch.preference_signals !== undefined) data.preference_signals = patch.preference_signals;
   if (patch.preference_signals_signature !== undefined) data.preference_signals_signature = patch.preference_signals_signature;
+  if (patch.candidate_restaurant_ids !== undefined) data.candidate_restaurant_ids = patch.candidate_restaurant_ids;
   return data;
 }
 
@@ -354,7 +359,20 @@ export function docToResponse(id: string, doc: Record<string, unknown>): DietRes
 }
 
 export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): Record<string, unknown> {
+  const googlePlaceId = restaurant.google_place_id ?? null;
+  const discovered = googlePlaceId
+    ? {
+        google_place_id: googlePlaceId,
+        source: "google_places",
+        discovered_at: new Date().toISOString(),
+        legacy_ids: restaurant.alias_ids ?? [],
+        website: restaurant.website ?? null,
+        menu_status: restaurant.menu_status ?? null,
+        menu_checked_at: restaurant.menu_checked_at ?? null,
+      }
+    : {};
   return {
+    ...discovered,
     name: restaurant.name,
     location: restaurant.location,
     cuisine: restaurant.cuisine,
@@ -362,7 +380,7 @@ export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): 
     lat: restaurant.lat,
     lng: restaurant.lng,
     location_geo: geoPoint(restaurant.lng, restaurant.lat),
-    data_source: { tier: 1, google_place_id: null, yelp_id: null },
+    data_source: { tier: 1, google_place_id: googlePlaceId, yelp_id: null },
     accessibility: { dine_in: true, is_preliminary: true },
     review_evidence: [],
     menu_item_ids: menuItemIds,
@@ -381,6 +399,20 @@ export function docToRestaurant(id: string, doc: Record<string, unknown>): Resta
     price_level: price === 1 || price === 3 ? price : 2,
     lat: asNumber(doc.lat, asNumber(coords[1])),
     lng: asNumber(doc.lng, asNumber(coords[0])),
+    ...(typeof doc.google_place_id === "string" ? { google_place_id: doc.google_place_id } : {}),
+    ...(typeof doc.website === "string" && doc.website ? { website: doc.website } : {}),
+    ...(doc.menu_status === "pending" ||
+    doc.menu_status === "ready" ||
+    doc.menu_status === "none" ||
+    doc.menu_status === "failed"
+      ? { menu_status: doc.menu_status }
+      : {}),
+    ...(typeof doc.menu_checked_at === "string" && doc.menu_checked_at
+      ? { menu_checked_at: doc.menu_checked_at }
+      : {}),
+    ...(Array.isArray(doc.legacy_ids) && doc.legacy_ids.length
+      ? { alias_ids: doc.legacy_ids.filter((x): x is string => typeof x === "string") }
+      : {}),
   };
 }
 
@@ -402,13 +434,16 @@ export function menuItemToDoc(item: MenuItem): Record<string, unknown> {
 }
 
 export function docToMenuItem(id: string, doc: Record<string, unknown>): MenuItem {
-  const confidence = doc.confidence === "low" ? "low" : "high";
+  // Only an explicit "high" counts as confident; a missing/unknown value must
+  // not silently upgrade an item to trusted ingredients.
+  const confidence = doc.confidence === "high" ? "high" : "low";
+  const estimated = asStringArray(doc.estimated_ingredients);
   return {
     id: asString(doc.id, id),
     restaurant_id: asString(doc.restaurant_id),
     name: asString(doc.name),
     description: asString(doc.description),
-    estimated_ingredients: asStringArray(doc.estimated_ingredients),
+    estimated_ingredients: estimated.length > 0 ? estimated : asStringArray(doc.ingredients),
     flags: asRecord(doc.flags) as MenuItem["flags"],
     confidence,
     price: asNumber(doc.price, 0),

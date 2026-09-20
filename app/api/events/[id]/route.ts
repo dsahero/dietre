@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { DEMO_EVENT_ID } from "@/backend/data/seed";
 import { getSession } from "@/backend/lib/auth";
-import { getEvent, listMenuItems, listResponses, listRestaurants, updateEvent } from "@/backend/lib/db";
+import { getEvent, listMenuItems, listResponses, listRestaurantsForEvent, updateEvent } from "@/backend/lib/db";
 import {
   evaluateRestaurantsAgainstChecklist,
   extractLimitationsChecklist,
   suggestEventDetailsFromLimitations,
 } from "@/backend/lib/limitations";
 import { matchEvent } from "@/backend/lib/matching";
-import { resolvePlace } from "@/backend/lib/placesDiscovery";
-import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
-import { geocodeBlacksburg } from "@/shared/lib/places";
+import { attachStoredScores } from "@/backend/lib/scoreConfidence";
+import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
+import { discoverAndUpsertRestaurants, ensureEventRestaurants } from "@/backend/lib/restaurantDiscovery";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
 export async function GET(
@@ -40,10 +40,14 @@ export async function GET(
 
   const [responses, restaurants, menuItems] = await Promise.all([
     listResponses(event.id),
-    listRestaurants(),
+    ensureEventRestaurants(event),
     listMenuItems(),
   ]);
-  const match = await matchEvent({ event, responses, restaurants, menuItems });
+  const match = await attachStoredScores(
+    event,
+    responses,
+    await matchEvent({ event, responses, restaurants, menuItems })
+  );
   return NextResponse.json({
     event,
     responses: responses.map((response, index) => ({
@@ -97,37 +101,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const location = body.location.trim();
     if (!location) return NextResponse.json({ error: "Location can't be empty." }, { status: 400 });
     const place_id = body.place_id?.trim();
-    if (!place_id) {
-      return NextResponse.json(
-        { error: "Pick a location from the suggestions before saving." },
-        { status: 400 }
-      );
-    }
-
-    locationChanged = location !== event.location;
+    locationChanged = location !== event.location || Boolean(place_id && place_id !== event.google_place_id);
     if (locationChanged) {
-      let lat: number;
-      let lng: number;
-      let googlePlaceId: string | null = null;
-      if (place_id.startsWith("landmark:")) {
-        const place = geocodeBlacksburg(place_id.slice("landmark:".length));
-        lat = place.lat;
-        lng = place.lng;
-      } else {
-        const resolved = await resolvePlace(place_id);
-        if (resolved) {
-          lat = resolved.lat;
-          lng = resolved.lng;
-          googlePlaceId = place_id;
-        } else {
-          const place = geocodeBlacksburg(location);
-          lat = place.lat;
-          lng = place.lng;
-        }
+      const resolved = await resolveEventLocation(place_id, location);
+      if (!resolved) {
+        return NextResponse.json(
+          { error: "Could not find that address. Pick a suggestion or try a more complete address." },
+          { status: 400 }
+        );
       }
-      patch.lat = lat;
-      patch.lng = lng;
-      patch.google_place_id = googlePlaceId;
+      patch.lat = resolved.lat;
+      patch.lng = resolved.lng;
+      patch.google_place_id = place_id || null;
     }
     patch.location = location;
   }
@@ -151,6 +136,25 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
     patch.expected_headcount = expected_headcount;
   }
+
+  // The event's own restaurant list is regenerated whenever its address or
+  // search radius changes; edits to anything else never touch Places.
+  let discoveredKey: string | null = null;
+  const regenerateRestaurants = async () => {
+    const lat = patch.lat ?? event.lat;
+    const lng = patch.lng ?? event.lng;
+    const radius = patch.radius ?? event.radius;
+    if (!locationChanged && radius === event.radius) return;
+    const key = `${lat},${lng},${radius}`;
+    if (key === discoveredKey) return;
+    discoveredKey = key;
+    const { ids } = await discoverAndUpsertRestaurants({ lat, lng }, radius);
+    patch.candidate_restaurant_ids = ids;
+    patch.checklist_notes_by_restaurant = {};
+    patch.complex_notes_by_restaurant = {};
+    patch.complex_notes_signature = "";
+  };
+  await regenerateRestaurants();
 
   // Limitations text drives three things, in order: (1) a Gemini-extracted
   // checklist, saved alongside the text; (2) auto-filled radius/budget —
@@ -181,34 +185,33 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         patch.budget_range = suggestions.budget_range;
       }
 
-      if (checklist.length > 0) {
-        const [restaurants, menuItems] = await Promise.all([listRestaurants(), listMenuItems()]);
-        const menuItemsByRestaurant = new Map<string, MenuItem[]>();
-        for (const item of menuItems) {
-          const list = menuItemsByRestaurant.get(item.restaurant_id) ?? [];
-          list.push(item);
-          menuItemsByRestaurant.set(item.restaurant_id, list);
-        }
-        patch.checklist_notes_by_restaurant = await evaluateRestaurantsAgainstChecklist(
-          checklist,
-          restaurants,
-          menuItemsByRestaurant
-        );
-      } else {
-        patch.checklist_notes_by_restaurant = {};
-      }
+      // A limitations-suggested radius may itself change the restaurant list.
+      await regenerateRestaurants();
     } else if (!limitations) {
       patch.limitations_checklist = [];
       patch.checklist_notes_by_restaurant = {};
     }
   }
 
-  const updated = await updateEvent(id, patch);
-
-  if (locationChanged && updated) {
-    const radiusForDiscovery = patch.radius ?? updated.radius;
-    discoverAndUpsertRestaurants({ lat: updated.lat, lng: updated.lng }, radiusForDiscovery).catch(() => {});
+  // Score this event's own restaurants against its checklist whenever the
+  // checklist or the restaurant list changed in this save.
+  const checklist = patch.limitations_checklist ?? event.limitations_checklist ?? [];
+  if (checklist.length > 0 && (patch.limitations_checklist || patch.candidate_restaurant_ids)) {
+    const merged = { ...event, ...patch };
+    const [restaurants, menuItems] = await Promise.all([listRestaurantsForEvent(merged), listMenuItems()]);
+    const menuItemsByRestaurant = new Map<string, MenuItem[]>();
+    for (const item of menuItems) {
+      const list = menuItemsByRestaurant.get(item.restaurant_id) ?? [];
+      list.push(item);
+      menuItemsByRestaurant.set(item.restaurant_id, list);
+    }
+    patch.checklist_notes_by_restaurant = await evaluateRestaurantsAgainstChecklist(
+      checklist,
+      restaurants,
+      menuItemsByRestaurant
+    );
   }
 
+  const updated = await updateEvent(id, patch);
   return NextResponse.json({ event: updated });
 }

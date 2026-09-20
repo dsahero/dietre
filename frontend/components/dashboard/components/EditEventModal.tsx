@@ -28,6 +28,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
   const [name, setName] = useState(eventDetails.name);
   const [address, setAddress] = useState(eventDetails.address);
   const [placeId, setPlaceId] = useState<string | null>(eventDetails.placeId ?? null);
+  const [searchEnabled, setSearchEnabled] = useState(true);
   const [radiusMiles, setRadiusMiles] = useState(eventDetails.radiusMiles);
   const [maxBudget, setMaxBudget] = useState(eventDetails.maxBudget);
   const [expectedHeadcount, setExpectedHeadcount] = useState(eventDetails.expectedHeadcount);
@@ -118,12 +119,18 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
                 setAddress(value);
                 setPlaceId(nextPlaceId);
               }}
+              onSearchEnabledChange={setSearchEnabled}
               icon={<MapPin className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--dash-accent)]" />}
               inputClassName="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] py-2 pl-9 pr-3.5 font-serif text-sm text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
             />
-            {address.trim() && !placeId && (
+            {address.trim() && !placeId && searchEnabled && (
               <p className="mt-1 font-serif text-[11px] italic text-[var(--dash-text-muted)]">
                 Pick a suggestion from the dropdown to confirm this location.
+              </p>
+            )}
+            {address.trim() && !placeId && !searchEnabled && (
+              <p className="mt-1 font-serif text-[11px] italic text-[var(--dash-text-muted)]">
+                Type the full address. We'll geocode it when you save.
               </p>
             )}
           </div>
@@ -233,7 +240,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             </button>
             <button
               type="submit"
-              disabled={saving || (Boolean(address.trim()) && !placeId)}
+              disabled={saving || !address.trim()}
               className="flex items-center gap-2 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-accent)] px-5 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition-all hover:opacity-95 disabled:opacity-60 cursor-pointer"
             >
               <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Ledger Changes'}

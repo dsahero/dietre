@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
-import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
 import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react';
+import { ConfidenceChip } from './ConfidenceChip';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -19,7 +19,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   onToggleShortlist,
   onClickDetails,
 }) => {
-  const [textureUrl, setTextureUrl] = useState<string>('');
   const detailsScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollDetails = (direction: 'left' | 'right', e: React.MouseEvent) => {
@@ -29,21 +28,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       detailsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
-
-  useEffect(() => {
-    // Canvas texture generation needs `document` and must run client-side only
-    // (computing it during render would crash SSR / desync from the server-rendered HTML).
-    let url = '';
-    if (restaurant.textureType === 'sand') {
-      url = createSandTexture(260, 180);
-    } else if (restaurant.textureType === 'rust') {
-      url = createRustTexture(260, 180);
-    } else if (restaurant.textureType === 'marble') {
-      url = createMarbleTexture(260, 180);
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the Canvas API, not derivable during render
-    setTextureUrl(url);
-  }, [restaurant.textureType]);
 
   const getMatchBadgeStyle = (pct: number) => {
     if (pct >= 85) return 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50';
@@ -56,20 +40,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       className="content-card relative group border border-transparent transition-all duration-200 hover:-translate-y-0.5 hover:rotate-[-0.3deg] hover:border-[var(--dash-border-strong)] cursor-pointer"
       onClick={() => onClickDetails?.(restaurant)}
     >
-      {/* Left thumbnail with procedural texture */}
-      <div
-        className="card-thumbnail relative flex flex-col justify-between overflow-hidden"
-        style={{
-          backgroundImage: textureUrl ? `url(${textureUrl})` : undefined,
-          backgroundColor:
-            restaurant.textureType === 'sand'
-              ? '#9c816f'
-              : restaurant.textureType === 'rust'
-              ? '#6b4736'
-              : '#bc6936',
-        }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+      {/* Left thumbnail with Google Places venue photo */}
+      <div className="card-thumbnail relative flex flex-col justify-between overflow-hidden bg-[var(--dash-surface)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/api/places/image?query=${encodeURIComponent(restaurant.name + ' ' + restaurant.location)}&address=${encodeURIComponent(restaurant.location)}&place_id=${encodeURIComponent(restaurant.id || '')}`}
+          alt={restaurant.name}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
 
         <div className="relative z-10 flex items-center justify-between gap-1">
           {!restaurant.withinRadius || !restaurant.withinBudget ? (
@@ -80,13 +60,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           ) : (
             <span />
           )}
-          <span
-            className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
-              restaurant.overallScore
-            )}`}
-          >
-            {restaurant.overallScore}% · {restaurant.coveredCount}/{restaurant.totalResponses}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
+                restaurant.overallScore
+              )}`}
+            >
+              {restaurant.overallScore}% · {restaurant.coveredCount}/{restaurant.totalResponses}
+            </span>
+            <ConfidenceChip confidence={restaurant.confidence} />
+          </div>
         </div>
 
         <div className="relative z-10 mt-auto">
@@ -101,21 +84,31 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               {PRICE_LABEL[restaurant.priceLevel]}
             </span>
           </div>
-          {/* Safety + Satisfaction subscores */}
+          {/* Coverage + Guest fit labels */}
           <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--dash-text-soft)]/70">
-            <span title="% of dietary-constraint-weighted guests who can eat here">
-              🛡 {restaurant.matchPercentage}% safe
+            <span title="Severity-weighted % of guests with at least one safe menu item">
+              Coverage: {restaurant.matchPercentage}%
             </span>
             {restaurant.bayesianScore !== undefined && (
               <>
                 <span className="opacity-40">·</span>
-                <span title="Preference satisfaction score based on guest soft preferences">
+                <span
+                  title="How well this restaurant aligns with guests' stated preferences"
+                  className={
+                    restaurant.bayesianScore >= 0.55
+                      ? 'text-emerald-400/80'
+                      : restaurant.bayesianScore <= 0.44
+                      ? 'text-rose-400/80'
+                      : 'text-[var(--dash-text-soft)]/70'
+                  }
+                >
                   <Sparkles className="inline h-2.5 w-2.5 mr-0.5 opacity-70" />
+                  Guest fit:{' '}
                   {restaurant.bayesianScore >= 0.55
-                    ? 'High satisfaction'
+                    ? 'High'
                     : restaurant.bayesianScore <= 0.44
-                    ? 'Low satisfaction'
-                    : 'Neutral'}
+                    ? 'Low'
+                    : 'Medium'}
                 </span>
               </>
             )}

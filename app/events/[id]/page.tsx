@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DEMO_EVENT_ID, SEED_EVENT_2_ID, SEED_EVENT_3_ID } from "@/backend/data/seed";
 import { getSession, hostIdFromEmail } from "@/backend/lib/auth";
-import { getEvent, getHost, listMenuItems, listResponses, listRestaurants } from "@/backend/lib/db";
+import { getEvent, getHost, listMenuItems, listResponses } from "@/backend/lib/db";
 import { matchEvent } from "@/backend/lib/matching";
+import { attachStoredScores } from "@/backend/lib/scoreConfidence";
+import { ensureEventRestaurants } from "@/backend/lib/restaurantDiscovery";
 import { ModeBanner } from "@/frontend/components/mode-banner";
 import { SharePanel } from "@/frontend/components/share-panel";
 import { SiteHeader } from "@/frontend/components/site-header";
@@ -62,10 +64,14 @@ export default async function EventDashboardPage({
 
   const [responses, restaurants, menuItems] = await Promise.all([
     listResponses(event.id),
-    listRestaurants(),
+    ensureEventRestaurants(event),
     listMenuItems(),
   ]);
-  const match = await matchEvent({ event, responses, restaurants, menuItems });
+  const match = await attachStoredScores(
+    event,
+    responses,
+    await matchEvent({ event, responses, restaurants, menuItems })
+  );
 
   return (
     <OverviewDashboard

@@ -18,26 +18,26 @@ export default async function ResponderPage({
 
   const host = await getHost(event.host_id).catch(() => null);
   const hostName = host?.name ?? "Event Host";
+  const firstName = hostName.split(" ")[0];
 
   return (
     <div className="flex min-h-full flex-col">
       <ModeBanner />
       <SiteHeader quiet />
       <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
-        <div className="paper-grain relative rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 sm:p-7 shadow-[0_4px_16px_rgba(25,12,6,0.12)] mb-6">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <span className="ink-stamp px-2 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)]">
-              Concierge
-            </span>
+        <div className="paper-grain relative mb-6 rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 shadow-[0_4px_16px_rgba(25,12,6,0.12)] sm:p-7">
+          <div className="mb-3 flex justify-end">
             <ParticipantThemeToggle />
           </div>
-          <h1 className="font-heading mt-2 text-3xl font-bold text-[var(--dash-text)]">{event.name}</h1>
-          <p className="mt-1.5 text-xs text-[var(--dash-text-muted)] font-serif">
+          <h1 className="font-heading text-2xl leading-snug font-bold text-[var(--dash-text)] sm:text-3xl">
+            {firstName} invited you to
+          </h1>
+          <h2 className="font-heading mt-1.5 text-3xl leading-tight text-[var(--dash-accent-soft)] sm:text-4xl">
+            {event.name}
+          </h2>
+          <p className="mt-2 font-serif text-xs text-[var(--dash-text-muted)]">
             {event.location} · {new Date(event.date).toLocaleDateString()}
           </p>
-          <div className="mt-4 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 text-xs text-[var(--dash-text-soft)] font-serif leading-relaxed">
-            Talk with <strong>Concierge</strong> below. We&apos;ll record your requirements so the host can find catering that accommodates you safely.
-          </div>
         </div>
         <ParticipantView eventId={event.id} eventName={event.name} hostName={hostName} />
       </main>

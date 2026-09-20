@@ -25,6 +25,7 @@ import {
   queryDocuments,
   setDocument,
 } from "@/backend/lib/firestore";
+import { haversineMiles } from "@/shared/lib/places";
 import type {
   AiItemJudgment,
   DataStore,
@@ -223,6 +224,23 @@ export async function listRestaurants(): Promise<Restaurant[]> {
   return (await readJsonStore()).restaurants;
 }
 
+/**
+ * The restaurants belonging to one event. Uses the event's own candidate list;
+ * events that don't have one yet (legacy) fall back to the shared pool
+ * filtered by distance so they never render blank.
+ */
+export async function listRestaurantsForEvent(event: DietreEvent): Promise<Restaurant[]> {
+  const all = await listRestaurants();
+  const ids = event.candidate_restaurant_ids;
+  if (ids && ids.length > 0) {
+    const wanted = new Set(ids);
+    return all.filter(
+      (restaurant) => wanted.has(restaurant.id) || (restaurant.alias_ids ?? []).some((alias) => wanted.has(alias))
+    );
+  }
+  return all.filter((restaurant) => haversineMiles(event, restaurant) <= event.radius + 0.05);
+}
+
 export async function listMenuItems(): Promise<MenuItem[]> {
   await ensureDemoSeedChecked();
   if (useFirestore()) {
@@ -242,29 +260,137 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
   const { restaurantToDoc } = await import("@/backend/lib/collections");
 
   if (useFirestore()) {
-    const existingMenuIds = await Promise.all(
-      restaurants.map((restaurant) =>
-        getDocument<{ menu_item_ids?: string[] }>(COLLECTIONS.restaurants, restaurant.id)
-      )
-    );
-    const writes = restaurants.map((restaurant, index) => ({
-      collection: COLLECTIONS.restaurants,
-      id: restaurant.id,
-      data: restaurantToDoc(restaurant, existingMenuIds[index]?.menu_item_ids ?? []),
-    }));
-    await commitWrites(writes);
+    // One read of the collection, indexed by Google place id (also derived
+    // from the older opaque `google-<placeId>` doc ids).
+    const existing = await listDocuments<Record<string, unknown>>(COLLECTIONS.restaurants);
+    const byPlaceId = new Map<string, (typeof existing)[number]>();
+    for (const doc of existing) {
+      const placeId =
+        typeof doc.google_place_id === "string"
+          ? doc.google_place_id
+          : doc.id.startsWith("google-")
+            ? doc.id.slice("google-".length)
+            : null;
+      if (placeId) byPlaceId.set(placeId, doc);
+    }
+
+    const toDelete: string[] = [];
+    const writes: Array<{ collection: string; id: string; data: Record<string, unknown> }> = [];
+    for (const restaurant of restaurants) {
+      const placeId = restaurant.google_place_id;
+      const old = placeId ? byPlaceId.get(placeId) : undefined;
+      if (old && old.id === restaurant.id && sameRestaurantFields(old, restaurant)) continue;
+      if (old && old.id !== restaurant.id) toDelete.push(old.id);
+      // Replacing a doc must not forget its menu state.
+      const merged: Restaurant = old
+        ? {
+            ...restaurant,
+            menu_status: restaurant.menu_status ?? menuStatusOf(old.menu_status),
+            menu_checked_at:
+              restaurant.menu_checked_at ?? (typeof old.menu_checked_at === "string" ? old.menu_checked_at : undefined),
+          }
+        : restaurant;
+      writes.push({
+        collection: COLLECTIONS.restaurants,
+        id: restaurant.id,
+        data: restaurantToDoc(merged, asStringArray(old?.menu_item_ids)),
+      });
+    }
+    for (const id of toDelete) await deleteDocument(COLLECTIONS.restaurants, id);
+    if (writes.length) await commitWrites(writes);
     return;
   }
 
   await enqueueWrite(async () => {
     const store = await readJsonStore();
-    const byId = new Map(store.restaurants.map((restaurant) => [restaurant.id, restaurant]));
-    for (const restaurant of restaurants) {
-      byId.set(restaurant.id, restaurant);
-    }
-    store.restaurants = Array.from(byId.values());
+    const incomingPlaceIds = new Set(restaurants.map((r) => r.google_place_id).filter(Boolean));
+    const incomingIds = new Set(restaurants.map((r) => r.id));
+    const previous = new Map<string, Restaurant>();
+    const kept = store.restaurants.filter((existing) => {
+      const placeId = existing.google_place_id ?? (existing.id.startsWith("google-") ? existing.id.slice(7) : null);
+      if (incomingIds.has(existing.id) || (placeId && incomingPlaceIds.has(placeId))) {
+        previous.set(placeId ?? existing.id, existing);
+        return false;
+      }
+      return true;
+    });
+    store.restaurants = [
+      ...kept,
+      ...restaurants.map((restaurant) => {
+        const old = previous.get(restaurant.google_place_id ?? restaurant.id);
+        return old
+          ? {
+              ...restaurant,
+              menu_status: restaurant.menu_status ?? old.menu_status,
+              menu_checked_at: restaurant.menu_checked_at ?? old.menu_checked_at,
+            }
+          : restaurant;
+      }),
+    ];
     await persistJson(store);
   });
+}
+
+/**
+ * Replace one restaurant's menu items (delete the old ones, write the new)
+ * and record the menu state on the restaurant doc. With no items — a failed
+ * or empty scrape — existing items are left alone and only the status is
+ * recorded, so a bad run never erases a good menu.
+ */
+export async function upsertMenuItems(
+  restaurantId: string,
+  items: MenuItem[],
+  status: "ready" | "none" | "failed"
+): Promise<void> {
+  const checkedAt = new Date().toISOString();
+  const finalStatus = items.length === 0 && status === "ready" ? "none" : status;
+
+  if (useFirestore()) {
+    const { menuItemToDoc } = await import("@/backend/lib/collections");
+    const restaurantPatch: Record<string, unknown> = { menu_status: finalStatus, menu_checked_at: checkedAt };
+    if (items.length > 0) {
+      const keep = new Set(items.map((item) => item.id));
+      const existing = await queryDocuments(COLLECTIONS.menu_items, "restaurant_id", "EQUAL", restaurantId);
+      for (const doc of existing) {
+        if (!keep.has(doc.id)) await deleteDocument(COLLECTIONS.menu_items, doc.id);
+      }
+      await commitWrites(
+        items.map((item) => ({ collection: COLLECTIONS.menu_items, id: item.id, data: menuItemToDoc(item) }))
+      );
+      restaurantPatch.menu_item_ids = items.map((item) => item.id);
+    }
+    await patchDocument(COLLECTIONS.restaurants, restaurantId, restaurantPatch);
+    return;
+  }
+
+  await enqueueWrite(async () => {
+    const store = await readJsonStore();
+    if (items.length > 0) {
+      store.menu_items = [...store.menu_items.filter((item) => item.restaurant_id !== restaurantId), ...items];
+    }
+    const restaurant = store.restaurants.find((r) => r.id === restaurantId);
+    if (restaurant) {
+      restaurant.menu_status = finalStatus;
+      restaurant.menu_checked_at = checkedAt;
+    }
+    await persistJson(store);
+  });
+}
+
+function menuStatusOf(value: unknown): Restaurant["menu_status"] {
+  return value === "pending" || value === "ready" || value === "none" || value === "failed" ? value : undefined;
+}
+
+function sameRestaurantFields(doc: Record<string, unknown>, restaurant: Restaurant): boolean {
+  return (
+    doc.name === restaurant.name &&
+    doc.location === restaurant.location &&
+    doc.cuisine === restaurant.cuisine &&
+    doc.price_level === restaurant.price_level &&
+    doc.lat === restaurant.lat &&
+    doc.lng === restaurant.lng &&
+    (doc.website || undefined) === (restaurant.website || undefined)
+  );
 }
 
 function asStringArray(value: unknown): string[] {
@@ -280,7 +406,7 @@ export async function filterValidCandidateRestaurantIds(ids: string[]): Promise<
   if (!ids.length) return [];
   const restaurants = await listRestaurants();
   if (restaurants.length === 0) return [];
-  const known = new Set(restaurants.map((restaurant) => restaurant.id));
+  const known = new Set(restaurants.flatMap((restaurant) => [restaurant.id, ...(restaurant.alias_ids ?? [])]));
   const menuItems = await listMenuItems();
   for (const item of menuItems) {
     if (item.restaurant_id) known.add(item.restaurant_id);
@@ -396,7 +522,7 @@ export async function getEvent(id: string): Promise<DietreEvent | null> {
 export async function createEvent(event: DietreEvent): Promise<DietreEvent> {
   if (useFirestore()) {
     // Never invent seed restaurant ids — candidates start empty until acquisition.
-    await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, []));
+    await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, event.candidate_restaurant_ids ?? []));
     const organizer = await getDocument<{ events?: string[] }>(COLLECTIONS.organizers, event.host_id);
     if (organizer) {
       const events = Array.isArray(organizer.events) ? organizer.events : [];
@@ -434,6 +560,7 @@ export async function updateEvent(
       | "google_place_id"
       | "preference_signals"
       | "preference_signals_signature"
+      | "candidate_restaurant_ids"
     >
   >
 ): Promise<DietreEvent | null> {

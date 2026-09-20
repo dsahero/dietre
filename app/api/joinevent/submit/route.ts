@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("joinevent submit error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Couldn't save your response right now. Please try again in a moment." },
+      { status: 500 }
+    );
   }
 }
 

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
 import { Sidebar } from './components/Sidebar';
 import { DonutChart } from './components/DonutChart';
@@ -38,12 +39,15 @@ import {
   Users,
   PieChart,
   ArrowUpDown,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   MoveHorizontal,
   Layers,
   ShieldCheck,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 
 export type RestaurantSortOption = 'best_fit' | 'closest';
@@ -88,6 +92,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
     if (isMobile) setIsSidebarCollapsed(true);
   }, [isMobile]);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState<boolean>(false);
 
   const [selectedResponse, setSelectedResponse] = useState<GuestResponse | null>(null);
   const [isResponseModalOpen, setIsResponseModalOpen] = useState<boolean>(false);
@@ -151,8 +156,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
   };
 
   const handleGoHome = () => {
-    setActiveNavId('overview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    router.push('/events');
   };
 
   const handleSaveEvent = async (patch: EventEditPatch) => {
@@ -211,6 +215,14 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
           {/* Typographic Asymmetry: natural line breaks, off-baseline action, no small-caps bullet eyebrow */}
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-baseline">
             <div className="max-w-2xl">
+              <Link
+                href="/events"
+                id="btn-back-to-events"
+                className="group inline-flex items-center gap-1.5 mb-2.5 py-1.5 px-3 rounded-xs border border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs font-heading font-semibold text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-translate-x-0.5" />
+                <span>Back to My Events</span>
+              </Link>
               {activeNavId !== 'overview' && (
                 <p className="font-serif italic text-xs text-[var(--dash-accent)] mb-1">
                   {activeNavId === 'shortlisted'
@@ -253,17 +265,26 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
               <span className="text-[var(--dash-text-soft)] italic">
                 <strong className="font-serif not-italic font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</strong> expected banquet guests
               </span>
+              <button
+                type="button"
+                onClick={() => setIsEventDetailsOpen((prev) => !prev)}
+                aria-expanded={isEventDetailsOpen}
+                className="inline-flex items-center gap-1 rounded-xs border border-dashed border-[var(--dash-border-strong)] px-2 py-0.5 font-serif text-[11px] text-[var(--dash-text-soft)] transition-colors hover:border-[var(--dash-accent)] hover:text-[var(--dash-text)] cursor-pointer"
+              >
+                Event details
+                {isEventDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
             </div>
           </div>
 
-          {/* Dual Ledger: 1) Event Detail Limits & 2) Complex Dietary Restrictions */}
-          <div className="mt-3.5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          {/* Event Detail Limits & Complex Dietary Restrictions, behind the "Event details" toggle above. */}
+          <div className={`mt-3.5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs ${isEventDetailsOpen ? '' : 'hidden'}`}>
             {/* 1) Event Detail Limits */}
             <div className="rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3 shadow-2xs">
               <div className="flex items-center justify-between mb-2 border-b border-[var(--dash-border)] pb-1.5">
                 <span className="font-heading text-[11.5px] font-bold uppercase tracking-wider text-[var(--dash-text)] flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-xs bg-[var(--dash-accent)]" />
-                  1. Event Detail Limits
+                  Event Detail Limits
                 </span>
                 <span className="font-mono text-[9px] text-[var(--dash-text-muted)] uppercase tracking-wider">Host Parameters</span>
               </div>
@@ -292,7 +313,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
               <div className="flex items-center justify-between mb-2 border-b border-[#f59e0b]/20 pb-1.5">
                 <span className="font-heading text-[11.5px] font-bold uppercase tracking-wider text-[#b45309] flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-xs bg-[#f59e0b]" />
-                  2. Complex Dietary Restrictions
+                  Complex Dietary Restrictions
                 </span>
                 <span className="ink-stamp px-1.5 py-0.2 text-[8.5px] font-bold text-[#b45309] border-[#b45309]">
                   Gemini Audited
@@ -450,6 +471,13 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                       </div>
                     </div>
                   </div>
+
+                  {sortedRestaurants.length === 0 && (
+                    <p className="rounded-md border border-dashed border-[var(--dash-border)] px-4 py-6 text-center font-serif text-sm italic text-[var(--dash-text-muted)]">
+                      No restaurants found near this event&apos;s address yet. Try a larger radius or a more specific
+                      address in Edit Event.
+                    </p>
+                  )}
 
                   {restaurantLayout === 'side_scroll' ? (
                     <div

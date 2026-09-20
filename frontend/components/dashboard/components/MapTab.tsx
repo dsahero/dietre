@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Compass, Filter, Info, Maximize2, Menu, Minimize2, Search, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Compass, Filter, Info, Maximize2, Menu, Minimize2, Search, ZoomIn, ZoomOut } from 'lucide-react';
 import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
+import { confidenceTitle } from './ConfidenceChip';
 import { useIsMobile } from '@/frontend/lib/use-is-mobile';
 
 interface MapTabProps {
@@ -42,6 +43,43 @@ const TIER_LABEL: Record<MatchTier, string> = {
   outside: 'Outside radius/budget',
 };
 
+const METERS_PER_MILE = 1609.344;
+// Overlays that cover part of the map: the top bar, and the detail panel
+// docked on the right (max-w-md). Framing and centering aim at what's left.
+const TOP_BAR_PX = 46;
+const PANEL_PX = 448;
+
+function panelInset(mapWidth: number, panelOpen: boolean): number {
+  return panelOpen && mapWidth - PANEL_PX > mapWidth * 0.15 ? PANEL_PX : 0;
+}
+
+function frameCircle(map: L.Map, circle: L.Circle, panelOpen: boolean, animate: boolean) {
+  const size = map.getSize();
+  const right = panelInset(size.x, panelOpen);
+  // Leave ~20% of the free space as margin on every side so the circle sits
+  // inside the view with surrounding streets visible instead of filling it.
+  const padX = Math.max(40, (size.x - right) * 0.2);
+  const padY = Math.max(40, (size.y - TOP_BAR_PX) * 0.2);
+  map.fitBounds(circle.getBounds(), {
+    paddingTopLeft: [padX, TOP_BAR_PX + padY],
+    paddingBottomRight: [padX + right, padY],
+    animate,
+  });
+}
+
+function radiusLabelIcon(radiusMiles: number): L.DivIcon {
+  const label = `${Number.isInteger(radiusMiles) ? radiusMiles : radiusMiles.toFixed(2).replace(/0+$/, '')} mi radius`;
+  return L.divIcon({
+    className: 'radius-label',
+    html: `<span style="display:inline-block;transform:translate(-50%,-120%);white-space:nowrap;font:600 11px sans-serif;padding:1px 6px;border-radius:3px;background:rgba(255,255,255,0.85);color:#333;border:1px solid rgba(0,0,0,0.2)">${label}</span>`,
+    iconSize: [0, 0],
+  });
+}
+
+function northEdge(lat: number, lng: number, radiusMiles: number): [number, number] {
+  return [lat + (radiusMiles * METERS_PER_MILE) / 111320, lng];
+}
+
 function tierFor(restaurant: RestaurantCardData): MatchTier {
   if (!restaurant.withinRadius || !restaurant.withinBudget) return 'outside';
   if (restaurant.matchPercentage >= 85) return 'strong';
@@ -59,6 +97,11 @@ export const MapTab: React.FC<MapTabProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
+  const eventMarkerRef = useRef<L.Marker | null>(null);
+  const radiusLabelRef = useRef<L.Marker | null>(null);
+  const panelOpenRef = useRef(false);
+  const [isMatchQualityOpen, setIsMatchQualityOpen] = useState(true);
 
   const isMobile = useIsMobile(880);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -117,7 +160,15 @@ export const MapTab: React.FC<MapTabProps> = ({
   const selectRestaurant = (restaurant: RestaurantCardData) => {
     setSelectedId(restaurant.id);
     setDetailRestaurant(restaurant);
-    mapRef.current?.panTo([restaurant.lat, restaurant.lng], { animate: true });
+    panelOpenRef.current = true;
+    const map = mapRef.current;
+    if (!map) return;
+    // Center in the part of the map the top bar and detail panel don't cover.
+    const size = map.getSize();
+    const right = panelInset(size.x, true);
+    const target = L.point((size.x - right) / 2, TOP_BAR_PX + (size.y - TOP_BAR_PX) / 2);
+    const current = map.latLngToContainerPoint([restaurant.lat, restaurant.lng]);
+    map.panBy(current.subtract(target), { animate: true });
   };
 
   // Initialize the map once.
@@ -154,12 +205,21 @@ export const MapTab: React.FC<MapTabProps> = ({
       subdomains: 'abc',
     }).addTo(map);
 
-    L.circle([event.lat, event.lng], {
-      radius: event.radiusMiles * 1609.34,
+    const circle = L.circle([event.lat, event.lng], {
+      radius: event.radiusMiles * METERS_PER_MILE,
       color: accent,
       weight: 1,
       fillColor: accent,
       fillOpacity: 0.06,
+    }).addTo(map);
+    circleRef.current = circle;
+    frameCircle(map, circle, false, false);
+
+    const scale = L.control.scale({ imperial: true, metric: false, position: 'bottomleft' }).addTo(map);
+    scale.getContainer()?.style.setProperty('margin-bottom', '72px');
+    radiusLabelRef.current = L.marker(northEdge(event.lat, event.lng, event.radiusMiles), {
+      icon: radiusLabelIcon(event.radiusMiles),
+      interactive: false,
     }).addTo(map);
 
     const eventIcon = L.divIcon({
@@ -168,7 +228,7 @@ export const MapTab: React.FC<MapTabProps> = ({
       iconSize: [16, 16],
       iconAnchor: [8, 8],
     });
-    L.marker([event.lat, event.lng], { icon: eventIcon })
+    eventMarkerRef.current = L.marker([event.lat, event.lng], { icon: eventIcon })
       .addTo(map)
       .bindTooltip(event.name, { direction: 'top', offset: [0, -8] });
 
@@ -183,9 +243,32 @@ export const MapTab: React.FC<MapTabProps> = ({
       map.remove();
       mapRef.current = null;
       markersRef.current = null;
+      circleRef.current = null;
+      eventMarkerRef.current = null;
+      radiusLabelRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- map is initialized once; markers sync in the effect below
   }, []);
+
+  // Follow the event when its address, radius or name changes: move the dot,
+  // redraw the circle at true scale (meters), and re-frame the map on it.
+  const lastEventKeyRef = useRef(`${event.lat},${event.lng},${event.radiusMiles}`);
+  useEffect(() => {
+    const map = mapRef.current;
+    const circle = circleRef.current;
+    const marker = eventMarkerRef.current;
+    if (!map || !circle || !marker) return;
+    marker.setTooltipContent(event.name);
+    const key = `${event.lat},${event.lng},${event.radiusMiles}`;
+    if (key === lastEventKeyRef.current) return;
+    lastEventKeyRef.current = key;
+    marker.setLatLng([event.lat, event.lng]);
+    circle.setLatLng([event.lat, event.lng]);
+    circle.setRadius(event.radiusMiles * METERS_PER_MILE);
+    radiusLabelRef.current?.setLatLng(northEdge(event.lat, event.lng, event.radiusMiles));
+    radiusLabelRef.current?.setIcon(radiusLabelIcon(event.radiusMiles));
+    frameCircle(map, circle, panelOpenRef.current, true);
+  }, [event.lat, event.lng, event.radiusMiles, event.name]);
 
   // Keep Leaflet markers in sync with the filtered restaurant list.
   useEffect(() => {
@@ -243,20 +326,31 @@ export const MapTab: React.FC<MapTabProps> = ({
       id="map-tab-container"
     >
       {/* Locations sidebar */}
-      {isSidebarOpen && (
+      <div
+        className={`h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-out ${
+          isSidebarOpen ? 'w-72 sm:w-80' : 'w-0'
+        }`}
+        aria-hidden={!isSidebarOpen}
+      >
         <aside className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-r border-[var(--dash-border)] bg-[var(--dash-surface)] sm:w-80">
           <div className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]">
+            <div className={`flex items-center justify-between ${isMatchQualityOpen ? 'mb-2' : ''}`}>
+              <button
+                type="button"
+                onClick={() => setIsMatchQualityOpen((prev) => !prev)}
+                aria-expanded={isMatchQualityOpen}
+                className="flex cursor-pointer items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]"
+              >
                 <Filter className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
                 Match Quality
-              </span>
+                {isMatchQualityOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
               <span className="rounded-full border border-[var(--dash-border)] bg-[var(--dash-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--dash-text-soft)]">
                 {visible.length} shown
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className={`flex flex-wrap gap-1.5 ${isMatchQualityOpen ? '' : 'hidden'}`}>
               <button
                 type="button"
                 onClick={() => setActiveFilter(null)}
@@ -321,6 +415,12 @@ export const MapTab: React.FC<MapTabProps> = ({
                           {restaurant.matchPercentage}%
                         </span>
                         <span className="font-mono text-[10px] text-[var(--dash-text-muted)]">{restaurant.distanceMiles} mi</span>
+                        <span
+                          className="font-mono text-[10px] text-[var(--dash-text-soft)]"
+                          title={confidenceTitle(restaurant.confidence)}
+                        >
+                          conf: {restaurant.confidence.tier === 'unknown' ? 'n/a' : restaurant.confidence.tier}
+                        </span>
                       </div>
                     </div>
                   </button>
@@ -336,10 +436,19 @@ export const MapTab: React.FC<MapTabProps> = ({
             </div>
           </div>
         </aside>
-      )}
+      </div>
 
       {/* Map area */}
       <div className="relative flex-1">
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen((prev) => !prev)}
+          aria-label={isSidebarOpen ? 'Collapse restaurant list' : 'Expand restaurant list'}
+          title={isSidebarOpen ? 'Collapse list' : 'Show list'}
+          className="absolute left-0 top-1/2 z-[950] flex h-14 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-r-sm border border-l-0 border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-soft)] shadow-md transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
+        >
+          {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </button>
         {/* Top bar */}
         <div className="absolute inset-x-0 top-0 z-[900] flex items-center justify-between gap-3 border-b border-[var(--dash-border)] bg-[var(--dash-surface)]/95 px-4 py-2.5 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
@@ -406,7 +515,10 @@ export const MapTab: React.FC<MapTabProps> = ({
           <div className="mx-1 h-px bg-[var(--dash-border)]" />
           <button
             type="button"
-            onClick={() => mapRef.current?.setView([event.lat, event.lng], 13, { animate: true })}
+            onClick={() => {
+              const circle = circleRef.current;
+              if (circle && mapRef.current) frameCircle(mapRef.current, circle, panelOpenRef.current, true);
+            }}
             title="Recenter on event"
             aria-label="Recenter on event"
             className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm text-[var(--dash-text-soft)] transition-colors hover:bg-[var(--dash-surface-raised)] hover:text-[var(--dash-text)]"
@@ -435,7 +547,10 @@ export const MapTab: React.FC<MapTabProps> = ({
               restaurant={detailRestaurant}
               isShortlisted={shortlistedIds.includes(detailRestaurant.id)}
               onToggleShortlist={onToggleShortlist}
-              onClose={() => setDetailRestaurant(null)}
+              onClose={() => {
+                panelOpenRef.current = false;
+                setDetailRestaurant(null);
+              }}
               onSelectResponse={onSelectResponse}
               compact
             />

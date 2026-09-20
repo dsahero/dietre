@@ -9,12 +9,23 @@ import type {
   DietreEvent,
   MatchResult,
   MenuItem,
+  MenuStats,
   PreferenceSignal,
   Restaurant,
   RestaurantMatch,
   ZeroMatchAlert,
 } from "@/shared/lib/types";
 import { saveEventComplexContext } from "@/backend/lib/eventContext";
+
+function menuStatsFor(items: MenuItem[]): MenuStats {
+  const total = items.length;
+  const pct = (count: number) => (total === 0 ? 0 : Math.round((count / total) * 100));
+  return {
+    item_count: total,
+    explicit_ingredient_pct: pct(items.filter((item) => item.estimated_ingredients.length > 0).length),
+    high_confidence_pct: pct(items.filter((item) => item.confidence === "high").length),
+  };
+}
 
 function guestLabel(
   index: number,
@@ -164,7 +175,12 @@ Return ONLY JSON:
     }
     return Object.keys(out).length > 0 ? out : null;
   } catch (e) {
-    console.warn("Gemini complex requirements evaluation fallback:", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("429") || msg.includes("Quota exceeded") || msg.includes("quota")) {
+      console.warn("Gemini quota reached or rate-limited; using rule-based evaluation fallback.");
+    } else {
+      console.warn("Gemini complex requirements evaluation fallback:", msg);
+    }
     return null;
   }
 }
@@ -329,6 +345,7 @@ export async function matchEvent(input: {
           complex_notes: [],
           bayesian_score: 0.5,
           overall_score: 0,
+          menu_stats: menuStatsFor(itemsByRestaurant.get(restaurant.id) ?? []),
         };
       })
       .sort((a, b) => a.distance_miles - b.distance_miles);
@@ -538,6 +555,7 @@ export async function matchEvent(input: {
       complex_notes: complexNotesByRestaurant[restaurant.id] ?? [],
       bayesian_score,
       overall_score,
+      menu_stats: menuStatsFor(items),
     };
   });
 

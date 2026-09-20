@@ -10,9 +10,21 @@ export async function SiteHeader({ quiet = false }: { quiet?: boolean }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
+      <div
+        className={
+          quiet
+            ? "mx-auto flex h-16 max-w-6xl items-center justify-center px-4"
+            : "mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4"
+        }
+      >
         <Link href="/" className="flex items-center" aria-label="dietre home">
-          <DietreLogo className="h-6 w-auto text-foreground hover:opacity-85 transition-opacity" />
+          <DietreLogo
+            className={
+              quiet
+                ? "h-9 w-auto text-foreground transition-opacity hover:opacity-85"
+                : "h-6 w-auto text-foreground transition-opacity hover:opacity-85"
+            }
+          />
         </Link>
         {!quiet && (
           <nav className="flex items-center gap-1.5 text-sm">

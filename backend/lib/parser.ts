@@ -194,9 +194,23 @@ function excludeHitsFlags(exclude: string, flags: MenuFlags): boolean {
 function excludeHitsIngredients(exclude: string, ingredients: string[]): boolean {
   const key = normalize(exclude);
   if (!key) return false;
+  // Whole-word match either way ("tree nuts" vs "nuts"), so "egg" no longer
+  // flags "eggplant" and "oil" no longer flags "boiled".
+  const singular = (word: string) => (word.length > 3 && word.endsWith("s") ? word.slice(0, -1) : word);
+  const words = (text: string) =>
+    ` ${text
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(" ")
+      .map(singular)
+      .join(" ")} `;
+  const keyWords = words(key);
   return ingredients.some((ingredient) => {
     const item = normalize(ingredient);
-    return item === key || item.includes(key) || key.includes(item);
+    if (!item) return false;
+    if (item === key) return true;
+    const itemWords = words(item);
+    return itemWords.includes(keyWords) || keyWords.includes(itemWords);
   });
 }
 

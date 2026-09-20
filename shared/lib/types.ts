@@ -80,6 +80,9 @@ export type DietreEvent = {
   // cached on the event document. Absent until the first Gemini evaluation completes.
   preference_signals?: Record<string, Record<string, PreferenceSignal>>;
   preference_signals_signature?: string;
+  // This event's own restaurant list (ids into the restaurants collection),
+  // generated from its confirmed address + radius. Undefined on legacy events.
+  candidate_restaurant_ids?: string[];
 };
 
 export type ParsedRules = {
@@ -110,6 +113,15 @@ export type Restaurant = {
   price_level: 1 | 2 | 3;
   lat: number;
   lng: number;
+  // Other ids this restaurant was stored under before it was re-keyed;
+  // events that still list an old id keep resolving to it.
+  alias_ids?: string[];
+  // Google Places id for discovered restaurants.
+  google_place_id?: string;
+  website?: string;
+  // Menu acquisition state for discovered restaurants.
+  menu_status?: "pending" | "ready" | "none" | "failed";
+  menu_checked_at?: string;
 };
 
 export type MenuItem = {
@@ -158,6 +170,27 @@ export type ComplexRequirementNote = {
   note: string;
 };
 
+export type MenuStats = {
+  item_count: number;
+  // Share (0-100) of items whose ingredients are explicit, not estimated/missing.
+  explicit_ingredient_pct: number;
+  high_confidence_pct: number;
+};
+
+export type RestaurantConfidence = {
+  // Group score as 0-100; null when there's no menu data to score against.
+  score: number | null;
+  tier: "high" | "medium" | "low" | "unknown";
+  // True when thin/low-confidence menu data capped the tier.
+  data_limited: boolean;
+  // "database" = read from the stored restaurant_scores doc; "live" = computed this render.
+  source: "database" | "live";
+  utilitarian_pct: number;
+  rawlsian_all_covered: boolean;
+  rank_utilitarian: number | null;
+  rank_rawlsian: number | null;
+};
+
 export type RestaurantMatch = {
   restaurant: Restaurant;
   distance_miles: number;
@@ -176,6 +209,8 @@ export type RestaurantMatch = {
   // signal nudges it ±up to 20 pts. Formula: clamp(coverage + (bayes−0.5)×40, 0, 100).
   // When no preferences exist (all Beta(1,1)), overall_score === weighted_coverage_pct.
   overall_score: number;
+  menu_stats?: MenuStats;
+  confidence?: RestaurantConfidence;
 };
 
 export type ZeroMatchAlert = {

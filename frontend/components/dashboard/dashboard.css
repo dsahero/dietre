@@ -75,10 +75,10 @@ html, body {
  * attribute the component already sets on collapse keeps this rule in the
  * same unlayered context, where normal specificity applies and this wins.
  */
-.sidebar[aria-hidden="true"] {
-  width: 0;
-  min-width: 0;
-  border-right-width: 0;
+.sidebar[aria-hidden="true"],
+.sidebar[data-collapsed="true"] {
+  width: 68px;
+  min-width: 68px;
 }
 
 /* Broken artistic hairline overlay down the sidebar border to avoid sterile 1px look */

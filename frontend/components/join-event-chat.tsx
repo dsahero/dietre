@@ -21,6 +21,8 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [finished, setFinished] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [pendingRules, setPendingRules] = useState<ParsedRules | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | undefined>(undefined);
   const [pendingName, setPendingName] = useState<string | undefined>(undefined);
@@ -87,6 +89,7 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
       setMessages(updatedHistory);
 
       if (data.done && data.parsedRules) {
+        setFinished(true);
         setPendingRules(data.parsedRules);
         setPendingEmail(data.contactEmail);
         if (data.guestName) setPendingName(data.guestName);
@@ -109,6 +112,9 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
     history: Message[],
     guestName?: string
   ) {
+    if (saving) return;
+    setSaving(true);
+    setSubmitError(null);
     try {
       const rawSummary = history
         .filter((m) => m.role === "user")
@@ -126,20 +132,27 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
           rawSummary,
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!data.ok) {
-        setSubmitError(data.error ?? "Failed to save your response.");
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setSubmitError(data.error ?? "Couldn't save your response. Please try again.");
       } else {
         setSubmitted(true);
       }
     } catch {
-      setSubmitError("Network error — please refresh and try again.");
+      setSubmitError("Network error — please check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
+  }
+
+  function retrySubmit() {
+    if (!pendingRules) return;
+    void submitResponse(pendingRules, pendingEmail, messages, pendingName);
   }
 
   function handleSend() {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || finished) return;
     setInput("");
     void sendMessage(text, messages);
   }
@@ -204,9 +217,11 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
     );
   }
 
+  const firstAssistantIndex = messages.findIndex((m) => m.role === "assistant");
+
   return (
     <div className="flex flex-col">
-      <div className="max-h-[min(520px,55vh)] space-y-6 overflow-y-auto px-1 py-2">
+      <div className="space-y-6 px-1 py-2">
         {messages.length === 0 && !loading && (
           <p className="font-serif italic text-sm text-[var(--dash-text-muted)]">Starting…</p>
         )}
@@ -214,9 +229,11 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
         {messages.map((msg, i) =>
           msg.role === "assistant" ? (
             <div key={i} className="max-w-[36rem]">
-              <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-accent)]">
-                Concierge
-              </p>
+              {i === firstAssistantIndex && (
+                <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-accent)]">
+                  Concierge
+                </p>
+              )}
               <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-[var(--dash-text)]">
                 {msg.text}
               </p>
@@ -242,6 +259,27 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
           </div>
         )}
 
+        {finished && saving && (
+          <div className="flex items-center gap-2 text-[var(--dash-text-muted)]">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--dash-accent)]" />
+            <span className="font-serif italic text-sm">Saving your answers…</span>
+          </div>
+        )}
+
+        {finished && submitError && (
+          <div className="rounded-xs border border-[#ef4444]/40 bg-[#ef4444]/10 p-3 text-sm text-[#b91c1c]">
+            <p>{submitError}</p>
+            <button
+              type="button"
+              onClick={retrySubmit}
+              disabled={saving}
+              className="mt-2 cursor-pointer rounded-xs bg-[var(--dash-accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              Try saving again
+            </button>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -253,13 +291,13 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={loading ? "One moment…" : "Your reply…"}
-          disabled={loading}
+          disabled={loading || finished}
           className="min-w-0 flex-1 border-0 border-b border-[var(--dash-border-strong)] bg-transparent px-0 py-2.5 font-serif text-[15px] text-[var(--dash-text)] placeholder:text-[var(--dash-text-muted)] focus:border-[var(--dash-accent)] focus:outline-none disabled:opacity-50"
         />
         <button
           type="button"
           onClick={handleSend}
-          disabled={loading || !input.trim()}
+          disabled={loading || finished || !input.trim()}
           className="mb-0.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xs bg-[var(--dash-accent)] text-white transition-colors hover:bg-[var(--dash-accent-deep)] disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Send"
         >

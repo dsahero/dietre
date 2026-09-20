@@ -13,27 +13,24 @@
    ========================================================================== */
 
 .remix-outer {
-  background: #2B2118;
+  background: #FBF6EF;
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  /* No overflow set — window must be the scroll container so that:
-     1. position: sticky on .remix-section-grey-sticky works correctly
-     2. window scroll listeners in useTrackProgress / LowerFork fire
-     overflow-x: auto here creates a scoped scroll container that breaks both */
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
 }
 
-/* Canvas Frame (1440px × 5717px) */
+/* Canvas Frame (Full Width Container) */
 .remix-artboard {
   position: relative;
-  width: 1440px;
-  min-width: 1440px;
+  width: 100%;
+  max-width: 100%;
   height: 5717px;
   background: #FBF6EF;
-  /* overflow: clip removed — any value other than visible breaks position: sticky
-     on .remix-section-grey-sticky (browsers treat clip/hidden as scroll containers
-     for sticky ancestor checks). The box-shadow handles the visual depth. */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   font-family: var(--font-inter), 'Inter', sans-serif;
   color: #2B2118;
 }
@@ -48,16 +45,25 @@
   top: 0;
   left: 0;
   right: 0;
+  width: 100%;
   height: 103px;
   background: #D7531F;
   z-index: 50;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
 }
 
+.remix-navbar-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 100%;
+}
+
 /* Logo Mark */
 .remix-logo-box {
   position: absolute;
-  left: 23px;
+  left: 24px;
   top: 21px;
   width: 62px;
   height: 62px;
@@ -182,6 +188,7 @@
   top: 103px;
   left: 0;
   right: 0;
+  width: 100%;
   height: 799px;
   background: radial-gradient(ellipse at 28.51% 66.96%, #FBF6EF 0%, #E2D6C3 75%);
 }
@@ -221,15 +228,19 @@
 .remix-hero-tagline {
   margin-top: 18px;
   width: 100%;
+  min-height: 120px;
+  height: auto;
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: italic;
   font-weight: 400;
   font-size: 62.5px;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: 0.005em;
   word-spacing: 0.03em;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
   color: #2B2118;
   font-variation-settings: 'opsz' 144, 'WONK' 1;
 }
@@ -242,19 +253,22 @@
 .remix-section-grey-track {
   position: absolute;
   left: 0;
+  right: 0;
+  width: 100%;
   top: 760px;
-  width: 1440px;
   height: 2600px;
   z-index: 2;
+  display: flex;
+  justify-content: center;
 }
 
 /* Sticky Stage */
 .remix-section-grey-sticky {
   position: sticky;
   top: 30px;
-  left: 0;
   width: 1440px;
   height: 940px;
+  flex-shrink: 0;
 }
 
 /* Dark Rounded Container */
@@ -285,6 +299,11 @@
   left: 0;
   top: 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .remix-card-dark-title {
@@ -292,12 +311,14 @@
   font-style: italic;
   font-weight: 700;
   font-size: 72px;
-  line-height: 88px;
+  line-height: 1.2;
   text-decoration-line: underline;
   text-decoration-color: #FFFFFF;
   text-underline-offset: 8px;
   color: #FFFFFF;
-  margin-bottom: 24px;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .remix-card-dark-body {
@@ -307,6 +328,9 @@
   font-size: 24px;
   line-height: 36px;
   color: #FFFFFF;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Concentric Decorative Discs (Plate) */
@@ -416,9 +440,9 @@
 
 .remix-banner-image {
   position: absolute;
-  left: 418px;
+  left: calc(50% - 302px);
+  right: 0;
   top: 3407px;
-  width: 1022px;
   height: 825px;
   background: #B3866A url('https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
 }
@@ -427,39 +451,57 @@
   position: absolute;
   left: 0;
   right: 0;
+  width: 100%;
   top: 3408px;
   height: 824px;
   background: linear-gradient(90deg, #D7531F 54.24%, rgba(113, 44, 16, 0) 93.43%);
 }
 
-.remix-banner-title {
+.remix-banner-content {
   position: absolute;
-  left: 56px;
+  left: calc(50% - 664px);
   top: 3468px;
-  width: 623px;
-  height: 90px;
+  width: 580px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 2;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.remix-banner-title {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: auto;
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: italic;
   font-weight: 700;
   font-size: 72px;
-  line-height: 88px;
+  line-height: 1.15;
   color: #FFFFFF;
-  z-index: 2;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .remix-banner-body {
-  position: absolute;
-  left: 58px;
-  top: 3580px;
-  width: 580px;
-  height: 506px;
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: auto;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 24px;
   line-height: 36px;
   color: #FFFFFF;
-  z-index: 2;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ==========================================================================
@@ -469,15 +511,16 @@
 .remix-section-cards-bg {
   position: absolute;
   left: 0;
+  right: 0;
+  width: 100%;
   top: 4232px;
-  width: 1440px;
   height: 810px;
   background: #F1E9DC;
 }
 
 .remix-section-cards-title {
   position: absolute;
-  left: 56px;
+  left: calc(50% - 664px);
   top: 4279px;
   width: 623px;
   height: 109px;
@@ -491,7 +534,7 @@
 
 .remix-section-cards-divider {
   position: absolute;
-  left: 58px;
+  left: calc(50% - 662px);
   top: 4388px;
   width: 560px;
   height: 0px;
@@ -500,7 +543,7 @@
 
 .remix-section-cards-subtitle {
   position: absolute;
-  left: 58px;
+  left: calc(50% - 662px);
   top: 4409px;
   width: 694px;
   height: 116px;
@@ -515,7 +558,7 @@
 /* Lower Fork Container */
 .remix-fork-lower {
   position: absolute;
-  left: 1156px;
+  left: calc(50% + 436px);
   top: 3730px;
   width: 220px;
   height: 820px;
@@ -528,11 +571,19 @@
   position: absolute;
   top: 4545px;
   width: 404px;
-  height: 428px;
+  height: auto;
+  min-height: 428px;
   background: #FFFFFF;
   border: 5px solid #E2D6C3;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  padding: 36px 28px;
+  gap: 16px;
+  overflow-y: auto;
+  word-break: break-word;
+  overflow-wrap: break-word;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -541,75 +592,53 @@
   box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.12);
 }
 
-.remix-card-col-1 { left: 56px; }
-.remix-card-col-2 { left: 518px; }
-.remix-card-col-3 { left: 980px; }
+.remix-card-col-1 { left: calc(50% - 664px); }
+.remix-card-col-2 { left: calc(50% - 202px); }
+.remix-card-col-3 { left: calc(50% + 260px); }
 
 /* Card Icons */
-.remix-card-icon-container-1 {
-  position: absolute;
-  left: 93px;
-  top: 4593px;
-  width: 74px;
-  height: 59px;
+.remix-card-icon-container {
   display: flex;
   align-items: center;
-}
-
-.remix-card-icon-container-2 {
-  position: absolute;
-  left: 557px;
-  top: 4593px;
-  width: 59px;
-  height: 59px;
-  display: flex;
-  align-items: center;
-}
-
-.remix-card-icon-container-3 {
-  position: absolute;
-  left: 1021px;
-  top: 4590px;
-  width: 62px;
-  height: 62px;
-  display: flex;
-  align-items: center;
+  height: 64px;
+  flex-shrink: 0;
 }
 
 /* Card Titles */
 .remix-card-title {
-  position: absolute;
-  top: 4681px;
-  width: 207px;
-  height: 39px;
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  height: auto;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 700;
   font-size: 32px;
-  line-height: 39px;
+  line-height: 1.2;
   color: #D7531F;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
-
-.remix-card-title-1 { left: 93px; }
-.remix-card-title-2 { left: 557px; }
-.remix-card-title-3 { left: 1021px; }
 
 /* Card Paragraphs */
 .remix-card-text {
-  position: absolute;
-  width: 317px;
-  height: 335px;
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  height: auto;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 24px;
   line-height: 29px;
   color: #6B6055;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
-
-.remix-card-text-1 { left: 96px; top: 4732px; }
-.remix-card-text-2 { left: 561px; top: 4732px; }
-.remix-card-text-3 { left: 1021px; top: 4736px; }
 
 /* ==========================================================================
    SECTION 5: CALL TO ACTION
@@ -617,34 +646,52 @@
 
 .remix-cta-card {
   position: absolute;
-  left: 133px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   top: 5137px;
   width: 1174px;
-  height: 368px;
+  max-width: calc(100% - 48px);
+  height: auto;
+  min-height: 368px;
   background: #D7531F;
   box-shadow: 14px 14px 4px rgba(0, 0, 0, 0.25);
   border-radius: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 60px;
+  gap: 20px;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .remix-cta-heading {
-  position: absolute;
-  left: 174px;
-  right: 174px;
-  top: 5205px;
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  width: 100%;
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: normal;
   font-weight: 400;
   font-size: 48px;
-  line-height: 60px;
+  line-height: 1.25;
   text-align: center;
   color: #FFFFFF;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .remix-cta-subheading {
-  position: absolute;
-  left: 148px;
-  right: 148px;
-  top: 5282px;
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  width: 100%;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
@@ -652,13 +699,25 @@
   line-height: 26px;
   text-align: center;
   color: #FFFFFF;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.remix-cta-buttons-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 /* CTA Button - Sign Up */
 .remix-cta-btn-signup {
-  position: absolute;
-  left: 417px;
-  top: 5375px;
+  position: relative;
+  left: auto;
+  top: auto;
   width: 271px;
   height: 82px;
   background: #FFFFFF;
@@ -690,9 +749,9 @@
 
 /* CTA Button - Log In */
 .remix-cta-btn-login {
-  position: absolute;
-  left: 792px;
-  top: 5375px;
+  position: relative;
+  left: auto;
+  top: auto;
   width: 231px;
   height: 82px;
   background: #C9B79C;
@@ -729,10 +788,19 @@
 .remix-footer {
   position: absolute;
   left: 0;
+  right: 0;
+  width: 100%;
   top: 5599px;
-  width: 1440px;
   height: 118px;
   background: #F1E9DC;
+}
+
+.remix-footer-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 100%;
 }
 
 /* Footer Brand Badge */
