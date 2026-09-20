@@ -8,6 +8,7 @@ interface LocationAutocompleteProps {
   value: string;
   placeId: string | null;
   onChange: (value: string, placeId: string | null) => void;
+  onSearchEnabledChange?: (enabled: boolean) => void;
   placeholder?: string;
   required?: boolean;
   /** Merged onto the <input> itself — pass the same classes each call site already used. */
@@ -19,15 +20,16 @@ interface LocationAutocompleteProps {
 type Suggestion = { placeId: string; mainText: string; secondaryText: string };
 
 /**
- * Real-address autocomplete backed by /api/places/autocomplete (Google
- * Places). Worldwide — no city bias or landmark allowlist. Typing always
- * clears any prior confirmed pick — the host must click a suggestion for
- * onChange's placeId to become non-null again.
+ * Worldwide address autocomplete via /api/places/autocomplete (Places, then
+ * Nominatim). Typing clears any prior confirmed pick. Search staying down
+ * does not latch forever — each keystroke retries — and the parent can still
+ * submit a raw address for server-side geocode.
  */
 export function LocationAutocomplete({
   id,
   value,
   onChange,
+  onSearchEnabledChange,
   placeholder,
   required,
   inputClassName,
@@ -37,14 +39,13 @@ export function LocationAutocomplete({
   const [highlighted, setHighlighted] = useState(0);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [placesEnabled, setPlacesEnabled] = useState(true);
+  const [searchEnabled, setSearchEnabled] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listboxId = useId();
 
   useEffect(() => {
-    if (!placesEnabled) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const needle = value.trim();
     if (needle.length < 2) {
@@ -80,7 +81,7 @@ export function LocationAutocomplete({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [value, placesEnabled]);
+  }, [value, onSearchEnabledChange]);
 
   // Close on outside click.
   useEffect(() => {
@@ -180,7 +181,9 @@ export function LocationAutocomplete({
           )}
           {!loading && typedEnough && matches.length === 0 && (
             <li className="px-3 py-1.5 text-sm font-serif text-[var(--dash-text-muted)]">
-              {placesEnabled ? "No matching addresses." : "Address search is unavailable. Try again in a moment."}
+              {searchEnabled
+                ? "No matching addresses."
+                : "Address search is unavailable. Type the full address — we'll look it up when you save."}
             </li>
           )}
         </ul>

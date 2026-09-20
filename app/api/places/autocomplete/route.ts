@@ -6,9 +6,6 @@ export async function GET(request: Request) {
   if (input.length < 2) {
     return NextResponse.json({ suggestions: [], enabled: true });
   }
-  if (!hasPlacesApiKey()) {
-    return NextResponse.json({ suggestions: [], enabled: false });
-  }
 
   try {
     const suggestions = await autocompletePlaces(input);

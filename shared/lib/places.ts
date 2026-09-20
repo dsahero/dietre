@@ -1,6 +1,5 @@
-// Event locations resolve through Google Places (see
-// backend/lib/placesDiscovery.ts): the host picks a worldwide autocomplete
-// suggestion and the server resolves it via the Places Details API.
+// Event locations resolve through Places Autocomplete, Google Geocoding, or
+// Nominatim (see backend/lib/placesDiscovery.ts). Worldwide — no city bias.
 // BLACKSBURG_PLACES / geocodeBlacksburg remain for seeded demo coords only.
 export type Place = { lat: number; lng: number; label: string };
 

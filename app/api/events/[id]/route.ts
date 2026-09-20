@@ -8,7 +8,7 @@ import {
   suggestEventDetailsFromLimitations,
 } from "@/backend/lib/limitations";
 import { matchEvent } from "@/backend/lib/matching";
-import { resolvePlace } from "@/backend/lib/placesDiscovery";
+import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
 import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
@@ -96,25 +96,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const location = body.location.trim();
     if (!location) return NextResponse.json({ error: "Location can't be empty." }, { status: 400 });
     const place_id = body.place_id?.trim();
-    if (!place_id) {
-      return NextResponse.json(
-        { error: "Pick a location from the suggestions before saving." },
-        { status: 400 }
-      );
-    }
-
-    locationChanged = location !== event.location;
+    locationChanged = location !== event.location || Boolean(place_id && place_id !== event.google_place_id);
     if (locationChanged) {
-      const resolved = await resolvePlace(place_id);
+      const resolved = await resolveEventLocation(place_id, location);
       if (!resolved) {
         return NextResponse.json(
-          { error: "Could not resolve that location. Pick another suggestion." },
+          { error: "Could not find that address. Pick a suggestion or try a more complete address." },
           { status: 400 }
         );
       }
       patch.lat = resolved.lat;
       patch.lng = resolved.lng;
-      patch.google_place_id = place_id;
+      patch.google_place_id = place_id || null;
     }
     patch.location = location;
   }

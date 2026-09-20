@@ -16,6 +16,7 @@ export function EventForm() {
   const [date, setDate] = useState("2026-10-04T18:00");
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState<string | null>(null);
+  const [searchEnabled, setSearchEnabled] = useState(true);
   const [radius, setRadius] = useState("2");
   const [budget, setBudget] = useState<BudgetRange>("$$");
   const [headcount, setHeadcount] = useState("120");
@@ -85,11 +86,15 @@ export function EventForm() {
             setLocation(value);
             setPlaceId(nextPlaceId);
           }}
+          onSearchEnabledChange={setSearchEnabled}
           placeholder="Start typing an address…"
           inputClassName="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
         />
-        {location.trim() && !placeId && (
+        {location.trim() && !placeId && searchEnabled && (
           <p className="text-xs text-muted-foreground">Pick a suggestion from the dropdown to confirm this location.</p>
+        )}
+        {location.trim() && !placeId && !searchEnabled && (
+          <p className="text-xs text-muted-foreground">Type the full address. We'll geocode it when you create the event.</p>
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -126,7 +131,7 @@ export function EventForm() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <Button type="submit" disabled={busy || !placeId}>
+      <Button type="submit" disabled={busy || !location.trim()}>
         {busy ? "Creating…" : "Create event and get a share link"}
       </Button>
     </form>
