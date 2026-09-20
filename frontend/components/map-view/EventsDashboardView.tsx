@@ -128,15 +128,6 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
                   href={`/events/${event.id}`}
                   className="group relative bg-[var(--dash-surface-raised)] rounded-md border border-[var(--dash-border)] hover:border-[var(--dash-accent)] flex flex-col justify-between shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden h-full"
                 >
-                  {/* Cardstock folio banner */}
-                  <div
-                    className="relative w-full h-28 overflow-hidden flex items-end p-3 border-b border-[var(--dash-border)]"
-                    style={{
-                      background: `linear-gradient(135deg, var(--dash-accent) 0%, var(--dash-accent-deep) 100%)`,
-                    }}
-                  >
-                    <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_30%_30%,white,transparent_45%)]" />
-                    <div className="relative flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-black/40 backdrop-blur-xs text-white font-mono text-[11px] font-bold shadow-xs">
                   {/* Google Places Location Image Header */}
                   <div className="relative w-full h-32 overflow-hidden flex items-end p-3 border-b border-[var(--dash-border)] bg-[var(--dash-surface)]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

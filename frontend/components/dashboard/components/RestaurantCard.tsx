@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
-import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
 import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 
 interface RestaurantCardProps {
@@ -19,7 +18,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   onToggleShortlist,
   onClickDetails,
 }) => {
-  const [textureUrl, setTextureUrl] = useState<string>('');
   const detailsScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollDetails = (direction: 'left' | 'right', e: React.MouseEvent) => {
@@ -29,21 +27,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       detailsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
-
-  useEffect(() => {
-    // Canvas texture generation needs `document` and must run client-side only
-    // (computing it during render would crash SSR / desync from the server-rendered HTML).
-    let url = '';
-    if (restaurant.textureType === 'sand') {
-      url = createSandTexture(260, 180);
-    } else if (restaurant.textureType === 'rust') {
-      url = createRustTexture(260, 180);
-    } else if (restaurant.textureType === 'marble') {
-      url = createMarbleTexture(260, 180);
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the Canvas API, not derivable during render
-    setTextureUrl(url);
-  }, [restaurant.textureType]);
 
   const getMatchBadgeStyle = (pct: number) => {
     if (pct >= 85) return 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50';
@@ -56,20 +39,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       className="content-card relative group border border-transparent transition-all duration-200 hover:-translate-y-0.5 hover:rotate-[-0.3deg] hover:border-[var(--dash-border-strong)] cursor-pointer"
       onClick={() => onClickDetails?.(restaurant)}
     >
-      {/* Left thumbnail with procedural texture */}
-      <div
-        className="card-thumbnail relative flex flex-col justify-between overflow-hidden"
-        style={{
-          backgroundImage: textureUrl ? `url(${textureUrl})` : undefined,
-          backgroundColor:
-            restaurant.textureType === 'sand'
-              ? '#9c816f'
-              : restaurant.textureType === 'rust'
-              ? '#6b4736'
-              : '#bc6936',
-        }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
       {/* Left thumbnail with Google Places venue photo */}
       <div className="card-thumbnail relative flex flex-col justify-between overflow-hidden bg-[var(--dash-surface)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}

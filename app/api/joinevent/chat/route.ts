@@ -106,13 +106,36 @@ function unique(arr: string[]): string[] {
   return [...new Set(arr.map((s) => s.trim().toLowerCase()).filter(Boolean))];
 }
 
+// Pulls the first balanced {...} out of text, ignoring code fences and
+// anything the model appends after the JSON.
+function balancedJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === "\\") i++;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}" && --depth === 0) return text.slice(start, i + 1);
+  }
+  return null;
+}
+
+const WRAP_UP = /all set|the host will|got everything|you're done|you are done|that's everything/i;
+const SKIP_ANSWER = /^(no|nope|skip|none|no thanks|no thank you|n\/a|pass)\b/i;
+
 function extractSubmitJson(
   text: string
 ): { reply: string; guestName?: string; rules: ParsedRules & { contact_email?: string } } | null {
   const marker = "SUBMIT_JSON:";
   const idx = text.indexOf(marker);
   if (idx === -1) return null;
-  const jsonStr = text.slice(idx + marker.length).trim();
+  const jsonStr = balancedJsonObject(text.slice(idx + marker.length));
+  if (!jsonStr) return null;
   try {
     const raw = JSON.parse(jsonStr) as {
       name?: string;
@@ -195,6 +218,27 @@ export async function POST(req: NextRequest) {
         const chat = model.startChat({ history: geminiHistory });
         const result = await chat.sendMessage(userMessage);
         replyText = result.response.text();
+
+        // The model sometimes closes the chat ("you're all set") without the
+        // SUBMIT_JSON line. Ask once for just the JSON so the answers are saved.
+        const answeredEmailStep = userMessage.includes("@") || SKIP_ANSWER.test(userMessage.trim());
+        if (
+          !isClarify &&
+          history.length >= 4 &&
+          answeredEmailStep &&
+          !replyText.includes("SUBMIT_JSON:") &&
+          WRAP_UP.test(replyText)
+        ) {
+          try {
+            const followUp = await chat.sendMessage(
+              "Output only the final SUBMIT_JSON line for this whole conversation, nothing else."
+            );
+            const json = followUp.response.text();
+            if (json.includes("SUBMIT_JSON:")) replyText = `${replyText}\n${json.slice(json.indexOf("SUBMIT_JSON:"))}`;
+          } catch (followUpErr) {
+            console.warn("SUBMIT_JSON follow-up failed:", followUpErr);
+          }
+        }
         break;
       } catch (err) {
         lastError = err;
