@@ -64,7 +64,7 @@ export function LocationAutocomplete({
         .then((res) => res.json())
         .then((data: { suggestions?: Suggestion[]; enabled?: boolean }) => {
           if (data.enabled === false) {
-            setPlacesEnabled(false);
+            setSearchEnabled(false);
             setSuggestions([]);
             return;
           }

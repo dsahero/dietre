@@ -151,8 +151,8 @@ async function googleGeocode(address: string, apiKey: string): Promise<ResolvedP
   const loc = first?.geometry?.location;
   if (loc?.lat == null || loc.lng == null) return null;
   return {
-    displayName: first.formatted_address ?? address,
-    formattedAddress: first.formatted_address ?? address,
+    displayName: first?.formatted_address ?? address,
+    formattedAddress: first?.formatted_address ?? address,
     lat: loc.lat,
     lng: loc.lng,
   };
