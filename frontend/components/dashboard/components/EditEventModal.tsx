@@ -96,7 +96,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
             </div>
             <div>
               <h2 id="modal-headline" className="font-heading text-base font-bold tracking-tight text-[var(--dash-text)]">
-                Edit Event Ledger
+                Edit Event
               </h2>
               <p className="font-serif italic text-xs text-[var(--dash-text-muted)]">Update parameters for guest invitation &amp; restaurant matching</p>
             </div>
@@ -310,7 +310,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
               disabled={saving || !address.trim()}
               className="flex items-center gap-2 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-accent)] px-5 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition-all hover:opacity-95 disabled:opacity-60 cursor-pointer"
             >
-              <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Ledger Changes'}
+              <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </form>

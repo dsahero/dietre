@@ -108,7 +108,7 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
             <h2 className="text-base font-bold text-[var(--dash-text)] font-heading">
               Your Events ({filteredEvents.length})
             </h2>
-            <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">Select an event to open its banquet ledger</p>
+            <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">Select an event to open it</p>
           </div>
 
           <div className="relative w-full sm:w-72">

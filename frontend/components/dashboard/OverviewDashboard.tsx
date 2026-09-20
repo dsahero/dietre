@@ -425,7 +425,7 @@ export default function OverviewDashboard({
                 className="group inline-flex items-center gap-2 py-1.5 px-3 rounded-xs border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
               >
                 <Pencil className="h-3 w-3 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-rotate-12" />
-                <span className="font-serif text-xs font-medium">Modify event ledger</span>
+                <span className="font-serif text-xs font-medium">Modify event</span>
               </button>
             </div>
           </div>

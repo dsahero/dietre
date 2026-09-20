@@ -70,7 +70,7 @@ export const ShortlistedView: React.FC<ShortlistedViewProps> = ({
           <Bookmark className="w-10 h-10 text-[var(--dash-text-muted)] mx-auto mb-3 opacity-60" />
           <h3 className="font-heading text-lg font-bold text-[var(--dash-text)] mb-1">No Venues Shortlisted Yet</h3>
           <p className="text-xs text-[var(--dash-text-muted)] font-serif italic max-w-md mx-auto mb-5">
-            You can bookmark candidate restaurants from the Overview ledger by clicking &ldquo;+ Shortlist&rdquo; on any venue card.
+            You can bookmark candidate restaurants from Overview by clicking &ldquo;+ Shortlist&rdquo; on any venue card.
           </p>
           <button
             type="button"
