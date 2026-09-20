@@ -15,7 +15,6 @@ import {
   KeyRound,
   ArrowRight,
 } from 'lucide-react';
-import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
 
 function firebaseConfiguredInBrowser(): boolean {
   return Boolean(
@@ -210,18 +209,31 @@ export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login'
         </Link>
 
         <div className="flex items-center gap-2">
-          <HostThemeToggle />
-          <button
-            id="link-top-to-signup"
-            type="button"
-            onClick={() => {
-              setErrorMessage(null);
-              setAuthMode('signup');
-            }}
-            className="text-xs font-bold text-[var(--dash-accent)] underline hover:text-[var(--dash-accent-deep)] cursor-pointer font-heading"
-          >
-            Sign Up
-          </button>
+          {authMode === 'login' ? (
+            <button
+              id="link-top-to-signup"
+              type="button"
+              onClick={() => {
+                setErrorMessage(null);
+                setAuthMode('signup');
+              }}
+              className="text-xs font-bold text-[var(--dash-accent)] underline hover:text-[var(--dash-accent-deep)] cursor-pointer font-heading"
+            >
+              Sign Up
+            </button>
+          ) : (
+            <button
+              id="link-top-to-login"
+              type="button"
+              onClick={() => {
+                setErrorMessage(null);
+                setAuthMode('login');
+              }}
+              className="text-xs font-bold text-[var(--dash-accent)] underline hover:text-[var(--dash-accent-deep)] cursor-pointer font-heading"
+            >
+              Log In
+            </button>
+          )}
         </div>
       </div>
 
@@ -436,7 +448,7 @@ export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login'
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={busy}
-                    className="w-full py-2.5 px-4 bg-white hover:bg-[var(--dash-surface-raised)] border border-[var(--dash-border)] text-[var(--dash-text)] text-xs font-bold rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60"
+                    className="w-full py-2.5 px-4 bg-[var(--dash-surface-raised)] hover:bg-[var(--dash-surface-hover)] border border-[var(--dash-border)] text-[var(--dash-text)] text-xs font-bold rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-center gap-3 active:scale-[0.99] disabled:opacity-60"
                   >
                     <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                       <path
