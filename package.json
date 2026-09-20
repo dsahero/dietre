@@ -23,6 +23,7 @@
     "mongodb": "^7.6.0",
     "motion": "^13.4.0",
     "next": "16.3.5",
+    "package.json": "^2.0.1",
     "pdf-parse": "^2.4.5",
     "puppeteer-core": "^25.11.0",
     "qrcode": "^1.5.4",

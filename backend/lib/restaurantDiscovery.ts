@@ -1,5 +1,7 @@
 import { discoverNearbyRestaurants, hasPlacesApiKey } from "@/backend/lib/placesDiscovery";
 import { listRestaurantsForEvent, updateEvent, upsertRestaurants } from "@/backend/lib/db";
+import { acquireMenusInBackground } from "@/backend/lib/menuAcquisition";
+import { haversineMiles } from "@/shared/lib/places";
 import type { DietreEvent, Restaurant } from "@/shared/lib/types";
 
 function slug(text: string): string {
@@ -47,7 +49,9 @@ export async function discoverAndUpsertRestaurants(
       alias_ids: [`google-${r.googlePlaceId}`],
       ...(r.websiteUri ? { website: r.websiteUri } : {}),
     }));
-    await upsertRestaurants(restaurants);
+    const stored = await upsertRestaurants(restaurants);
+    // Menus are found in the background (nearest first); never blocks the caller.
+    acquireMenusInBackground(stored);
     return { discovered: found.length, upserted: restaurants.length, ids: restaurants.map((r) => r.id) };
   } catch (err) {
     console.error("discoverAndUpsertRestaurants failed:", err instanceof Error ? err.message : err);
@@ -70,5 +74,10 @@ export async function ensureEventRestaurants(event: DietreEvent): Promise<Restau
       event = { ...event, candidate_restaurant_ids: ids };
     }
   }
-  return listRestaurantsForEvent(event);
+  const list = await listRestaurantsForEvent(event);
+  // Older events: fill in menus for restaurants that haven't been checked yet.
+  acquireMenusInBackground(
+    [...list].sort((a, b) => haversineMiles(event, a) - haversineMiles(event, b))
+  );
+  return list;
 }

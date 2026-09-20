@@ -307,6 +307,19 @@ export async function matchEvent(input: {
   // any accidental stubs without ids.
   const restaurants = inputRestaurants.filter((restaurant) => Boolean(restaurant?.id));
 
+  // A restaurant that was re-keyed keeps its old ids as aliases; menu items
+  // attached under an old id still belong to it.
+  for (const restaurant of restaurants) {
+    if (itemsByRestaurant.has(restaurant.id)) continue;
+    for (const alias of restaurant.alias_ids ?? []) {
+      const aliased = itemsByRestaurant.get(alias);
+      if (aliased?.length) {
+        itemsByRestaurant.set(restaurant.id, aliased);
+        break;
+      }
+    }
+  }
+
   // Wiped / empty restaurant store → hard-clear restaurant_scores (entire
   // collection via saveRestaurantScores) and return empty rankings. Never
   // write score docs when restaurants.length === 0.

@@ -35,6 +35,7 @@
     "map-view-location-explorer",
     "backend/lib/menuParser.ts",
     "backend/lib/renderPage.ts",
-    "backend/lib/places.ts"
+    "backend/lib/places.ts",
+    "backend/scripts/scrape_menus.ts"
   ]
 }

@@ -101,31 +101,40 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               {PRICE_LABEL[restaurant.priceLevel]}
             </span>
           </div>
-          {/* Coverage + Guest fit labels */}
+          {/* Coverage + Guest Fit labels */}
           <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--dash-text-soft)]/70">
             <span title="Severity-weighted % of guests with at least one safe menu item">
               Coverage: {restaurant.matchPercentage}%
             </span>
-            {restaurant.bayesianScore !== undefined && (
+            {restaurant.guestFitScore !== undefined && (
               <>
                 <span className="opacity-40">·</span>
                 <span
-                  title="How well this restaurant aligns with guests' stated preferences"
+                  title="Guest Fit combines stated cuisine preferences and dietary context to estimate how well this restaurant aligns with the group's preferences after dietary requirements are satisfied. 50 = neutral (no preferences stated)."
                   className={
-                    restaurant.bayesianScore >= 0.55
+                    restaurant.guestFitScore >= 70
                       ? 'text-emerald-400/80'
-                      : restaurant.bayesianScore <= 0.44
+                      : restaurant.guestFitScore >= 55
+                      ? 'text-[var(--dash-accent-soft)]/90'
+                      : restaurant.guestFitScore < 40
                       ? 'text-rose-400/80'
                       : 'text-[var(--dash-text-soft)]/70'
                   }
                 >
                   <Sparkles className="inline h-2.5 w-2.5 mr-0.5 opacity-70" />
-                  Guest fit:{' '}
-                  {restaurant.bayesianScore >= 0.55
+                  {'Guest Fit: '}
+                  {restaurant.guestFitScore >= 85
+                    ? 'Very High'
+                    : restaurant.guestFitScore >= 70
                     ? 'High'
-                    : restaurant.bayesianScore <= 0.44
+                    : restaurant.guestFitScore >= 55
+                    ? 'Medium'
+                    : restaurant.guestFitScore >= 40
+                    ? 'Neutral'
+                    : restaurant.guestFitScore >= 25
                     ? 'Low'
-                    : 'Medium'}
+                    : 'Very Low'}
+                  {' '}({restaurant.guestFitScore}/100)
                 </span>
               </>
             )}

@@ -191,9 +191,24 @@ function excludeHitsFlags(exclude: string, flags: MenuFlags): boolean {
   return false;
 }
 
+const MEAT_INGREDIENT =
+  /\b(beef|steaks?|pork|bacon|ham|chicken|turkey|duck|lamb|veal|sausages?|pepperoni|salami|prosciutto|meatballs?|brisket|ribs?|burgers?|hot dogs?|chorizo|fish|salmon|tuna|cod|shrimp|prawns?|crab|lobster|scallops?|oysters?|clams?|mussels?|anchov(?:y|ies)|calamari|squid)\b/i;
+const ANIMAL_INGREDIENT =
+  /\b(cheese|milk|butter|cream|yogh?urt|parmesan|mozzarella|cheddar|ricotta|feta|whey|ghee|eggs?|honey|gelatin|lard|mayo|mayonnaise)\b/i;
+
 function excludeHitsIngredients(exclude: string, ingredients: string[]): boolean {
   const key = normalize(exclude);
   if (!key) return false;
+  // Category rules can't be matched word-for-word ("vegetarian" is never an
+  // ingredient), so check the listed ingredients against keyword sets.
+  if (key === "vegetarian" || key === "meat") {
+    if (ingredients.some((ingredient) => MEAT_INGREDIENT.test(ingredient))) return true;
+  }
+  if (key === "vegan" || key === "animal products") {
+    if (ingredients.some((ingredient) => MEAT_INGREDIENT.test(ingredient) || ANIMAL_INGREDIENT.test(ingredient))) {
+      return true;
+    }
+  }
   // Whole-word match either way ("tree nuts" vs "nuts"), so "egg" no longer
   // flags "eggplant" and "oil" no longer flags "boiled".
   const singular = (word: string) => (word.length > 3 && word.endsWith("s") ? word.slice(0, -1) : word);
