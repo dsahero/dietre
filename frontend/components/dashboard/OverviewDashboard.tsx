@@ -560,21 +560,21 @@ export default function OverviewDashboard({
                 {/* Pipeline control panels */}
                 <div className="space-y-3">
                   <ProcessPanel
-                    label="Webscrape Menus"
-                    description="Crawl restaurant websites to discover menu pages, PDFs, and extract menu items"
+                    label="Fetch menus"
+                    description="Pull menus from restaurant sites when available"
                     icon="globe"
                     status={scrapeStatus}
                     logs={scrapeLogs}
                     onStart={handleStartWebscrape}
                   />
                   <ProcessPanel
-                    label="Run Matching"
-                    description="Compute dietary compatibility scores using guest responses and discovered menu data"
+                    label="Match guests"
+                    description="Score how well each restaurant fits your guests"
                     icon="sparkles"
                     status={matchStatus}
                     logs={matchLogs}
                     disabled={scrapeStatus === 'running'}
-                    disabledReason={scrapeStatus === 'running' ? 'Wait for webscraping to finish first' : undefined}
+                    disabledReason={scrapeStatus === 'running' ? 'Wait for menus to finish fetching first' : undefined}
                     onStart={handleStartMatching}
                   />
                 </div>
@@ -586,7 +586,7 @@ export default function OverviewDashboard({
                 <div className="rounded-md border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 text-center shadow-xs">
                   <h3 className="mb-1 font-heading text-lg font-bold text-[var(--dash-text)]">No responses yet</h3>
                   <p className="mx-auto max-w-md text-xs text-[var(--dash-text-muted)] font-serif italic">
-                    Share the guest intake link above. Rankings fill in once the first response is recorded — you can still browse and filter restaurants below.
+                    Share the guest form link above. Rankings fill in once the first response is recorded — you can still browse and filter restaurants below.
                   </p>
                 </div>
               ) : (

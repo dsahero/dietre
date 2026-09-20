@@ -6,11 +6,10 @@ import { CopyLinkButton } from "@/frontend/components/copy-link-button";
 
 interface SharePanelCollapsibleProps {
   url: string;
-  eventName: string;
   qrDataUrl: string;
 }
 
-export function SharePanelCollapsible({ url, eventName, qrDataUrl }: SharePanelCollapsibleProps) {
+export function SharePanelCollapsible({ url, qrDataUrl }: SharePanelCollapsibleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -28,10 +27,9 @@ export function SharePanelCollapsible({ url, eventName, qrDataUrl }: SharePanelC
             <img src={qrDataUrl} alt="" className="w-full h-full object-cover" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <span className="ink-stamp inline-block px-1.5 py-0 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)]">
-              Guest Intake Portal
+            <span className="text-sm font-medium text-[var(--dash-text)]">
+              Guest form
             </span>
-            <p className="font-heading text-sm font-bold text-[var(--dash-text)] truncate mt-0.5">{eventName}</p>
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2 text-xs text-[var(--dash-accent-soft)] font-medium">
@@ -68,4 +66,3 @@ export function SharePanelCollapsible({ url, eventName, qrDataUrl }: SharePanelC
     </div>
   );
 }
-
