@@ -132,6 +132,7 @@ export function toRestaurantCardData(
       guestFitScore: match.bayesian_score !== undefined
         ? Math.round(Math.min(100, Math.max(0, 50 + (match.bayesian_score - 0.5) * 100)))
         : undefined,
+      guestFitSampleSize: match.bayesian_sample_size,
       overallScore: match.overall_score,
       coveredCount: match.covered_count,
       totalResponses: match.total_responses,

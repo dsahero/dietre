@@ -171,18 +171,20 @@ function systemChromeCandidates(): string[] {
   ].filter(Boolean);
 }
 
-/** True on Vercel / Lambda — no system Chrome; use @sparticuz/chromium-min. */
+/** True on Vercel / Lambda — no system Chrome; use @sparticuz/chromium. */
 export function isServerlessRuntime(): boolean {
   return Boolean(
     process.env.VERCEL ||
+      process.env.VERCEL_ENV ||
       process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.AWS_EXECUTION_ENV ||
       process.env.FUNCTION_NAME,
   );
 }
 
 /**
- * Remote Chromium pack for @sparticuz/chromium-min on Vercel.
- * Override with CHROMIUM_REMOTE_URL if GitHub downloads are blocked/slow.
+ * Optional remote Chromium pack override for @sparticuz/chromium.
+ * Usually not needed — the package ships its own binaries and extracts to /tmp.
  */
 export const DEFAULT_CHROMIUM_REMOTE_URL =
   "https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.x64.tar";
@@ -205,22 +207,55 @@ export function resolveChromePath(): string {
   );
 }
 
+async function launchServerlessBrowser(
+  puppeteer: typeof import("puppeteer-core"),
+) {
+  const chromium = (await import("@sparticuz/chromium")).default;
+  // Menu scrape does not need WebGL — skip swiftshader and save /tmp + RAM.
+  chromium.setGraphicsMode = false;
+  const remote = process.env.CHROMIUM_REMOTE_URL?.trim();
+
+  return puppeteer.default.launch({
+    args: chromium.args,
+    defaultViewport: { width: 1280, height: 720 },
+    executablePath: await chromium.executablePath(remote || undefined),
+    headless: true,
+  });
+}
+
 async function launchBrowser() {
   const puppeteer = await import("puppeteer-core");
 
-  if (isServerlessRuntime()) {
-    const chromium = (await import("@sparticuz/chromium-min")).default;
-    // Menu scrape does not need WebGL — skip swiftshader and save /tmp + RAM.
-    chromium.setGraphicsMode = false;
-    const remote =
-      process.env.CHROMIUM_REMOTE_URL?.trim() || DEFAULT_CHROMIUM_REMOTE_URL;
-
+  // Explicit local override always wins.
+  if (process.env.CHROME_PATH?.trim()) {
     return puppeteer.default.launch({
-      args: chromium.args,
-      defaultViewport: { width: 1280, height: 720 },
-      executablePath: await chromium.executablePath(remote),
       headless: true,
+      executablePath: process.env.CHROME_PATH.trim(),
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+      ],
     });
+  }
+
+  if (isServerlessRuntime()) {
+    try {
+      return await launchServerlessBrowser(puppeteer);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Vercel Chromium failed: ${msg}`);
+    }
+  }
+
+  // Linux hosts with no Chrome (or misdetected serverless): try Sparticuz before failing.
+  if (process.platform === "linux") {
+    try {
+      return await launchServerlessBrowser(puppeteer);
+    } catch {
+      /* fall through to local resolve */
+    }
   }
 
   const executablePath = resolveChromePath();

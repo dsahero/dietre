@@ -154,6 +154,15 @@ export function RemixHomePageView() {
             Guests describe what they can eat in their own words. You get
             restaurant rankings and safe menu options.
           </motion.p>
+          <motion.p
+            className="remix-hero-stat"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.21, ease: [0.16, 1, 0.3, 1] }}
+          >
+            10.8% of US adults have a food allergy. Add religious and ethical
+            diets, and most catering forms still offer just a checkbox.
+          </motion.p>
           <motion.div
             className="remix-hero-cta-row"
             initial={{ opacity: 0, y: 10 }}
@@ -232,6 +241,7 @@ export function RemixHomePageView() {
             Share one anonymous link with your guests. dietre turns their replies
             into ranked restaurants and safe dishes — so you can book catering that
             covers allergies, religious needs, and preferences without a spreadsheet.
+            At a 400-person event, that's roughly 43 guests with a food allergy alone.
           </p>
         </motion.div>
 
@@ -285,7 +295,8 @@ export function RemixHomePageView() {
           </h3>
           <p className="remix-card-text">
             Restaurants ranked by how many guests they safely cover, with more weight
-            on the most constrained diets.
+            on the most constrained diets. Taste can reorder safe options — it can
+            never outrank one that's unsafe.
           </p>
         </motion.div>
 

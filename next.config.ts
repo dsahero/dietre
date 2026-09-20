@@ -40,8 +40,12 @@ const nextConfig: NextConfig = {
     "@napi-rs/canvas",
     "@firecrawl/html-extractor",
     "puppeteer-core",
-    "@sparticuz/chromium-min",
+    "@sparticuz/chromium",
   ],
+  // Keep Chromium brotli binaries in the serverless function bundle.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./node_modules/@sparticuz/chromium/**/*"],
+  },
 };
 
 export default nextConfig;

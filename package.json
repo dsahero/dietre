@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 4321",
@@ -16,7 +16,7 @@
   "dependencies": {
     "@firecrawl/html-extractor": "^0.1.2",
     "@google/generative-ai": "^0.24.1",
-    "@sparticuz/chromium-min": "^153.0.0",
+    "@sparticuz/chromium": "^153.0.0",
     "@types/leaflet": "^1.9.22",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",

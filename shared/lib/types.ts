@@ -250,9 +250,14 @@ export type RestaurantMatch = {
   total_responses: number;
   safe_items: SafeMenuItem[];
   complex_notes?: ComplexRequirementNote[];
-  // Severity-weighted mean of Beta posterior means across all guests (0–1).
-  // Used as a tiebreaker after feasibility-based coverage.
+  // Severity-weighted mean of Beta posterior means across guests who stated
+  // soft_preferences (0–1). Silent guests are excluded so they don't dilute
+  // the score toward the 0.5 prior. Used as a tiebreaker after feasibility-
+  // based coverage.
   bayesian_score?: number;
+  // How many guests actually contributed to bayesian_score (i.e. guests with
+  // at least one soft preference). 0 means the score is the neutral prior.
+  bayesian_sample_size?: number;
   // Overall score shown to the host: coverage_pct anchored, Bayesian preference
   // signal nudges it ±up to 20 pts. Formula: clamp(coverage + (bayes−0.5)×40, 0, 100).
   // When no preferences exist (all Beta(1,1)), overall_score === weighted_coverage_pct.

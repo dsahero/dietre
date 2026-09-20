@@ -85,6 +85,11 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   // guestFitScore is already 0–100 from bayesian_score; neutral prior is 50 when unset.
   const fitScore = restaurant.guestFitScore ?? 50;
   const fitBand = guestFitLabel(fitScore);
+  const fitSample = restaurant.guestFitSampleSize ?? 0;
+  const fitTooltip =
+    fitSample === 0
+      ? 'Neutral prior — no guests stated soft preferences that apply here.'
+      : `Based on ${fitSample} guest${fitSample === 1 ? '' : 's'} with stated preferences · Guest Fit ${fitScore}/100`;
 
   return (
     <div
@@ -167,7 +172,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                 ? 'No guest responses yet'
                 : `${coveredCount} of ${totalGuests} guest${totalGuests === 1 ? '' : 's'} can eat here`}
             </p>
-            <p className="mt-0.5 text-[12px] text-[var(--dash-text)]">
+            <p
+              className="mt-0.5 text-[12px] text-[var(--dash-text)] cursor-help"
+              title={fitTooltip}
+            >
               Guest fit: {fitBand}
             </p>
           </div>
