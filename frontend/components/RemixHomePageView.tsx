@@ -5,7 +5,8 @@
  * Next.js dietre app.
  *
  * Button routing:
- *   Sign Up (navbar, CTA)     → /login  (host authentication flow)
+ *   Create event (hero, CTA)  → /login  (protected action → sign in)
+ *   Sign Up (navbar, footer)  → /signup
  *   Log In  (navbar, CTA)     → /login
  *   Live Demo                 → /events/demo-vt-hacks
  *   Guest Form                → /r/demo-vt-hacks
@@ -163,7 +164,7 @@ export function RemixHomePageView() {
               id="btn-hero-signup"
               type="button"
               className="remix-hero-cta-primary"
-              onClick={goToSignUp}
+              onClick={goToLogin}
             >
               Create event
             </button>
@@ -348,7 +349,7 @@ export function RemixHomePageView() {
             <motion.button
               id="btn-cta-signup"
               className="remix-cta-btn-signup"
-              onClick={goToSignUp}
+              onClick={goToLogin}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
