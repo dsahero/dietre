@@ -90,21 +90,31 @@ export function documentIdFromName(name: string | undefined, fallback: string): 
   return decodeURIComponent(parts[parts.length - 1] || fallback);
 }
 
+let cachedServiceAccount: ServiceAccount | null | undefined = undefined;
+
 function loadServiceAccount(): ServiceAccount | null {
+  if (cachedServiceAccount !== undefined) return cachedServiceAccount;
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (raw) {
     try {
-      return JSON.parse(raw) as ServiceAccount;
+      cachedServiceAccount = JSON.parse(raw) as ServiceAccount;
+      return cachedServiceAccount;
     } catch {
+      cachedServiceAccount = null;
       return null;
     }
   }
   const file = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (!file) return null;
+  if (!file) {
+    cachedServiceAccount = null;
+    return null;
+  }
   try {
     const resolved = path.isAbsolute(file) ? file : path.resolve(process.cwd(), file);
-    return JSON.parse(readFileSync(resolved, "utf8")) as ServiceAccount;
+    cachedServiceAccount = JSON.parse(readFileSync(resolved, "utf8")) as ServiceAccount;
+    return cachedServiceAccount;
   } catch {
+    cachedServiceAccount = null;
     return null;
   }
 }
@@ -170,7 +180,7 @@ async function firestoreHeaders(): Promise<Record<string, string>> {
 
 function withApiKey(url: string): string {
   if (emulatorOrigin()) return url;
-  if (process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  if (loadServiceAccount()) {
     return url;
   }
   const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;

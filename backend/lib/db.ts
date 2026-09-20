@@ -335,22 +335,39 @@ async function resolveScoreableRestaurantIds(): Promise<Set<string> | null> {
 }
 
 
-export async function listEventsByHost(hostId: string): Promise<DietreEvent[]> {
+export async function listEventsByHost(hostId: string, email?: string): Promise<DietreEvent[]> {
+  const hostIds = new Set<string>([hostId]);
+  if (email?.trim()) {
+    hostIds.add(hostIdFromEmail(email.trim().toLowerCase()));
+  }
+
   if (useFirestore()) {
-    const docs = await queryDocuments(COLLECTIONS.events, "organizer_id", "EQUAL", hostId);
+    const allDocs: Array<Record<string, unknown> & { id: string }> = [];
+    const seenEventIds = new Set<string>();
+
+    for (const hId of hostIds) {
+      const docs = await queryDocuments(COLLECTIONS.events, "organizer_id", "EQUAL", hId);
+      for (const d of docs) {
+        if (!seenEventIds.has(d.id)) {
+          seenEventIds.add(d.id);
+          allDocs.push(d as Record<string, unknown> & { id: string });
+        }
+      }
+    }
+
     // One-shot hygiene: strip seed/missing candidate_restaurant_ids while listing.
     await Promise.all(
-      docs.map((doc) =>
-        scrubEventCandidateRestaurantIds(doc.id, asStringArray((doc as Record<string, unknown>).candidate_restaurant_ids))
+      allDocs.map((doc) =>
+        scrubEventCandidateRestaurantIds(doc.id, asStringArray(doc.candidate_restaurant_ids))
       )
     );
-    return docs
+    return allDocs
       .map((doc) => docToEvent(doc.id, doc))
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
   const store = await readJsonStore();
   return store.events
-    .filter((event) => event.host_id === hostId)
+    .filter((event) => hostIds.has(event.host_id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
@@ -415,6 +432,8 @@ export async function updateEvent(
       | "complex_notes_by_restaurant"
       | "complex_notes_signature"
       | "google_place_id"
+      | "preference_signals"
+      | "preference_signals_signature"
     >
   >
 ): Promise<DietreEvent | null> {
@@ -619,6 +638,7 @@ export async function listRestaurantScores(eventId: string): Promise<RestaurantS
         },
         coverage_pct: Number(doc.coverage_pct ?? 0),
         weighted_coverage_pct: Number(doc.weighted_coverage_pct ?? 0),
+        overall_score: Number(doc.overall_score ?? doc.weighted_coverage_pct ?? 0),
         computed_at: String(doc.computed_at ?? ""),
       }));
   }

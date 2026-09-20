@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
-import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -82,10 +82,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           )}
           <span
             className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
-              restaurant.matchPercentage
+              restaurant.overallScore
             )}`}
           >
-            {restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
+            {restaurant.overallScore}% · {restaurant.coveredCount}/{restaurant.totalResponses}
           </span>
         </div>
 
@@ -100,6 +100,25 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               <DollarSign className="h-3 w-3 text-[var(--dash-accent-soft)]" />
               {PRICE_LABEL[restaurant.priceLevel]}
             </span>
+          </div>
+          {/* Safety + Satisfaction subscores */}
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--dash-text-soft)]/70">
+            <span title="% of dietary-constraint-weighted guests who can eat here">
+              🛡 {restaurant.matchPercentage}% safe
+            </span>
+            {restaurant.bayesianScore !== undefined && (
+              <>
+                <span className="opacity-40">·</span>
+                <span title="Preference satisfaction score based on guest soft preferences">
+                  <Sparkles className="inline h-2.5 w-2.5 mr-0.5 opacity-70" />
+                  {restaurant.bayesianScore >= 0.55
+                    ? 'High satisfaction'
+                    : restaurant.bayesianScore <= 0.44
+                    ? 'Low satisfaction'
+                    : 'Neutral'}
+                </span>
+              </>
+            )}
           </div>
           <div className="mt-1 flex items-center justify-between text-[10.5px] text-[var(--dash-text-soft)]/80">
             <span className="truncate">{restaurant.location}</span>

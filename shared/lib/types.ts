@@ -2,6 +2,14 @@ export type BudgetRange = "$" | "$$" | "$$$";
 export type Severity = "high" | "medium" | "low";
 export type Confidence = "high" | "low";
 
+// Bayesian preference signal: one LLM-extracted observation per (guest, restaurant) pair.
+// Maps onto a Beta-Bernoulli update: positive → α += strength, negative → β += strength.
+// Prior is Beta(1,1); silence (neutral) leaves the prior unchanged at mean = 0.5.
+export type PreferenceSignal = {
+  direction: "positive" | "negative" | "neutral";
+  strength: 1 | 2 | 3;
+};
+
 export type MenuFlags = {
   contains_pork?: boolean;
   contains_shellfish?: boolean;
@@ -67,6 +75,11 @@ export type DietreEvent = {
   // Google Places id the host's location text resolved to (real geocoding),
   // or null when resolved via the offline landmark-list fallback instead.
   google_place_id?: string | null;
+  // Bayesian preference signals per (responseId → restaurantId → signal).
+  // Computed once per distinct set of guest preferences + candidate restaurants,
+  // cached on the event document. Absent until the first Gemini evaluation completes.
+  preference_signals?: Record<string, Record<string, PreferenceSignal>>;
+  preference_signals_signature?: string;
 };
 
 export type ParsedRules = {
@@ -156,6 +169,13 @@ export type RestaurantMatch = {
   total_responses: number;
   safe_items: SafeMenuItem[];
   complex_notes?: ComplexRequirementNote[];
+  // Severity-weighted mean of Beta posterior means across all guests (0–1).
+  // Used as a tiebreaker after feasibility-based coverage.
+  bayesian_score?: number;
+  // Overall score shown to the host: coverage_pct anchored, Bayesian preference
+  // signal nudges it ±up to 20 pts. Formula: clamp(coverage + (bayes−0.5)×40, 0, 100).
+  // When no preferences exist (all Beta(1,1)), overall_score === weighted_coverage_pct.
+  overall_score: number;
 };
 
 export type ZeroMatchAlert = {

@@ -1,5 +1,5 @@
 import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
-import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, severityWeight } from "@/backend/lib/parser";
+import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, scorePreferencesWithGemini, severityWeight } from "@/backend/lib/parser";
 import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores, updateEvent } from "@/backend/lib/db";
 import { withTimeout } from "@/backend/lib/with-timeout";
 import type {
@@ -9,6 +9,7 @@ import type {
   DietreEvent,
   MatchResult,
   MenuItem,
+  PreferenceSignal,
   Restaurant,
   RestaurantMatch,
   ZeroMatchAlert,
@@ -168,74 +169,85 @@ Return ONLY JSON:
   }
 }
 
-// Deterministic, synchronous fallback — used both when GEMINI_API_KEY is
-// unset and as the immediate result for a render while
-// fetchComplexNotesFromGemini resolves in the background (see matchEvent).
+// Synchronous fallback — used when GEMINI_API_KEY is unset and as the
+// immediate result while fetchComplexNotesFromGemini resolves in the
+// background. Rather than attempting to simulate Gemini with regex (which
+// is brittle and gives false precision), this returns an honest "pending"
+// note for every rule × restaurant pair.
 function computeMockComplexNotes(
   complexRules: { rule: string; responseIds: string[] }[],
   restaurants: Restaurant[],
-  menuItemsByRestaurant: Map<string, MenuItem[]>,
   guestTokenIndex: (id: string) => string
 ): Record<string, ComplexRequirementNote[]> {
   const out: Record<string, ComplexRequirementNote[]> = {};
   for (const restaurant of restaurants) {
-    const items = menuItemsByRestaurant.get(restaurant.id) ?? [];
-    out[restaurant.id] = complexRules.map((cr) => {
-      const isMeatDairy = /meat.*dairy|dairy.*meat|not together|kosher/i.test(cr.rule);
-      if (isMeatDairy) {
-        const meatOnlyItems = items.filter(
-          (i) =>
-            (i.flags.contains_beef || i.flags.contains_chicken || i.flags.contains_pork || i.flags.contains_fish) &&
-            !i.flags.contains_dairy &&
-            !i.flags.meat_dairy_combo
-        );
-        const dairyOnlyItems = items.filter(
-          (i) =>
-            i.flags.contains_dairy &&
-            !i.flags.contains_beef &&
-            !i.flags.contains_chicken &&
-            !i.flags.contains_pork &&
-            !i.flags.contains_fish &&
-            !i.flags.meat_dairy_combo
-        );
-        const comboItems = items.filter(
-          (i) => i.flags.meat_dairy_combo || ((i.flags.contains_beef || i.flags.contains_chicken || i.flags.contains_pork) && i.flags.contains_dairy)
-        );
-
-        if (meatOnlyItems.length >= 2 && dairyOnlyItems.length >= 2) {
-          return {
-            rule: cr.rule,
-            guest_tokens: cr.responseIds.map(guestTokenIndex),
-            verdict: "good" as const,
-            note: `Safe: Kitchen offers ${meatOnlyItems.length} meat dishes with zero dairy and ${dairyOnlyItems.length} vegetarian/dairy dishes with zero meat (satisfies: ${cr.rule}).`,
-          };
-        }
-        if (meatOnlyItems.length >= 1 || dairyOnlyItems.length >= 1) {
-          return {
-            rule: cr.rule,
-            guest_tokens: cr.responseIds.map(guestTokenIndex),
-            verdict: "neutral" as const,
-            note: `Caution: ${comboItems.length} signature dishes combine meat and dairy, but standalone separate entrées are available.`,
-          };
-        }
-        return {
-          rule: cr.rule,
-          guest_tokens: cr.responseIds.map(guestTokenIndex),
-          verdict: "bad" as const,
-          note: `Conflict: Almost all menu items pair meat and dairy directly.`,
-        };
-      }
-
-      // Default for cross-contamination or other complex rules
-      return {
-        rule: cr.rule,
-        guest_tokens: cr.responseIds.map(guestTokenIndex),
-        verdict: "neutral" as const,
-        note: `Advisory: Kitchen uses standard restaurant prep; advise consulting venue on dedicated allergy prep surfaces.`,
-      };
-    });
+    out[restaurant.id] = complexRules.map((cr) => ({
+      rule: cr.rule,
+      guest_tokens: cr.responseIds.map(guestTokenIndex),
+      verdict: "neutral" as const,
+      note: "Complex rule — AI evaluation pending. Host should verify directly with the venue.",
+    }));
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Bayesian preference scoring — Beta-Bernoulli conjugate model
+// ---------------------------------------------------------------------------
+// Prior: Beta(1,1) — uniform, "we know this guest can eat here but nothing
+// about satisfaction." Each LLM-extracted preference signal is a pseudo-
+// Bernoulli observation: positive → α += strength, negative → β += strength.
+// Posterior mean α/(α+β) = expected probability of guest satisfaction.
+// If the guest is infeasible (can't eat anything), utility is 0 regardless.
+
+function bayesianUtility(
+  feasible: boolean,
+  preferenceSignal: PreferenceSignal | null | undefined,
+  complexVerdict: "good" | "neutral" | "bad" | null,
+): number {
+  if (!feasible) return 0;
+
+  let alpha = 1;
+  let beta = 1;
+
+  if (preferenceSignal) {
+    if (preferenceSignal.direction === "positive") alpha += preferenceSignal.strength;
+    else if (preferenceSignal.direction === "negative") beta += preferenceSignal.strength;
+  }
+
+  if (complexVerdict === "good") alpha += 2;
+  else if (complexVerdict === "bad") beta += 3;
+  else if (complexVerdict === "neutral") beta += 1;
+
+  return alpha / (alpha + beta);
+}
+
+// Extract the worst complex-note verdict for a specific guest at a restaurant.
+function getComplexVerdictForGuest(
+  notes: ComplexRequirementNote[] | undefined,
+  guestToken: string,
+): "good" | "neutral" | "bad" | null {
+  if (!notes?.length) return null;
+  const relevant = notes.filter((n) => n.guest_tokens?.includes(guestToken));
+  if (relevant.length === 0) return null;
+  if (relevant.some((n) => n.verdict === "bad")) return "bad";
+  if (relevant.some((n) => n.verdict === "neutral")) return "neutral";
+  return "good";
+}
+
+// Cache key for preference signals — changes when guest preferences or
+// the candidate restaurant set change.
+function preferenceSignalsCacheKey(
+  responses: DietResponse[],
+  restaurants: Restaurant[],
+): string {
+  const respPart = responses
+    .filter((r) => r.parsed_rules.soft_preferences?.length)
+    .map((r) => `${r.id}:${r.parsed_rules.soft_preferences.join(",")}`)
+    .sort()
+    .join("|");
+  const restPart = restaurants.map((r) => r.id).sort().join(",");
+  return `pref##${respPart}##${restPart}`;
 }
 
 // Everything the complex-restrictions evaluation actually reads: which
@@ -315,6 +327,8 @@ export async function matchEvent(input: {
           total_responses: 0,
           safe_items: [],
           complex_notes: [],
+          bayesian_score: 0.5,
+          overall_score: 0,
         };
       })
       .sort((a, b) => a.distance_miles - b.distance_miles);
@@ -378,7 +392,7 @@ export async function matchEvent(input: {
   };
 
   const complexNotesByRestaurant =
-    cachedComplexNotes ?? computeMockComplexNotes(complexRulesList, restaurants, itemsByRestaurant, guestTokenIndex);
+    cachedComplexNotes ?? computeMockComplexNotes(complexRulesList, restaurants, guestTokenIndex);
 
   if (!cachedComplexNotes && complexRulesList.length > 0) {
     void (async () => {
@@ -395,6 +409,42 @@ export async function matchEvent(input: {
         complex_notes_signature: complexNotesSignature,
       });
     })().catch((error) => console.error("complex_notes_by_restaurant cache write failed", error));
+  }
+
+  // -------------------------------------------------------------------------
+  // Bayesian preference signals — cached per distinct (preferences, restaurants)
+  // -------------------------------------------------------------------------
+  const prefCacheKey = preferenceSignalsCacheKey(responses, restaurants);
+  const cachedPrefSignals =
+    event.preference_signals_signature === prefCacheKey
+      ? event.preference_signals
+      : undefined;
+
+  // Preference signals: responseId → restaurantId → PreferenceSignal.
+  // On cache miss we use an empty map (Beta(1,1) prior → no effect on
+  // ranking) and fire off background computation for the next load.
+  const preferenceSignals: Record<string, Record<string, PreferenceSignal>> =
+    cachedPrefSignals ?? {};
+
+  const hasAnyPreferences = responses.some((r) => r.parsed_rules.soft_preferences?.length);
+  // Only score preferences against restaurants that actually have menu items —
+  // restaurants with no menu data will always have 0% coverage regardless.
+  const restaurantsWithMenus = restaurants.filter((r) => (itemsByRestaurant.get(r.id)?.length ?? 0) > 0);
+  if (!cachedPrefSignals && hasAnyPreferences && restaurantsWithMenus.length > 0) {
+    void (async () => {
+      const computed: Record<string, Record<string, PreferenceSignal>> = {};
+      for (const response of responses) {
+        if (!response.parsed_rules.soft_preferences?.length) continue;
+        const signals = await scorePreferencesWithGemini(response, restaurantsWithMenus);
+        if (signals) computed[response.id] = signals;
+      }
+      if (Object.keys(computed).length > 0) {
+        await updateEvent(event.id, {
+          preference_signals: computed,
+          preference_signals_signature: prefCacheKey,
+        });
+      }
+    })().catch((error) => console.error("preference_signals cache write failed", error));
   }
 
   // Gemini's read wins when available (it can catch compound rules like
@@ -417,6 +467,7 @@ export async function matchEvent(input: {
     const within_budget = restaurant.price_level <= maxPrice;
     const items = itemsByRestaurant.get(restaurant.id) ?? [];
     let coveredWeight = 0;
+    let bayesianWeightedSum = 0;
     const coveredIds: string[] = [];
     const safeItems = items
       .map((item) => {
@@ -436,16 +487,43 @@ export async function matchEvent(input: {
 
     for (const response of responses) {
       const hasSafe = items.some((item) => isSafe(item, response).safe);
+
+      // Binary feasibility scoring (unchanged — drives coverage_pct display)
       if (hasSafe) {
         coveredWeight += severityWeight(response.parsed_rules.severity);
         coveredIds.push(response.id);
         if (within_radius && within_budget) coveredAnywhere.add(response.id);
       }
+
+      // Bayesian utility scoring (tiebreaker when feasibility is equal)
+      const guestToken = guestTokenIndex(response.id);
+      const prefSignal = preferenceSignals[response.id]?.[restaurant.id] ?? null;
+      const complexVerdict = getComplexVerdictForGuest(
+        complexNotesByRestaurant[restaurant.id],
+        guestToken,
+      );
+      bayesianWeightedSum +=
+        severityWeight(response.parsed_rules.severity) *
+        bayesianUtility(hasSafe, prefSignal, complexVerdict);
     }
 
     const coverage_pct = responses.length === 0 ? 0 : Math.round((coveredIds.length / responses.length) * 100);
     const weighted_coverage_pct =
       totalWeight === 0 ? 0 : Math.round((coveredWeight / totalWeight) * 100);
+
+    // bayesian_score: severity-weighted sum of per-guest Beta posterior
+    // means. Only meaningful when at least one guest has stated preferences;
+    // when no signals exist every guest contributes Beta(1,1).mean = 0.5,
+    // producing identical scores everywhere (no effect on ranking).
+    const bayesian_score =
+      totalWeight === 0 ? 0 : Math.round((bayesianWeightedSum / totalWeight) * 1000) / 1000;
+
+    // overall_score: the single number shown to the organiser.
+    // Coverage anchors it; Bayesian preference signal nudges it by up to ±20 pts.
+    // When no soft preferences exist (all Beta(1,1) → bayes = 0.5) the adjustment
+    // is exactly 0, so overall_score === weighted_coverage_pct in that case.
+    const bayesian_adj = (bayesian_score - 0.5) * 40;
+    const overall_score = Math.round(Math.min(100, Math.max(0, weighted_coverage_pct + bayesian_adj)));
 
     return {
       restaurant,
@@ -458,6 +536,8 @@ export async function matchEvent(input: {
       total_responses: responses.length,
       safe_items: safeItems,
       complex_notes: complexNotesByRestaurant[restaurant.id] ?? [],
+      bayesian_score,
+      overall_score,
     };
   });
 
@@ -467,6 +547,11 @@ export async function matchEvent(input: {
     if (aEligible !== bEligible) return bEligible - aEligible;
     if (b.weighted_coverage_pct !== a.weighted_coverage_pct) {
       return b.weighted_coverage_pct - a.weighted_coverage_pct;
+    }
+    // Bayesian preference tiebreaker — only differentiates restaurants
+    // with equal feasibility coverage when preferences have been stated.
+    if ((b.bayesian_score ?? 0) !== (a.bayesian_score ?? 0)) {
+      return (b.bayesian_score ?? 0) - (a.bayesian_score ?? 0);
     }
     if (b.coverage_pct !== a.coverage_pct) return b.coverage_pct - a.coverage_pct;
     return a.distance_miles - b.distance_miles;
@@ -521,6 +606,8 @@ export async function matchEvent(input: {
           },
           coverage_pct: row.coverage_pct,
           weighted_coverage_pct: row.weighted_coverage_pct,
+          bayesian_score: row.bayesian_score,
+          overall_score: row.overall_score,
           computed_at,
         };
       }),

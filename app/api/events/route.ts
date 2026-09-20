@@ -11,7 +11,7 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: "Sign in to see your events." }, { status: 401 });
   }
-  const events = await listEventsByHost(session.host_id);
+  const events = await listEventsByHost(session.host_id, session.email);
   return NextResponse.json({ events });
 }
 
