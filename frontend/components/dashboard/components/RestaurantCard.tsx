@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RestaurantCardData } from '../types';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
-import { MapPin, DollarSign, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { MapPin, DollarSign, AlertTriangle } from 'lucide-react';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -17,15 +17,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   onClickDetails,
 }) => {
   const [textureUrl, setTextureUrl] = useState<string>('');
-  const detailsScrollRef = useRef<HTMLDivElement>(null);
-
-  const scrollDetails = (direction: 'left' | 'right', e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (detailsScrollRef.current) {
-      const scrollAmount = direction === 'left' ? -260 : 260;
-      detailsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
 
   useEffect(() => {
     // Canvas texture generation needs `document` and must run client-side only
@@ -51,7 +42,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       className="content-card relative group border border-transparent transition-all duration-200 hover:-translate-y-0.5 hover:rotate-[-0.3deg] hover:border-[var(--dash-border-strong)] cursor-pointer"
       onClick={() => onClickDetails?.(restaurant)}
     >
-      {/* Left thumbnail with Google Places venue photo */}
+      {/* Photo on top */}
       <div className="card-thumbnail relative flex flex-col justify-between overflow-hidden bg-[var(--dash-surface)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -77,7 +68,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           <h3 className="card-title text-[16px] leading-snug transition-colors group-hover:text-[var(--dash-accent-soft)]">
             {restaurant.name}
           </h3>
-          <div className="mt-1.5 flex items-center gap-2 text-[11.5px] text-[var(--dash-text)]/90">
+          <div className="mt-1.5 flex items-center gap-2 text-[11.5px] text-white/90">
             <span className="truncate font-medium">{restaurant.cuisine}</span>
             <span>•</span>
             <span className="flex shrink-0 items-center gap-0.5 text-[var(--dash-accent-soft)]" title={restaurant.predictedCostLabel}>
@@ -85,101 +76,87 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               ~${restaurant.predictedCostPerPerson}/pp
             </span>
           </div>
-          <div className="mt-1 flex items-center justify-between text-[10.5px] text-[var(--dash-text-soft)]/80">
-            <span className="truncate">{restaurant.location}</span>
-            <span className="flex shrink-0 items-center gap-1 text-[var(--dash-text-soft)]">
-              <MapPin className="h-2.5 w-2.5 text-[var(--dash-accent)]" />
-              {restaurant.distanceMiles} mi
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* Right side details, scrollable */}
+      {/* Details below photo — fits viewport width, no horizontal scroll */}
       <div className="card-details relative min-w-0 flex-1 overflow-hidden py-3 px-4 sm:px-5">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--dash-border)]/70 pb-2 text-xs">
-          <span className="text-[12px] font-medium text-[var(--dash-text-soft)]">Details</span>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="flex items-center gap-1 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] p-0.5">
-              <button
-                type="button"
-                onClick={(e) => scrollDetails('left', e)}
-                className="rounded-xs p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
-                aria-label="Scroll details left"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => scrollDetails('right', e)}
-                className="rounded-xs p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
-                aria-label="Scroll details right"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+        <div className="mb-2 flex items-start justify-between gap-3 border-b border-[var(--dash-border)]/70 pb-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-1.5 text-[12px] leading-snug text-[var(--dash-text)]">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--dash-accent)]" />
+              <span className="break-words font-medium">{restaurant.location}</span>
             </div>
-
-            {onToggleShortlist && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleShortlist(restaurant.id);
-                }}
-                className={`rounded-sm border px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
-                  isShortlisted
-                    ? 'border-[#22c55e]/40 bg-[#22c55e]/20 text-[#22c55e]'
-                    : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
-                }`}
-              >
-                {isShortlisted ? '✓ Shortlisted' : '+ Shortlist'}
-              </button>
-            )}
+            <div className="mt-0.5 pl-5 text-[11px] text-[var(--dash-text-muted)]">
+              {restaurant.distanceMiles} mi away
+            </div>
           </div>
+
+          {onToggleShortlist && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleShortlist(restaurant.id);
+              }}
+              className={`shrink-0 rounded-sm border px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
+                isShortlisted
+                  ? 'border-[#22c55e]/40 bg-[#22c55e]/20 text-[#22c55e]'
+                  : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
+              }`}
+            >
+              {isShortlisted ? '✓ Shortlisted' : '+ Shortlist'}
+            </button>
+          )}
         </div>
 
-        <div ref={detailsScrollRef} className="scrollbar-thin min-w-0 flex-1 overflow-x-auto py-2">
-          <div className="min-w-[560px] space-y-2.5 pr-2">
-            {restaurant.menuDataThin ? (
-              <p className="text-[12px] text-[var(--dash-text-muted)]">No menu on file yet.</p>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[var(--dash-text-soft)]">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" />
+        <div className="space-y-2 py-1">
+          <span className="text-[12px] font-medium text-[var(--dash-text-soft)]">Details</span>
+
+          {restaurant.menuDataThin ? (
+            <p className="text-[12px] text-[var(--dash-text-muted)]">No menu on file yet.</p>
+          ) : (
+            <>
+              <div className="flex items-start gap-2 text-[13px] text-[var(--dash-text-soft)]">
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" />
+                <span>
                   {totalGuests === 0
                     ? 'No guest responses yet'
                     : coveredCount === 0
                       ? `No safe options for ${totalGuests} guest${totalGuests === 1 ? '' : 's'} yet`
                       : `Safe options for ${coveredCount} of ${totalGuests} guest${totalGuests === 1 ? '' : 's'}`}
-                </div>
-                {restaurant.dietaryConflicts.length > 0 && (
-                  <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[#f4a9a9]">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#ef4444]" />
+                </span>
+              </div>
+              {restaurant.dietaryConflicts.length > 0 && (
+                <div className="flex items-start gap-2 text-[13px] text-[#f4a9a9]">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#ef4444]" />
+                  <span>
                     {restaurant.dietaryConflicts.length} guest
                     {restaurant.dietaryConflicts.length === 1 ? '' : 's'} not covered
-                  </div>
-                )}
-                {restaurant.complexNotes && restaurant.complexNotes.length > 0 && (
-                  <div className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-[#b45309]">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#f59e0b]" />
+                  </span>
+                </div>
+              )}
+              {restaurant.complexNotes && restaurant.complexNotes.length > 0 && (
+                <div className="flex items-start gap-2 text-[12.5px] text-[#b45309]">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#f59e0b]" />
+                  <span>
                     {restaurant.complexNotes.length} guest
                     {restaurant.complexNotes.length === 1 ? '' : 's'} with special requests
-                  </div>
-                )}
-              </>
-            )}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
 
-            <div className="flex items-center justify-between gap-4 whitespace-nowrap border-t border-[var(--dash-border)] pt-2 text-xs">
-              <span className="text-[11px] text-[var(--dash-text-muted)]">
-                {safeItemCount > 0
-                  ? `${safeItemCount} safe menu item${safeItemCount === 1 ? '' : 's'}`
-                  : 'No safe menu items yet'}
-              </span>
-              <span className="flex shrink-0 items-center gap-1 font-medium text-[var(--dash-accent)] transition-colors group-hover:text-[var(--dash-accent-soft)]">
-                View details →
-              </span>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--dash-border)] pt-2 text-xs">
+            <span className="text-[11px] text-[var(--dash-text-muted)]">
+              {safeItemCount > 0
+                ? `${safeItemCount} safe menu item${safeItemCount === 1 ? '' : 's'}`
+                : 'No safe menu items yet'}
+            </span>
+            <span className="font-medium text-[var(--dash-accent)] transition-colors group-hover:text-[var(--dash-accent-soft)]">
+              View details →
+            </span>
           </div>
         </div>
       </div>
