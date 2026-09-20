@@ -192,6 +192,9 @@
   html, body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100%;
     overflow-x: clip;
   }
 }

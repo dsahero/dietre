@@ -204,9 +204,11 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
     );
   }
 
+  const firstAssistantIndex = messages.findIndex((m) => m.role === "assistant");
+
   return (
     <div className="flex flex-col">
-      <div className="max-h-[min(520px,55vh)] space-y-6 overflow-y-auto px-1 py-2">
+      <div className="space-y-6 px-1 py-2">
         {messages.length === 0 && !loading && (
           <p className="font-serif italic text-sm text-[var(--dash-text-muted)]">Starting…</p>
         )}
@@ -214,9 +216,11 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
         {messages.map((msg, i) =>
           msg.role === "assistant" ? (
             <div key={i} className="max-w-[36rem]">
-              <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-accent)]">
-                Concierge
-              </p>
+              {i === firstAssistantIndex && (
+                <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-accent)]">
+                  Concierge
+                </p>
+              )}
               <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-[var(--dash-text)]">
                 {msg.text}
               </p>
