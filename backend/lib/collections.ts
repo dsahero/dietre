@@ -199,6 +199,9 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
         : undefined,
     complex_notes_signature: typeof doc.complex_notes_signature === "string" ? doc.complex_notes_signature : undefined,
     google_place_id: typeof doc.google_place_id === "string" ? doc.google_place_id : null,
+    candidate_restaurant_ids: Array.isArray(doc.candidate_restaurant_ids)
+      ? doc.candidate_restaurant_ids.filter((x): x is string => typeof x === "string")
+      : undefined,
   };
 }
 
@@ -219,6 +222,7 @@ export function eventPatchToDoc(
       | "complex_notes_by_restaurant"
       | "complex_notes_signature"
       | "google_place_id"
+      | "candidate_restaurant_ids"
     >
   >
 ): Record<string, unknown> {
@@ -243,6 +247,7 @@ export function eventPatchToDoc(
   }
   if (patch.complex_notes_signature !== undefined) data.complex_notes_signature = patch.complex_notes_signature;
   if (patch.google_place_id !== undefined) data.google_place_id = patch.google_place_id;
+  if (patch.candidate_restaurant_ids !== undefined) data.candidate_restaurant_ids = patch.candidate_restaurant_ids;
   return data;
 }
 

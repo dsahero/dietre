@@ -53,6 +53,8 @@ export async function POST(request: Request) {
   const lng = resolved.lng;
   const googlePlaceId = place_id || null;
 
+  const { ids: candidateIds } = await discoverAndUpsertRestaurants({ lat, lng }, radius);
+
   const event: DietreEvent = {
     id: crypto.randomUUID(),
     host_id: session.host_id,
@@ -66,9 +68,9 @@ export async function POST(request: Request) {
     expected_headcount,
     created_at: new Date().toISOString(),
     google_place_id: googlePlaceId,
+    candidate_restaurant_ids: candidateIds,
   };
 
   await createEvent(event);
-  discoverAndUpsertRestaurants({ lat, lng }, radius).catch(() => {});
   return NextResponse.json({ event }, { status: 201 });
 }

@@ -306,10 +306,34 @@ export function cuisineFromTypes(types: string[] | undefined): string {
   return word.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const MAX_DISCOVERED = 40;
+
+// searchNearby returns at most 20 per call, so fan out over a few type groups
+// and merge by place id to give each event a fuller list.
 export async function discoverNearbyRestaurants(
   center: { lat: number; lng: number },
   radiusMiles: number,
-  maxResultCount = 20
+  maxResultCount = MAX_DISCOVERED
+): Promise<DiscoveredRestaurant[]> {
+  const groups = await Promise.all([
+    searchNearbyOnce(center, radiusMiles, ["restaurant"]),
+    searchNearbyOnce(center, radiusMiles, ["cafe", "bakery", "fast_food_restaurant"]),
+  ]);
+  const seen = new Set<string>();
+  const out: DiscoveredRestaurant[] = [];
+  for (const restaurant of groups.flat()) {
+    if (seen.has(restaurant.googlePlaceId)) continue;
+    seen.add(restaurant.googlePlaceId);
+    out.push(restaurant);
+    if (out.length >= maxResultCount) break;
+  }
+  return out;
+}
+
+async function searchNearbyOnce(
+  center: { lat: number; lng: number },
+  radiusMiles: number,
+  includedTypes: string[]
 ): Promise<DiscoveredRestaurant[]> {
   const apiKey = process.env.PLACES_API_KEY;
   if (!apiKey) return [];
@@ -331,8 +355,9 @@ export async function discoverNearbyRestaurants(
           ].join(","),
         },
         body: JSON.stringify({
-          includedTypes: ["restaurant"],
-          maxResultCount: Math.min(20, maxResultCount),
+          includedTypes,
+          maxResultCount: 20,
+          rankPreference: "DISTANCE",
           locationRestriction: {
             circle: {
               center: { latitude: center.lat, longitude: center.lng },

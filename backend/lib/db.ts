@@ -25,6 +25,7 @@ import {
   queryDocuments,
   setDocument,
 } from "@/backend/lib/firestore";
+import { haversineMiles } from "@/shared/lib/places";
 import type {
   AiItemJudgment,
   DataStore,
@@ -223,6 +224,21 @@ export async function listRestaurants(): Promise<Restaurant[]> {
   return (await readJsonStore()).restaurants;
 }
 
+/**
+ * The restaurants belonging to one event. Uses the event's own candidate list;
+ * events that don't have one yet (legacy) fall back to the shared pool
+ * filtered by distance so they never render blank.
+ */
+export async function listRestaurantsForEvent(event: DietreEvent): Promise<Restaurant[]> {
+  const all = await listRestaurants();
+  const ids = event.candidate_restaurant_ids;
+  if (ids && ids.length > 0) {
+    const wanted = new Set(ids);
+    return all.filter((restaurant) => wanted.has(restaurant.id));
+  }
+  return all.filter((restaurant) => haversineMiles(event, restaurant) <= event.radius + 0.05);
+}
+
 export async function listMenuItems(): Promise<MenuItem[]> {
   await ensureDemoSeedChecked();
   if (useFirestore()) {
@@ -396,7 +412,7 @@ export async function getEvent(id: string): Promise<DietreEvent | null> {
 export async function createEvent(event: DietreEvent): Promise<DietreEvent> {
   if (useFirestore()) {
     // Never invent seed restaurant ids — candidates start empty until acquisition.
-    await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, []));
+    await setDocument(COLLECTIONS.events, event.id, eventToDoc(event, event.candidate_restaurant_ids ?? []));
     const organizer = await getDocument<{ events?: string[] }>(COLLECTIONS.organizers, event.host_id);
     if (organizer) {
       const events = Array.isArray(organizer.events) ? organizer.events : [];
@@ -432,6 +448,7 @@ export async function updateEvent(
       | "complex_notes_by_restaurant"
       | "complex_notes_signature"
       | "google_place_id"
+      | "candidate_restaurant_ids"
     >
   >
 ): Promise<DietreEvent | null> {

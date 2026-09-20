@@ -67,6 +67,9 @@ export type DietreEvent = {
   // Google Places id the host's location text resolved to (real geocoding),
   // or null when resolved via the offline landmark-list fallback instead.
   google_place_id?: string | null;
+  // This event's own restaurant list (ids into the restaurants collection),
+  // generated from its confirmed address + radius. Undefined on legacy events.
+  candidate_restaurant_ids?: string[];
 };
 
 export type ParsedRules = {

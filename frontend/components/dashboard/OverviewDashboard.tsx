@@ -451,6 +451,13 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
                     </div>
                   </div>
 
+                  {sortedRestaurants.length === 0 && (
+                    <p className="rounded-md border border-dashed border-[var(--dash-border)] px-4 py-6 text-center font-serif text-sm italic text-[var(--dash-text-muted)]">
+                      No restaurants found near this event&apos;s address yet. Try a larger radius or a more specific
+                      address in Edit Event.
+                    </p>
+                  )}
+
                   {restaurantLayout === 'side_scroll' ? (
                     <div
                       ref={restaurantScrollRef}
