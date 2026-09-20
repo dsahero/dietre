@@ -270,10 +270,12 @@ export default function OverviewDashboard({
                 collaborators={collaborators}
                 pendingInvites={pendingInvites}
                 onChange={(next) => {
+                onChange={(next: { collaborators: Collaborator[]; pendingInvites: PendingInvite[] }) => {
                   setCollaborators(next.collaborators);
                   setPendingInvites(next.pendingInvites);
                   // Removing yourself revokes your own access.
                   if (viewerEmail && !isOwner && !next.collaborators.some((c) => c.email === viewerEmail)) {
+                  if (viewerEmail && !isOwner && !next.collaborators.some((c: Collaborator) => c.email === viewerEmail)) {
                     router.push('/events');
                   }
                 }}
@@ -580,6 +582,7 @@ export default function OverviewDashboard({
         eventName={event.name}
         inviterName={viewerEmail}
         onInvited={(invite) => setPendingInvites((prev) => [...prev.filter((p) => p.email !== invite.email), invite])}
+        onInvited={(invite: PendingInvite) => setPendingInvites((prev) => [...prev.filter((p) => p.email !== invite.email), invite])}
       />
 
       <ResponseDetailModal
