@@ -64,12 +64,8 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
     <div id="events-dashboard" className="min-h-screen w-full bg-[var(--dash-bg)] flex flex-col text-[var(--dash-text)] select-none">
       {/* Dashboard Top Header */}
       <header className="h-16 w-full bg-[var(--dash-surface)] border-b border-[var(--dash-border)] px-6 md:px-8 flex items-center justify-between shadow-xs sticky top-0 z-30">
-        <Link href="/" className="flex items-center gap-3" aria-label="dietre home">
+        <Link href="/" className="flex items-center" aria-label="dietre home">
           <DietreLogo className="h-8 w-auto text-[var(--dash-text)] transition-colors hover:text-[var(--dash-accent)]" />
-          <div>
-            <h1 className="text-lg font-bold font-heading text-[var(--dash-text)] leading-tight">Your Events</h1>
-            <p className="text-xs text-[var(--dash-text-soft)]">Signed in as {hostEmail}</p>
-          </div>
         </Link>
 
         <div className="flex items-center gap-3">
