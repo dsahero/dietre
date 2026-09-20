@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
+import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
 import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
-import { ConfidenceChip } from './ConfidenceChip';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -19,6 +19,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   onToggleShortlist,
   onClickDetails,
 }) => {
+  const [textureUrl, setTextureUrl] = useState<string>('');
   const detailsScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollDetails = (direction: 'left' | 'right', e: React.MouseEvent) => {
@@ -28,6 +29,21 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       detailsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  useEffect(() => {
+    // Canvas texture generation needs `document` and must run client-side only
+    // (computing it during render would crash SSR / desync from the server-rendered HTML).
+    let url = '';
+    if (restaurant.textureType === 'sand') {
+      url = createSandTexture(260, 180);
+    } else if (restaurant.textureType === 'rust') {
+      url = createRustTexture(260, 180);
+    } else if (restaurant.textureType === 'marble') {
+      url = createMarbleTexture(260, 180);
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the Canvas API, not derivable during render
+    setTextureUrl(url);
+  }, [restaurant.textureType]);
 
   const getMatchBadgeStyle = (pct: number) => {
     if (pct >= 85) return 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50';
@@ -60,16 +76,13 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           ) : (
             <span />
           )}
-          <div className="flex flex-col items-end gap-1">
-            <span
-              className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
-                restaurant.matchPercentage
-              )}`}
-            >
-              {restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
-            </span>
-            <ConfidenceChip confidence={restaurant.confidence} />
-          </div>
+          <span
+            className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
+              restaurant.matchPercentage
+            )}`}
+          >
+            {restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
+          </span>
         </div>
 
         <div className="relative z-10 mt-auto">
