@@ -2,7 +2,7 @@ import React from 'react';
 import { NavItem } from '../types';
 import { PanelLeftClose, ChevronRight, Bookmark, Users, Compass, Utensils } from 'lucide-react';
 import { ThemeToggleButton } from '@/frontend/components/theme-toggle-button';
-import { DietreLogo } from '@/frontend/components/dietre-logo';
+import { DietreLogo, DIETRE_CHROME_LOGO_CLASS } from '@/frontend/components/dietre-logo';
 
 interface SidebarProps {
   navItems: NavItem[];
@@ -92,17 +92,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {isCollapsed ? (
           /* Collapsed Icon-Only View (68px wide, stays in flex flow, does NOT cover text) */
-          <div className="py-5 px-2 flex flex-col items-center justify-between h-full space-y-6">
+          <div className="px-2 flex flex-col items-center justify-between h-full space-y-6">
             <div className="flex flex-col items-center gap-4 w-full">
-              {/* Home / Logo Icon Button */}
+              {/* Home / Logo Icon Button — h-16 row matches events list top chrome */}
               <button
                 type="button"
                 onClick={onGoHome}
                 id="sidebar-collapsed-logo-btn"
                 title="dietre — Return to Events"
-                className="group p-1.5 rounded-xs hover:bg-[var(--dash-surface-hover)] transition-colors cursor-pointer"
+                className="group h-16 flex items-center justify-center rounded-xs hover:bg-[var(--dash-surface-hover)] transition-colors cursor-pointer"
               >
-                <DietreLogo className="h-6 w-auto text-[var(--dash-text)] transition-colors group-hover:text-[var(--dash-accent)]" />
+                <DietreLogo className={`${DIETRE_CHROME_LOGO_CLASS} text-[var(--dash-text)] transition-colors group-hover:text-[var(--dash-accent)]`} />
               </button>
 
               {/* Expand Sidebar Button */}
@@ -156,18 +156,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ) : (
           /* Expanded Full-Width View (220px wide) */
-          <div className="flex flex-col justify-between h-full pt-7 px-5 pb-3">
+          <div className="flex flex-col justify-between h-full px-6 pb-3">
             <div>
-              {/* Top Brand Header */}
-              <div className="flex items-center justify-between pb-5 mb-4 border-b border-dashed border-[var(--dash-border)]">
+              {/* Top Brand Header — h-16 + px-6 matches events list top chrome */}
+              <div className="flex h-16 items-center justify-between mb-4 border-b border-dashed border-[var(--dash-border)]">
                 <button
                   type="button"
                   onClick={onGoHome}
                   id="sidebar-home-logo-btn"
                   title="dietre — Return to Events"
-                  className="group flex items-center justify-start py-1 transition-opacity hover:opacity-85 active:scale-98 cursor-pointer"
+                  className="group flex items-center justify-start transition-opacity hover:opacity-85 active:scale-98 cursor-pointer"
                 >
-                  <DietreLogo className="h-7 w-auto text-[var(--dash-text)] transition-colors group-hover:text-[var(--dash-accent)]" />
+                  <DietreLogo className={`${DIETRE_CHROME_LOGO_CLASS} text-[var(--dash-text)] transition-colors group-hover:text-[var(--dash-accent)]`} />
                 </button>
 
                 <div className="flex items-center gap-1">
