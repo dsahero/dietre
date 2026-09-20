@@ -12,8 +12,6 @@ interface RestaurantCardProps {
   onClickDetails?: (restaurant: RestaurantCardData) => void;
 }
 
-const PRICE_LABEL: Record<1 | 2 | 3, string> = { 1: '$', 2: '$$', 3: '$$$' };
-
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   restaurant,
   isShortlisted = false,
@@ -96,9 +94,9 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           <div className="mt-1.5 flex items-center gap-2 text-[11.5px] text-[var(--dash-text)]/90">
             <span className="truncate font-medium">{restaurant.cuisine}</span>
             <span>•</span>
-            <span className="flex shrink-0 items-center gap-0.5 text-[var(--dash-accent-soft)]">
+            <span className="flex shrink-0 items-center gap-0.5 text-[var(--dash-accent-soft)]" title={restaurant.predictedCostLabel}>
               <DollarSign className="h-3 w-3 text-[var(--dash-accent-soft)]" />
-              {PRICE_LABEL[restaurant.priceLevel]}
+              ~${restaurant.predictedCostPerPerson}/pp
             </span>
           </div>
           {/* Coverage + Guest Fit labels */}

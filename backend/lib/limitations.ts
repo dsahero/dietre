@@ -40,7 +40,7 @@ If nothing concrete and checkable is stated, return [].`;
 
 export async function suggestEventDetailsFromLimitations(
   text: string
-): Promise<{ radius?: number; budget_range?: BudgetRange }> {
+): Promise<{ radius?: number; budget_range?: BudgetRange; budget_per_person?: number }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || !text.trim()) return {};
 
@@ -50,17 +50,29 @@ export async function suggestEventDetailsFromLimitations(
     const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
     const prompt = `A host wrote these event limitations/requirements: "${text}"
 
-If — and only if — the text explicitly states a search radius in miles, or a budget level, extract them. Do not guess or infer from vague language.
-Return ONLY JSON: {"radius": number|null, "budget_range": "$"|"$$"|"$$$"|null}
+If — and only if — the text explicitly states a search radius in miles, or a budget, extract them. Do not guess or infer from vague language.
+Return ONLY JSON: {"radius": number|null, "budget_per_person": number|null, "budget_range": "$"|"$$"|"$$$"|null}
 - radius: only if a specific mile distance is explicitly stated (e.g. "within 5 miles" -> 5). Otherwise null.
-- budget_range: "$" for roughly under $15/person or "budget-friendly", "$$" for roughly $15-35/person or "moderate", "$$$" for roughly $35+/person or "upscale"/"fine dining" — only if a budget is explicitly stated. Otherwise null.`;
+- budget_per_person: only if a dollar amount per person (or per guest/head) is explicitly stated (e.g. "$25/person" -> 25, "under 40 dollars each" -> 40). Otherwise null.
+- budget_range: only if a tier is stated without a number — "$" under ~$15/person or "budget-friendly", "$$" ~$15-35 or "moderate", "$$$" ~$35+ or "upscale". Otherwise null. Prefer budget_per_person when both appear.`;
     const result = await withTimeout(model.generateContent(prompt), 9000, "Event details suggestion");
     const raw = result.response.text().trim();
     const jsonText = raw.replace(/^```json\s*|\s*```$/g, "");
-    const parsed = JSON.parse(jsonText) as { radius?: number | null; budget_range?: string | null };
-    const out: { radius?: number; budget_range?: BudgetRange } = {};
+    const parsed = JSON.parse(jsonText) as {
+      radius?: number | null;
+      budget_range?: string | null;
+      budget_per_person?: number | null;
+    };
+    const out: { radius?: number; budget_range?: BudgetRange; budget_per_person?: number } = {};
     if (typeof parsed.radius === "number" && parsed.radius > 0 && parsed.radius <= 30) {
       out.radius = parsed.radius;
+    }
+    if (
+      typeof parsed.budget_per_person === "number" &&
+      parsed.budget_per_person > 0 &&
+      parsed.budget_per_person <= 500
+    ) {
+      out.budget_per_person = Math.round(parsed.budget_per_person);
     }
     if (parsed.budget_range === "$" || parsed.budget_range === "$$" || parsed.budget_range === "$$$") {
       out.budget_range = parsed.budget_range;

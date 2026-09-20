@@ -192,7 +192,7 @@ export default function OverviewDashboard({
         location: patch.address,
         place_id: patch.place_id,
         radius: patch.radiusMiles,
-        budget_range: patch.maxBudget,
+        budget_per_person: patch.budgetPerPerson,
         expected_headcount: patch.expectedHeadcount,
         limitations: patch.limitations,
       }),
@@ -306,7 +306,7 @@ export default function OverviewDashboard({
 
             <div className="flex flex-wrap items-center gap-4 text-xs font-serif">
               <span className="ink-stamp px-2 py-0.5 text-[9.5px] font-bold text-[var(--dash-accent-deep)] border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] shadow-2xs">
-                {eventDetails.maxBudget} budget
+                ${eventDetails.budgetPerPerson}/person budget
               </span>
               <span className="text-[var(--dash-text-muted)]">
                 within <strong className="font-mono text-[11px] text-[var(--dash-text)] font-semibold">{eventDetails.maxDistanceRadius}</strong>
@@ -343,7 +343,7 @@ export default function OverviewDashboard({
                 </p>
               ) : (
                 <p className="font-serif italic text-xs text-[var(--dash-text-muted)]">
-                  Standard radius ({eventDetails.maxDistanceRadius}) and budget ({eventDetails.maxBudget}) enforced.
+                  Standard radius ({eventDetails.maxDistanceRadius}) and budget (${eventDetails.budgetPerPerson}/person) enforced.
                 </p>
               )}
               {eventDetails.limitationsChecklist && eventDetails.limitationsChecklist.length > 0 && (

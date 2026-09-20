@@ -41,6 +41,7 @@ export type EventDoc = {
   location_label: string;
   radius_miles: number;
   budget_range: DietreEvent["budget_range"];
+  budget_per_person?: number | null;
   lat: number;
   lng: number;
   limitations?: string;
@@ -164,6 +165,7 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     location_label: event.location,
     radius_miles: event.radius,
     budget_range: event.budget_range,
+    budget_per_person: event.budget_per_person ?? null,
     lat: event.lat,
     lng: event.lng,
     limitations: event.limitations ?? null,
@@ -187,6 +189,7 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
   const lng = asNumber(doc.lng, asNumber(coords[0]));
   const lat = asNumber(doc.lat, asNumber(coords[1]));
   const budget = doc.budget_range;
+  const budgetPerPerson = asNumber(doc.budget_per_person, 0);
   return {
     id: asString(doc.id, id),
     host_id: asString(doc.organizer_id, asString(doc.host_id)),
@@ -197,6 +200,7 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
     lng,
     radius: asNumber(doc.radius_miles, asNumber(doc.radius, 2)),
     budget_range: budget === "$" || budget === "$$" || budget === "$$$" ? budget : "$$",
+    budget_per_person: budgetPerPerson > 0 ? budgetPerPerson : undefined,
     expected_headcount: asNumber(doc.guest_count_invited, asNumber(doc.expected_headcount, 1)),
     created_at: asString(doc.created_at),
     limitations: typeof doc.limitations === "string" ? doc.limitations : undefined,
@@ -259,6 +263,7 @@ export function eventPatchToDoc(
       | "lng"
       | "radius"
       | "budget_range"
+      | "budget_per_person"
       | "expected_headcount"
       | "limitations"
       | "limitations_checklist"
@@ -286,6 +291,7 @@ export function eventPatchToDoc(
   }
   if (patch.radius !== undefined) data.radius_miles = patch.radius;
   if (patch.budget_range !== undefined) data.budget_range = patch.budget_range;
+  if (patch.budget_per_person !== undefined) data.budget_per_person = patch.budget_per_person;
   if (patch.expected_headcount !== undefined) data.guest_count_invited = patch.expected_headcount;
   if (patch.limitations !== undefined) data.limitations = patch.limitations;
   if (patch.limitations_checklist !== undefined) data.limitations_checklist = patch.limitations_checklist;

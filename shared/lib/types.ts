@@ -52,7 +52,10 @@ export type DietreEvent = {
   lat: number;
   lng: number;
   radius: number;
+  /** Legacy tier kept for older events / Firestore docs; prefer budget_per_person. */
   budget_range: BudgetRange;
+  /** Host max spend per person in dollars (primary budget UX). */
+  budget_per_person?: number;
   expected_headcount: number;
   created_at: string;
   // Host-authored free text — accessibility, noise, venue rules, anything
@@ -227,11 +230,18 @@ export type RestaurantConfidence = {
   rank_rawlsian: number | null;
 };
 
+export type PredictedCostSource = "safe_menu_avg" | "menu_avg" | "places_estimate";
+
 export type RestaurantMatch = {
   restaurant: Restaurant;
   distance_miles: number;
   within_radius: boolean;
   within_budget: boolean;
+  /** Predicted $/person from menu prices (or Places estimate when sparse). */
+  predicted_cost_per_person: number;
+  predicted_cost_source: PredictedCostSource;
+  /** predicted_cost_per_person × event.expected_headcount */
+  predicted_party_total: number;
   coverage_pct: number;
   weighted_coverage_pct: number;
   covered_count: number;

@@ -702,6 +702,7 @@ export async function updateEvent(
       | "lng"
       | "radius"
       | "budget_range"
+      | "budget_per_person"
       | "expected_headcount"
       | "limitations"
       | "limitations_checklist"

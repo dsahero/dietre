@@ -1,4 +1,9 @@
-import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
+import { haversineMiles } from "@/shared/lib/places";
+import {
+  estimatedPartyTotal,
+  eventBudgetCap,
+  predictRestaurantCost,
+} from "@/shared/lib/predictedCost";
 import { isItemSafeForResponse, judgeResponseAgainstMenuWithGemini, scorePreferencesWithGemini, severityWeight } from "@/backend/lib/parser";
 import { getResponseJudgments, saveResponseJudgments, saveRestaurantScores, updateEvent } from "@/backend/lib/db";
 import { withTimeout } from "@/backend/lib/with-timeout";
@@ -341,15 +346,23 @@ export async function matchEvent(input: {
     void saveRestaurantScores([], event.id).catch((error) => {
       console.error("restaurant_scores clear failed", error);
     });
-    const maxPrice = priceLevelFromBudget(event.budget_range);
+    const budgetCap = eventBudgetCap(event);
     const rankedEmpty: RestaurantMatch[] = restaurants
       .map((restaurant) => {
         const distance = haversineMiles(event, restaurant);
+        const items = itemsByRestaurant.get(restaurant.id) ?? [];
+        const predicted = predictRestaurantCost({
+          menuPrices: items.map((item) => item.price),
+          priceLevel: restaurant.price_level,
+        });
         return {
           restaurant,
           distance_miles: Math.round(distance * 10) / 10,
           within_radius: distance <= event.radius + 0.05,
-          within_budget: restaurant.price_level <= maxPrice,
+          within_budget: predicted.perPerson <= budgetCap,
+          predicted_cost_per_person: predicted.perPerson,
+          predicted_cost_source: predicted.source,
+          predicted_party_total: estimatedPartyTotal(predicted.perPerson, event.expected_headcount),
           coverage_pct: 0,
           weighted_coverage_pct: 0,
           covered_count: 0,
@@ -358,7 +371,7 @@ export async function matchEvent(input: {
           complex_notes: [],
           bayesian_score: 0.5,
           overall_score: 0,
-          menu_stats: menuStatsFor(itemsByRestaurant.get(restaurant.id) ?? []),
+          menu_stats: menuStatsFor(items),
         };
       })
       .sort((a, b) => a.distance_miles - b.distance_miles);
@@ -487,14 +500,13 @@ export async function matchEvent(input: {
     return isItemSafeForResponse(item, response);
   }
 
-  const maxPrice = priceLevelFromBudget(event.budget_range);
+  const budgetCap = eventBudgetCap(event);
   const totalWeight = responses.reduce((sum, response) => sum + severityWeight(response.parsed_rules.severity), 0);
   const coveredAnywhere = new Set<string>();
 
   const ranked: RestaurantMatch[] = restaurants.map((restaurant) => {
     const distance = haversineMiles(event, restaurant);
     const within_radius = distance <= event.radius + 0.05;
-    const within_budget = restaurant.price_level <= maxPrice;
     const items = itemsByRestaurant.get(restaurant.id) ?? [];
     let coveredWeight = 0;
     let bayesianWeightedSum = 0;
@@ -514,6 +526,13 @@ export async function matchEvent(input: {
       })
       .filter((entry) => entry.covered_response_ids.length > 0)
       .sort((a, b) => b.covered_response_ids.length - a.covered_response_ids.length);
+
+    const predicted = predictRestaurantCost({
+      menuPrices: items.map((item) => item.price),
+      safeMenuPrices: safeItems.map((entry) => entry.item.price),
+      priceLevel: restaurant.price_level,
+    });
+    const within_budget = predicted.perPerson <= budgetCap;
 
     for (const response of responses) {
       const hasSafe = items.some((item) => isSafe(item, response).safe);
@@ -560,6 +579,9 @@ export async function matchEvent(input: {
       distance_miles: Math.round(distance * 10) / 10,
       within_radius,
       within_budget,
+      predicted_cost_per_person: predicted.perPerson,
+      predicted_cost_source: predicted.source,
+      predicted_party_total: estimatedPartyTotal(predicted.perPerson, event.expected_headcount),
       coverage_pct,
       weighted_coverage_pct,
       covered_count: coveredIds.length,
