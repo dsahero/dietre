@@ -34,7 +34,12 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   // Keep pdf.js off the Turbopack/webpack graph so its worker file resolves
   // from node_modules instead of `.next/dev/server/chunks/`.
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
+  serverExternalPackages: [
+    "pdf-parse",
+    "pdfjs-dist",
+    "@napi-rs/canvas",
+    "@firecrawl/html-extractor",
+  ],
 };
 
 export default nextConfig;

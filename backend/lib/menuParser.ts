@@ -10,6 +10,9 @@ import * as cheerio from "cheerio";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { detectSpaSignals, renderWithBrowser } from "@/backend/lib/renderPage";
 
+/** cheerio.load return type (avoids @types/cheerio Root vs CheerioAPI clash). */
+type CheerioRoot = ReturnType<typeof cheerio.load>;
+
 const geminiKey = process.env.GEMINI_API_KEY;
 const geminiModel = geminiKey
   ? new GoogleGenerativeAI(geminiKey).getGenerativeModel({ model: "gemini-3.5-flash-lite" })
@@ -308,7 +311,7 @@ async function extractWithFirecrawl(html: string, url?: string): Promise<string 
   }
 }
 
-function extractWithCheerioSelectors($: cheerio.CheerioAPI): string {
+function extractWithCheerioSelectors($: CheerioRoot): string {
   $("script, style, noscript, svg, iframe").remove();
   $("nav, footer, header, aside").remove();
 
@@ -327,7 +330,7 @@ function extractWithCheerioSelectors($: cheerio.CheerioAPI): string {
   return elementToText($, $("body").get(0) ?? $.root().get(0));
 }
 
-function elementToText($: cheerio.CheerioAPI, el: Parameters<cheerio.CheerioAPI>[0] | null | undefined): string {
+function elementToText($: CheerioRoot, el: Parameters<CheerioRoot>[0] | null | undefined): string {
   if (el == null) return "";
   const $el = $(el).clone();
   $el.find("br").replaceWith("\n");
@@ -340,7 +343,7 @@ function elementToText($: cheerio.CheerioAPI, el: Parameters<cheerio.CheerioAPI>
   return $el.text();
 }
 
-export function extractJsonLdMenuText($: cheerio.CheerioAPI): string | null {
+export function extractJsonLdMenuText($: CheerioRoot): string | null {
   const nodes: Record<string, unknown>[] = [];
 
   $('script[type="application/ld+json"]').each((_, el) => {
