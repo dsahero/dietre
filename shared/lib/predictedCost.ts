@@ -22,8 +22,8 @@ export type PredictedCost = {
   sampleSize: number;
 };
 
-function meanPositivePrices(prices: number[]): number | null {
-  const valid = prices.filter((p) => typeof p === "number" && Number.isFinite(p) && p > 0);
+function meanPositivePrices(prices: Array<number | null | undefined>): number | null {
+  const valid = prices.filter((p): p is number => typeof p === "number" && Number.isFinite(p) && p > 0);
   if (valid.length === 0) return null;
   const sum = valid.reduce((a, b) => a + b, 0);
   return Math.round((sum / valid.length) * 100) / 100;
@@ -37,8 +37,8 @@ function meanPositivePrices(prices: number[]): number | null {
  * precision beyond what the source supports.
  */
 export function predictRestaurantCost(input: {
-  menuPrices: number[];
-  safeMenuPrices?: number[];
+  menuPrices: Array<number | null | undefined>;
+  safeMenuPrices?: Array<number | null | undefined>;
   priceLevel: 1 | 2 | 3;
 }): PredictedCost {
   const safeMean = meanPositivePrices(input.safeMenuPrices ?? []);
@@ -46,7 +46,9 @@ export function predictRestaurantCost(input: {
     return {
       perPerson: Math.round(safeMean),
       source: "safe_menu_avg",
-      sampleSize: (input.safeMenuPrices ?? []).filter((p) => p > 0).length,
+      sampleSize: (input.safeMenuPrices ?? []).filter(
+        (p): p is number => typeof p === "number" && p > 0,
+      ).length,
     };
   }
 
@@ -55,7 +57,9 @@ export function predictRestaurantCost(input: {
     return {
       perPerson: Math.round(menuMean),
       source: "menu_avg",
-      sampleSize: input.menuPrices.filter((p) => p > 0).length,
+      sampleSize: input.menuPrices.filter(
+        (p): p is number => typeof p === "number" && p > 0,
+      ).length,
     };
   }
 
