@@ -42,6 +42,7 @@ export const COLLECTIONS = {
   restaurants: "restaurants",
   menu_items: "menu_items",
   restaurant_scores: "restaurant_scores",
+  event_invites: "event_invites",
 } as const;
 
 export function firestoreProjectId(): string {
@@ -110,7 +111,9 @@ function loadServiceAccount(): ServiceAccount | null {
     return null;
   }
   try {
-    const resolved = path.isAbsolute(file) ? file : path.resolve(process.cwd(), file);
+    const resolved = path.isAbsolute(file)
+      ? file
+      : path.resolve(/*turbopackIgnore: true*/ process.cwd(), file);
     cachedServiceAccount = JSON.parse(readFileSync(resolved, "utf8")) as ServiceAccount;
     return cachedServiceAccount;
   } catch {
@@ -312,6 +315,43 @@ export async function queryDocuments<T>(
   return out;
 }
 
+/** Documents whose string `field` starts with `prefix` (one range query, capped by `limit`). */
+export async function queryByPrefix<T>(
+  collection: string,
+  field: string,
+  prefix: string,
+  limit: number
+): Promise<Array<T & { id: string }>> {
+  const res = await firestoreFetch("/documents:runQuery", {
+    method: "POST",
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: collection }],
+        where: {
+          compositeFilter: {
+            op: "AND",
+            filters: [
+              { fieldFilter: { field: { fieldPath: field }, op: "GREATER_THAN_OR_EQUAL", value: encodeValue(prefix) } },
+              { fieldFilter: { field: { fieldPath: field }, op: "LESS_THAN", value: encodeValue(`${prefix}`) } },
+            ],
+          },
+        },
+        limit,
+      },
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Firestore PREFIX QUERY ${collection}.${field} failed (${res.status}): ${await res.text()}`);
+  }
+  const rows = (await res.json()) as Array<{ document?: FirestoreDocument }>;
+  const out: Array<T & { id: string }> = [];
+  for (const row of rows) {
+    const decoded = decodeDocument<T>(row.document);
+    if (decoded) out.push(decoded);
+  }
+  return out;
+}
+
 export async function setDocument(
   collection: string,
   id: string,
@@ -356,6 +396,21 @@ export async function deleteDocument(collection: string, id: string): Promise<vo
   if (res.status === 404) return;
   if (!res.ok) {
     throw new Error(`Firestore DELETE ${collection}/${id} failed (${res.status}): ${await res.text()}`);
+  }
+}
+
+/** Deletes many documents with batched commits (400 per request) instead of one call each. */
+export async function deleteDocuments(collection: string, ids: string[]): Promise<void> {
+  const chunkSize = 400;
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const slice = ids.slice(i, i + chunkSize);
+    const res = await firestoreFetch("/documents:commit", {
+      method: "POST",
+      body: JSON.stringify({ writes: slice.map((id) => ({ delete: documentName(collection, id) })) }),
+    });
+    if (!res.ok) {
+      throw new Error(`Firestore batch DELETE ${collection} failed (${res.status}): ${await res.text()}`);
+    }
   }
 }
 
