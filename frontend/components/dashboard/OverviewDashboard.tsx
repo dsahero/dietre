@@ -236,33 +236,19 @@ export default function OverviewDashboard({
 
       <main className="main-content">
         <header className="main-header">
-          {/* Typographic Asymmetry: natural line breaks, off-baseline action, no small-caps bullet eyebrow */}
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-baseline">
-            <div className="max-w-2xl">
-              <Link
-                href="/events"
-                id="btn-back-to-events"
-                className="group inline-flex items-center gap-1.5 mb-2.5 py-1.5 px-3 rounded-xs border border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs font-heading font-semibold text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
-              >
-                <ArrowLeft className="h-3.5 w-3.5 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-translate-x-0.5" />
-                <span>Back to My Events</span>
-              </Link>
-              {activeNavId !== 'overview' && (
-                <p className="font-serif italic text-xs text-[var(--dash-accent)] mb-1">
-                  {activeNavId === 'shortlisted'
-                    ? 'Shortlisted venues for review'
-                    : activeNavId === 'responses'
-                      ? 'Guest dietary roster & constraints'
-                      : 'Venue radius & map'}
-                </p>
-              )}
-              <h1 className="font-heading text-3xl sm:text-4xl font-bold text-[var(--dash-text)] leading-[1.14] tracking-[-0.038em] text-balance">
-                {eventDetails.name}
-              </h1>
-            </div>
+          {/* Back link + action row */}
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center mb-5">
+            <Link
+              href="/events"
+              id="btn-back-to-events"
+              className="group inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xs border border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs font-heading font-semibold text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs self-start"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-translate-x-0.5" />
+              <span>Back to My Events</span>
+            </Link>
 
-            {/* Asymmetric bespoke action: bare icon, artisan tactile link/button, no box-in-a-box */}
-            <div className="flex flex-wrap items-center gap-2 self-start md:self-baseline">
+            {/* Action buttons */}
+            <div className="flex flex-wrap items-center gap-2">
               <EventPeoplePopover
                 eventId={event.id}
                 isOwner={isOwner}
@@ -297,32 +283,43 @@ export default function OverviewDashboard({
             </div>
           </div>
 
-          {/* Broken grid metadata bar: varied shapes, bare text, stamped seal, judged spacing */}
-          <div className="mt-4 pt-3.5 pb-2.5 border-t border-b border-dashed border-[var(--dash-border)] flex flex-wrap items-baseline justify-between gap-y-2 gap-x-6 text-xs text-[var(--dash-text-soft)]">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-[var(--dash-accent)] shrink-0 stroke-[1.75]" />
-              <span className="font-serif font-medium text-[var(--dash-text)] text-[13px]">{eventDetails.address}</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 text-xs font-serif">
-              <span className="ink-stamp px-2 py-0.5 text-[9.5px] font-bold text-[var(--dash-accent-deep)] border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] shadow-2xs">
-                ${eventDetails.budgetPerPerson}/person budget
+          {/* Large orange event hero banner — matches front page .remix-cta-card */}
+          <div className="bg-[#D7531F] rounded-3xl px-6 py-6 md:px-8 md:py-7 shadow-lg mb-4">
+            {activeNavId !== 'overview' && (
+              <p className="font-serif italic text-xs text-white/70 mb-1">
+                {activeNavId === 'shortlisted'
+                  ? 'Shortlisted venues for review'
+                  : activeNavId === 'responses'
+                    ? 'Guest dietary roster & constraints'
+                    : 'Venue radius & map'}
+              </p>
+            )}
+            <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white leading-[1.14] tracking-[-0.038em] text-balance mb-4">
+              {eventDetails.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/80">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-white/70 shrink-0" />
+                <span className="font-serif">{eventDetails.address}</span>
               </span>
-              <span className="text-[var(--dash-text-muted)]">
-                within <strong className="font-mono text-[11px] text-[var(--dash-text)] font-semibold">{eventDetails.maxDistanceRadius}</strong>
+              <span className="rounded-full bg-white/20 px-3 py-1 font-mono text-xs font-bold text-white">
+                ${eventDetails.budgetPerPerson}/person
               </span>
-              <span className="text-[var(--dash-text-soft)] italic">
-                <strong className="font-serif not-italic font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</strong> expected banquet guests
+              <span className="font-serif text-white/80">
+                within <strong className="font-mono text-[13px] text-white font-semibold">{eventDetails.maxDistanceRadius}</strong>
               </span>
-              <button
-                type="button"
-                onClick={() => setIsEventDetailsOpen((prev) => !prev)}
-                aria-expanded={isEventDetailsOpen}
-                className="inline-flex items-center gap-1 rounded-xs border border-dashed border-[var(--dash-border-strong)] px-2 py-0.5 font-serif text-[11px] text-[var(--dash-text-soft)] transition-colors hover:border-[var(--dash-accent)] hover:text-[var(--dash-text)] cursor-pointer"
-              >
-                Event details
-                {isEventDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </button>
+              <span className="font-serif text-white/80">
+                <strong className="font-serif not-italic font-semibold text-white">{eventDetails.expectedHeadcount}</strong> expected guests
+              </span>
+                <button
+                  type="button"
+                  onClick={() => setIsEventDetailsOpen((prev) => !prev)}
+                  aria-expanded={isEventDetailsOpen}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/20 hover:bg-white/30 px-3 py-1 font-serif text-xs text-white transition-colors cursor-pointer"
+                >
+                  Event details
+                  {isEventDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
             </div>
           </div>
 
