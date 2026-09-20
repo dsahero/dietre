@@ -111,6 +111,8 @@ export function toRestaurantCardData(
       lng: match.restaurant.lng,
       textureType: textureForId(match.restaurant.id),
       matchPercentage: match.weighted_coverage_pct,
+      bayesianScore: match.bayesian_score,
+      overallScore: match.overall_score,
       coveredCount: match.covered_count,
       totalResponses: match.total_responses,
       hasUnconfirmedItems: match.safe_items.some((item) => item.uncertain),

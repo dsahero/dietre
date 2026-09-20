@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DEMO_EVENT_ID, SEED_EVENT_2_ID, SEED_EVENT_3_ID } from "@/backend/data/seed";
+import { isEventMember, isEventOwner } from "@/backend/lib/access";
 import { getSession, hostIdFromEmail } from "@/backend/lib/auth";
 import { getEvent, getHost, listMenuItems, listResponses } from "@/backend/lib/db";
 import { matchEvent } from "@/backend/lib/matching";
@@ -30,7 +31,7 @@ export default async function EventDashboardPage({
     event.id === SEED_EVENT_2_ID ||
     event.id === SEED_EVENT_3_ID;
 
-  let isHost = session?.host_id === event.host_id || isDemo;
+  let isHost = isEventMember(session, event) || isDemo;
 
   if (!isHost && session?.email) {
     const sessionEmail = session.email.trim().toLowerCase();
@@ -62,6 +63,13 @@ export default async function EventDashboardPage({
     );
   }
 
+  const sessionEmailLower = session?.email?.trim().toLowerCase() ?? "";
+  const isCollaboratorOnly =
+    Boolean(sessionEmailLower) &&
+    (event.collaborator_emails ?? []).includes(sessionEmailLower) &&
+    !isEventOwner(session, event);
+  const isOwner = !isCollaboratorOnly;
+
   const [responses, restaurants, menuItems] = await Promise.all([
     listResponses(event.id),
     ensureEventRestaurants(event),
@@ -78,6 +86,8 @@ export default async function EventDashboardPage({
       event={event}
       match={match}
       responses={responses}
+      isOwner={isOwner}
+      viewerEmail={sessionEmailLower}
       sharePanel={<SharePanel eventId={event.id} eventName={event.name} />}
     />
   );

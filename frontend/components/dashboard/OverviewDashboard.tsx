@@ -31,7 +31,9 @@ import {
   zeroMatchResponseIds,
 } from './adapters';
 import { GuestResponse, NavItem, RestaurantCardData } from './types';
-import type { DietreEvent, MatchResult, DietResponse } from '@/shared/lib/types';
+import type { DietreEvent, MatchResult, DietResponse, Collaborator, PendingInvite } from '@/shared/lib/types';
+import { ShareEventModal } from './components/ShareEventModal';
+import { EventPeoplePopover } from './components/EventPeoplePopover';
 import {
   Pencil,
   MapPin,
@@ -48,6 +50,7 @@ import {
   ShieldCheck,
   Sparkles,
   ArrowLeft,
+  Share2,
 } from 'lucide-react';
 
 export type RestaurantSortOption = 'best_fit' | 'closest';
@@ -57,10 +60,23 @@ interface OverviewDashboardProps {
   match: MatchResult;
   responses: DietResponse[];
   sharePanel: ReactNode;
+  /** True for the event creator; collaborators can do everything except delete the event. */
+  isOwner?: boolean;
+  viewerEmail?: string;
 }
 
-export default function OverviewDashboard({ event, match, responses, sharePanel }: OverviewDashboardProps) {
+export default function OverviewDashboard({
+  event,
+  match,
+  responses,
+  sharePanel,
+  isOwner = true,
+  viewerEmail = '',
+}: OverviewDashboardProps) {
   const router = useRouter();
+  const [collaborators, setCollaborators] = useState<Collaborator[]>(event.collaborators ?? []);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>(event.pending_invites ?? []);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const guestTokenById = useMemo(() => buildGuestTokenIndex(responses), [responses]);
   const zeroMatchIds = useMemo(() => zeroMatchResponseIds(match), [match]);
@@ -159,6 +175,14 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
     router.push('/events');
   };
 
+  const handleDeleteEvent = async () => {
+    const res = await fetch(`/api/events/${event.id}`, { method: 'DELETE' });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) throw new Error(data.error || 'Could not delete the event.');
+    router.push('/events');
+    router.refresh();
+  };
+
   const handleSaveEvent = async (patch: EventEditPatch) => {
     const res = await fetch(`/api/events/${event.id}`, {
       method: 'PATCH',
@@ -238,14 +262,41 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
             </div>
 
             {/* Asymmetric bespoke action: bare icon, artisan tactile link/button, no box-in-a-box */}
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(true)}
-              className="group inline-flex items-center gap-2 self-start md:self-baseline py-1.5 px-3 rounded-xs border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
-            >
-              <Pencil className="h-3 w-3 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-rotate-12" />
-              <span className="font-serif text-xs font-medium">Modify event ledger</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 self-start md:self-baseline">
+              <EventPeoplePopover
+                eventId={event.id}
+                isOwner={isOwner}
+                viewerEmail={viewerEmail}
+                collaborators={collaborators}
+                pendingInvites={pendingInvites}
+                onChange={(next) => {
+                onChange={(next: { collaborators: Collaborator[]; pendingInvites: PendingInvite[] }) => {
+                  setCollaborators(next.collaborators);
+                  setPendingInvites(next.pendingInvites);
+                  // Removing yourself revokes your own access.
+                  if (viewerEmail && !isOwner && !next.collaborators.some((c) => c.email === viewerEmail)) {
+                  if (viewerEmail && !isOwner && !next.collaborators.some((c: Collaborator) => c.email === viewerEmail)) {
+                    router.push('/events');
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsShareOpen(true)}
+                className="group inline-flex items-center gap-2 py-1.5 px-3 rounded-xs border border-[var(--dash-accent)] bg-[var(--dash-accent)] text-xs text-white transition-all hover:opacity-90 cursor-pointer shadow-2xs"
+              >
+                <Share2 className="h-3 w-3 stroke-[1.75]" />
+                <span className="font-serif text-xs font-medium">Share</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="group inline-flex items-center gap-2 py-1.5 px-3 rounded-xs border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
+              >
+                <Pencil className="h-3 w-3 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-rotate-12" />
+                <span className="font-serif text-xs font-medium">Modify event ledger</span>
+              </button>
+            </div>
           </div>
 
           {/* Broken grid metadata bar: varied shapes, bare text, stamped seal, judged spacing */}
@@ -521,6 +572,17 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
         onClose={() => setIsEditModalOpen(false)}
         eventDetails={eventDetails}
         onSave={handleSaveEvent}
+        onDelete={isOwner ? handleDeleteEvent : undefined}
+      />
+
+      <ShareEventModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        eventId={event.id}
+        eventName={event.name}
+        inviterName={viewerEmail}
+        onInvited={(invite) => setPendingInvites((prev) => [...prev.filter((p) => p.email !== invite.email), invite])}
+        onInvited={(invite: PendingInvite) => setPendingInvites((prev) => [...prev.filter((p) => p.email !== invite.email), invite])}
       />
 
       <ResponseDetailModal

@@ -95,6 +95,8 @@ export async function matchEvent(input: {
         total_responses: 0,
         safe_items: [],
         complex_notes: [],
+        bayesian_score: 0.5,
+        overall_score: 0,
       })),
       zero_matches: [],
       response_count: 0,
@@ -169,6 +171,9 @@ export async function matchEvent(input: {
       total_responses: responses.length,
       safe_items: safeItems,
       complex_notes: [], // advisory notes surfaced separately by host limitations
+      // No Bayesian signals in this path; overall_score falls back to coverage
+      bayesian_score: 0.5,
+      overall_score: weighted_coverage_pct,
     };
   });
 
@@ -279,6 +284,7 @@ async function persistScores(
         },
         coverage_pct: row.coverage_pct,
         weighted_coverage_pct: row.weighted_coverage_pct,
+        overall_score: row.overall_score,
         computed_at,
       };
     }),

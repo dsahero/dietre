@@ -79,7 +79,13 @@ export interface RestaurantCardData {
   lat: number;
   lng: number;
   textureType: 'sand' | 'rust' | 'marble';
-  matchPercentage: number; // weighted coverage %, 0-100
+  matchPercentage: number; // weighted coverage %, 0-100 (raw hard-constraint score)
+  // Bayesian satisfaction score (Beta posterior mean, severity-weighted, 0–1).
+  // Used internally for ranking; not displayed directly.
+  bayesianScore?: number;
+  // Combined host-facing score: coverage anchored, Bayesian nudges ±20 pts.
+  // This is the number shown as the headline score on the card.
+  overallScore: number;
   coveredCount: number; // responses covered
   totalResponses: number; // denominator — never show matchPercentage without this
   hasUnconfirmedItems: boolean; // true if any safe item relies on a low-confidence AI ingredient guess

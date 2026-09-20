@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
-import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react';
+import { ConfidenceChip } from './ConfidenceChip';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -76,13 +77,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           ) : (
             <span />
           )}
-          <span
-            className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
-              restaurant.matchPercentage
-            )}`}
-          >
-            {restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
+                restaurant.overallScore ?? restaurant.matchPercentage
+              )}`}
+            >
+              {restaurant.overallScore ?? restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
+            </span>
+            {restaurant.confidence && <ConfidenceChip confidence={restaurant.confidence} />}
+          </div>
         </div>
 
         <div className="relative z-10 mt-auto">
@@ -96,6 +100,35 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               <DollarSign className="h-3 w-3 text-[var(--dash-accent-soft)]" />
               {PRICE_LABEL[restaurant.priceLevel]}
             </span>
+          </div>
+          {/* Coverage + Guest fit labels */}
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--dash-text-soft)]/70">
+            <span title="Severity-weighted % of guests with at least one safe menu item">
+              Coverage: {restaurant.matchPercentage}%
+            </span>
+            {restaurant.bayesianScore !== undefined && (
+              <>
+                <span className="opacity-40">·</span>
+                <span
+                  title="How well this restaurant aligns with guests' stated preferences"
+                  className={
+                    restaurant.bayesianScore >= 0.55
+                      ? 'text-emerald-400/80'
+                      : restaurant.bayesianScore <= 0.44
+                      ? 'text-rose-400/80'
+                      : 'text-[var(--dash-text-soft)]/70'
+                  }
+                >
+                  <Sparkles className="inline h-2.5 w-2.5 mr-0.5 opacity-70" />
+                  Guest fit:{' '}
+                  {restaurant.bayesianScore >= 0.55
+                    ? 'High'
+                    : restaurant.bayesianScore <= 0.44
+                    ? 'Low'
+                    : 'Medium'}
+                </span>
+              </>
+            )}
           </div>
           <div className="mt-1 flex items-center justify-between text-[10.5px] text-[var(--dash-text-soft)]/80">
             <span className="truncate">{restaurant.location}</span>

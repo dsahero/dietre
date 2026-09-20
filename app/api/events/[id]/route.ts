@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { DEMO_EVENT_ID } from "@/backend/data/seed";
+import { isEventMember, isEventOwner } from "@/backend/lib/access";
 import { getSession } from "@/backend/lib/auth";
-import { getEvent, listMenuItems, listResponses, listRestaurantsForEvent, updateEvent } from "@/backend/lib/db";
+import {
+  deleteEventCascade,
+  getEvent,
+  getEventLean,
+  listMenuItems,
+  listResponses,
+  listRestaurantsForEvent,
+  updateEvent,
+} from "@/backend/lib/db";
 import {
   evaluateRestaurantsAgainstChecklist,
   extractLimitationsChecklist,
@@ -24,7 +33,7 @@ export async function GET(
   }
 
   const session = await getSession();
-  const isHost = session?.host_id === event.host_id || event.id === DEMO_EVENT_ID;
+  const isHost = isEventMember(session, event);
   if (!isHost) {
     return NextResponse.json({
       event: {
@@ -50,6 +59,7 @@ export async function GET(
   );
   return NextResponse.json({
     event,
+    is_owner: isEventOwner(session, event) || event.id === DEMO_EVENT_ID,
     responses: responses.map((response, index) => ({
       id: response.id,
       submitted_at: response.submitted_at,
@@ -75,9 +85,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   const session = await getSession();
-  const isHost = session?.host_id === event.host_id || event.id === DEMO_EVENT_ID;
-  if (!isHost) {
-    return NextResponse.json({ error: "Only the host can edit this event." }, { status: 403 });
+  if (!isEventMember(session, event)) {
+    return NextResponse.json({ error: "Only people on this event can edit it." }, { status: 403 });
   }
 
   const body = (await request.json()) as {
@@ -214,4 +223,23 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   const updated = await updateEvent(id, patch);
   return NextResponse.json({ event: updated });
+}
+
+// Only the owner can delete an event (collaborators can edit and share it).
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+
+  const { id } = await context.params;
+  const event = await getEventLean(id);
+  if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 });
+  if (event.id === DEMO_EVENT_ID) {
+    return NextResponse.json({ error: "The demo event can't be deleted." }, { status: 403 });
+  }
+  if (!isEventOwner(session, event)) {
+    return NextResponse.json({ error: "Only the owner can delete this event." }, { status: 403 });
+  }
+
+  await deleteEventCascade(event);
+  return NextResponse.json({ ok: true });
 }

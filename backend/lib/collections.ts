@@ -6,6 +6,7 @@ import type {
   HostRecord,
   MenuItem,
   ParsedRules,
+  PreferenceSignal,
   Restaurant,
   Severity,
 } from "@/shared/lib/types";
@@ -45,6 +46,8 @@ export type EventDoc = {
   limitations?: string;
   limitations_checklist?: DietreEvent["limitations_checklist"];
   checklist_notes_by_restaurant?: DietreEvent["checklist_notes_by_restaurant"];
+  preference_signals?: Record<string, Record<string, PreferenceSignal>>;
+  preference_signals_signature?: string;
 };
 
 /** Firestore guest shape mirrors DietResponse (Gemini/chat submit fields only). */
@@ -89,6 +92,11 @@ export type RestaurantScoreDoc = {
   ranks: { utilitarian: number; rawlsian: number };
   coverage_pct: number;
   weighted_coverage_pct: number;
+  // Severity-weighted mean of Bayesian utility (Beta posterior mean) across guests.
+  // Ranges 0–1; used as a tiebreaker after coverage-based ranking.
+  bayesian_score?: number;
+  // Host-facing combined score: coverage anchored, Bayesian nudges ±20 pts.
+  overall_score: number;
   computed_at: string;
 };
 
@@ -164,6 +172,11 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     complex_notes_by_restaurant: event.complex_notes_by_restaurant ?? {},
     complex_notes_signature: event.complex_notes_signature ?? "",
     google_place_id: event.google_place_id ?? null,
+    preference_signals: event.preference_signals ?? {},
+    preference_signals_signature: event.preference_signals_signature ?? "",
+    collaborators: event.collaborators ?? [],
+    pending_invites: event.pending_invites ?? [],
+    collaborator_emails: event.collaborator_emails ?? [],
   };
 }
 
@@ -199,9 +212,38 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
         : undefined,
     complex_notes_signature: typeof doc.complex_notes_signature === "string" ? doc.complex_notes_signature : undefined,
     google_place_id: typeof doc.google_place_id === "string" ? doc.google_place_id : null,
+    preference_signals:
+      doc.preference_signals && typeof doc.preference_signals === "object"
+        ? (doc.preference_signals as DietreEvent["preference_signals"])
+        : undefined,
+    preference_signals_signature:
+      typeof doc.preference_signals_signature === "string" ? doc.preference_signals_signature : undefined,
     candidate_restaurant_ids: Array.isArray(doc.candidate_restaurant_ids)
       ? doc.candidate_restaurant_ids.filter((x): x is string => typeof x === "string")
       : undefined,
+    collaborators: Array.isArray(doc.collaborators)
+      ? doc.collaborators
+          .map((c) => asRecord(c))
+          .filter((c) => typeof c.email === "string" && c.email)
+          .map((c) => ({
+            email: asString(c.email),
+            host_id: typeof c.host_id === "string" ? c.host_id : undefined,
+            name: typeof c.name === "string" ? c.name : undefined,
+            added_at: asString(c.added_at),
+            added_by: typeof c.added_by === "string" ? c.added_by : undefined,
+          }))
+      : [],
+    pending_invites: Array.isArray(doc.pending_invites)
+      ? doc.pending_invites
+          .map((p) => asRecord(p))
+          .filter((p) => typeof p.email === "string" && p.email)
+          .map((p) => ({
+            email: asString(p.email),
+            invited_by_name: asString(p.invited_by_name),
+            invited_at: asString(p.invited_at),
+          }))
+      : [],
+    collaborator_emails: asStringArray(doc.collaborator_emails),
   };
 }
 
@@ -222,7 +264,12 @@ export function eventPatchToDoc(
       | "complex_notes_by_restaurant"
       | "complex_notes_signature"
       | "google_place_id"
+      | "preference_signals"
+      | "preference_signals_signature"
       | "candidate_restaurant_ids"
+      | "collaborators"
+      | "pending_invites"
+      | "collaborator_emails"
     >
   >
 ): Record<string, unknown> {
@@ -247,7 +294,12 @@ export function eventPatchToDoc(
   }
   if (patch.complex_notes_signature !== undefined) data.complex_notes_signature = patch.complex_notes_signature;
   if (patch.google_place_id !== undefined) data.google_place_id = patch.google_place_id;
+  if (patch.preference_signals !== undefined) data.preference_signals = patch.preference_signals;
+  if (patch.preference_signals_signature !== undefined) data.preference_signals_signature = patch.preference_signals_signature;
   if (patch.candidate_restaurant_ids !== undefined) data.candidate_restaurant_ids = patch.candidate_restaurant_ids;
+  if (patch.collaborators !== undefined) data.collaborators = patch.collaborators;
+  if (patch.pending_invites !== undefined) data.pending_invites = patch.pending_invites;
+  if (patch.collaborator_emails !== undefined) data.collaborator_emails = patch.collaborator_emails;
   return data;
 }
 

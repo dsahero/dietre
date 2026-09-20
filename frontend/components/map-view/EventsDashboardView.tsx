@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Users, Calendar, MapPin, Search, Plus } from 'lucide-react';
-import type { DietreEvent } from '@/shared/lib/types';
+import type { Collaborator, DietreEvent, PendingInvite } from '@/shared/lib/types';
+import { EventPeoplePopover } from '@/frontend/components/dashboard/components/EventPeoplePopover';
 import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
 
 export interface EventWithResponseCount extends DietreEvent {
@@ -17,6 +18,30 @@ interface EventsDashboardViewProps {
   profileName?: string;
   profileAvatarUrl?: string;
 }
+
+// Person icon + access list for a shared event; state is local so removals
+// show immediately without reloading the list.
+const EventCardPeople: React.FC<{ event: EventWithResponseCount; hostEmail: string }> = ({ event, hostEmail }) => {
+  const viewer = hostEmail.trim().toLowerCase();
+  const [collaborators, setCollaborators] = useState<Collaborator[]>(event.collaborators ?? []);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>(event.pending_invites ?? []);
+  const isOwner = !(event.collaborator_emails ?? []).includes(viewer);
+  return (
+    <EventPeoplePopover
+      compact
+      eventId={event.id}
+      isOwner={isOwner}
+      viewerEmail={viewer}
+      collaborators={collaborators}
+      pendingInvites={pendingInvites}
+      onChange={(next) => {
+      onChange={(next: { collaborators: Collaborator[]; pendingInvites: PendingInvite[] }) => {
+        setCollaborators(next.collaborators);
+        setPendingInvites(next.pendingInvites);
+      }}
+    />
+  );
+};
 
 export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
   events,
@@ -138,6 +163,9 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none" />
+                    <div className="absolute right-2 top-2 z-20">
+                      <EventCardPeople event={event} hostEmail={hostEmail} />
+                    </div>
                     <div className="relative z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-black/60 backdrop-blur-xs text-white font-mono text-[11px] font-bold shadow-xs">
                       <Users className="w-3.5 h-3.5 text-[#f5d5be]" />
                       <span>{event.responseCount} response{event.responseCount === 1 ? '' : 's'}</span>
@@ -169,6 +197,11 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
                       <span className="px-1.5 py-0.5 rounded-xs bg-[var(--dash-surface)] border border-[var(--dash-border)] font-semibold">
                         {event.radius} mi radius
                       </span>
+                      {(event.collaborator_emails ?? []).includes(hostEmail.trim().toLowerCase()) && (
+                        <span className="px-1.5 py-0.5 rounded-xs bg-[var(--dash-accent)]/15 border border-[var(--dash-accent)]/40 font-semibold text-[var(--dash-accent)]">
+                          Shared with you
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>

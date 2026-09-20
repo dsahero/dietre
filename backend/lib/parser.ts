@@ -14,7 +14,7 @@
  */
 
 import allergenMapJson from "@/backend/data/allergen-map.json";
-import type { DietResponse, MenuFlags, MenuItem, ParsedRules, Severity } from "@/shared/lib/types";
+import type { DietResponse, MenuFlags, MenuItem, ParsedRules, PreferenceSignal, Restaurant, Severity } from "@/shared/lib/types";
 import { withTimeout } from "@/backend/lib/with-timeout";
 
 // ---------------------------------------------------------------------------
@@ -230,27 +230,12 @@ export function itemConflicts(item: MenuItem, rules: ParsedRules): string[] {
     }
   }
 
-  for (const cr of rules.complex_restrictions ?? []) {
-    if (/meat\s*(and|&|\+)\s*dairy/i.test(cr)) {
-      const hasMeat =
-        itemHasFlag(item.flags, "contains_pork") ||
-        itemHasFlag(item.flags, "contains_beef") ||
-        itemHasFlag(item.flags, "contains_chicken") ||
-        itemHasFlag(item.flags, "contains_fish") ||
-        itemHasFlag(item.flags, "contains_shellfish") ||
-        item.estimated_ingredients.some((i) =>
-          /(beef|steak|pork|bacon|chicken|ham|lamb|sausage|fish|salmon)/i.test(i),
-        );
-      const hasDairy =
-        itemHasFlag(item.flags, "contains_dairy") ||
-        item.estimated_ingredients.some((i) =>
-          /(cheese|dairy|milk|butter|parmesan|cream|cheddar|mozzarella)/i.test(i),
-        );
-      if (item.flags.meat_dairy_combo || (hasMeat && hasDairy)) {
-        hits.push("meat dairy combo");
-      }
-    }
-  }
+  // Complex restrictions (e.g. "yes dairy, yes meat, not together", halal
+  // certification, cross-contamination prep) are NOT evaluated here.
+  // Compound rules require semantic reasoning that keyword/flag matching
+  // cannot express correctly — they are handled exclusively by
+  // judgeResponseAgainstMenuWithGemini() (per-item safety) and
+  // fetchComplexNotesFromGemini() (per-restaurant advisory notes).
 
   return unique(hits);
 }
@@ -409,10 +394,11 @@ export async function parseDietaryWithGemini(raw: string): Promise<{
 {"hard_excludes": string[], "complex_restrictions": string[], "soft_preferences": string[], "severity": "high"|"medium"|"low"}
 
 Rules:
-- hard_excludes: simple banned ingredients (pork, shellfish, peanuts, tree nuts, gluten, soy, sesame, egg, alcohol, dairy, fish, meat, meat dairy combo, animal products, vegan, vegetarian).
+- hard_excludes: any ingredient they stated as hard (hard no / allergic / cannot / can't / must avoid), not only a closed list. Typical tokens include pork, shellfish, peanuts, tree nuts, gluten, soy, sesame, egg, alcohol, dairy, fish, meat, meat dairy combo, animal products, vegan, vegetarian, onions.
+- "onions are a hard no" → onions in hard_excludes, never soft_preferences.
 - CRITICAL: if the guest can eat meat and dairy SEPARATELY (kosher, "no mixing"), put "meat dairy combo" in hard_excludes and "yes dairy, yes meat, not together" in complex_restrictions. Do NOT put standalone "dairy" or "meat" in hard_excludes.
 - complex_restrictions: compound or conditional rules that can't reduce to a single banned ingredient.
-- soft_preferences: taste/spice/cuisine leanings, "no cilantro" if dislike not allergy.
+- soft_preferences: taste/spice/cuisine leanings only. Never a hard-no item. Never a dish that contains an earlier hard constraint (question that instead).
 - severity: high = medical allergy/celiac, medium = religious/ethical (halal/kosher/vegan), low = taste.
 
 Guest text:
@@ -435,5 +421,76 @@ ${raw}`;
     };
   } catch {
     return { rules: mock, source: "mock" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bayesian preference signal extraction
+// ---------------------------------------------------------------------------
+// One Gemini call per guest that has soft_preferences, evaluating all
+// candidate restaurants at once. Returns one PreferenceSignal per
+// restaurant — direction (positive/negative/neutral) and strength (1–3)
+// — which the caller feeds into a Beta(1,1) prior update.
+
+export async function scorePreferencesWithGemini(
+  response: DietResponse,
+  restaurants: Restaurant[],
+): Promise<Record<string, PreferenceSignal> | null> {
+  const prefs = response.parsed_rules.soft_preferences;
+  if (!prefs?.length || restaurants.length === 0) return null;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
+      model: "gemini-3.6-flash",
+    });
+
+    const prefsText = prefs.join(", ");
+    const restaurantsText = restaurants
+      .map((r) => `- id: ${r.id} | "${r.name}" | cuisine: ${r.cuisine}`)
+      .join("\n");
+
+    const prompt = `You are evaluating restaurant options against one guest's soft preferences (taste, style, cuisine leanings — NOT safety constraints).
+
+Guest preferences: "${prefsText}"
+
+Restaurants:
+${restaurantsText}
+
+For each restaurant, does its cuisine type or style align with the guest's stated preferences?
+
+Return ONLY JSON keyed by restaurant id:
+{"<restaurant_id>": {"direction": "positive"|"negative"|"neutral", "strength": 1|2|3}}
+
+direction: "positive" = preference aligns, "negative" = preference conflicts, "neutral" = no relevant signal.
+strength: 1 = weak/vague, 2 = clear relevant match or mismatch, 3 = strong obvious alignment or conflict.
+For "neutral" direction always use strength 1.`;
+
+    const result = await withTimeout(
+      model.generateContent(prompt),
+      8000,
+      "Preference signal scoring",
+    );
+    const text = result.response.text().trim();
+    const parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "")) as Record<
+      string,
+      { direction?: string; strength?: number }
+    >;
+
+    const out: Record<string, PreferenceSignal> = {};
+    for (const restaurant of restaurants) {
+      const entry = parsed[restaurant.id];
+      const dir = entry?.direction;
+      const str = entry?.strength;
+      out[restaurant.id] = {
+        direction: dir === "positive" || dir === "negative" ? dir : "neutral",
+        strength: str === 1 || str === 2 || str === 3 ? str : 1,
+      };
+    }
+    return out;
+  } catch {
+    return null;
   }
 }
