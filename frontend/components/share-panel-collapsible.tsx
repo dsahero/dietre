@@ -59,7 +59,7 @@ export function SharePanelCollapsible({ url, eventName, qrDataUrl }: SharePanelC
             <div className="min-w-0 flex-1 space-y-2.5">
               <CopyLinkButton url={url} />
               <p className="text-xs text-[var(--dash-text-muted)] font-serif italic leading-relaxed">
-                Display the QR at the banquet reception, or distribute the confidential link to attendees. Dietary entries update this ledger live.
+                Display the QR at the banquet reception, or distribute the confidential link to attendees. Dietary entries update this event live.
               </p>
             </div>
           </div>
