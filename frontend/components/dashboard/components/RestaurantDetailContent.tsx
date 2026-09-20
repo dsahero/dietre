@@ -53,6 +53,17 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
 
   return (
     <>
+      {/* Google Places Venue Photo Banner */}
+      <div className="relative w-full h-36 sm:h-44 overflow-hidden border-b border-[var(--dash-border)] bg-[var(--dash-surface)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/api/places/image?query=${encodeURIComponent(restaurant.name + ' ' + restaurant.location)}&address=${encodeURIComponent(restaurant.location)}&place_id=${encodeURIComponent(restaurant.id || '')}`}
+          alt={restaurant.name}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+      </div>
+
       {/* Header */}
       <div className={`flex items-start justify-between border-b border-[var(--dash-border)] bg-[var(--dash-surface-raised)] ${headPad}`}>
         <div className="flex-1 pr-4">

@@ -137,6 +137,17 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
                   >
                     <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_30%_30%,white,transparent_45%)]" />
                     <div className="relative flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-black/40 backdrop-blur-xs text-white font-mono text-[11px] font-bold shadow-xs">
+                  {/* Google Places Location Image Header */}
+                  <div className="relative w-full h-32 overflow-hidden flex items-end p-3 border-b border-[var(--dash-border)] bg-[var(--dash-surface)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/places/image?query=${encodeURIComponent(event.name + ' ' + event.location)}&address=${encodeURIComponent(event.location)}&place_id=${encodeURIComponent(event.google_place_id || '')}`}
+                      alt={event.name}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none" />
+                    <div className="relative z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-black/60 backdrop-blur-xs text-white font-mono text-[11px] font-bold shadow-xs">
                       <Users className="w-3.5 h-3.5 text-[#f5d5be]" />
                       <span>{event.responseCount} response{event.responseCount === 1 ? '' : 's'}</span>
                     </div>

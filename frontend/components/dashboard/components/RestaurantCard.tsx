@@ -70,6 +70,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         }}
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+      {/* Left thumbnail with Google Places venue photo */}
+      <div className="card-thumbnail relative flex flex-col justify-between overflow-hidden bg-[var(--dash-surface)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/api/places/image?query=${encodeURIComponent(restaurant.name + ' ' + restaurant.location)}&address=${encodeURIComponent(restaurant.location)}&place_id=${encodeURIComponent(restaurant.id || '')}`}
+          alt={restaurant.name}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
 
         <div className="relative z-10 flex items-center justify-between gap-1">
           {!restaurant.withinRadius || !restaurant.withinBudget ? (
