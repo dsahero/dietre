@@ -171,6 +171,16 @@ export function coveragePercent(coveredCount: number, totalResponses: number): n
   return Math.round((coveredCount / totalResponses) * 100);
 }
 
+/** Map 0–100 guest-fit score to host-facing band labels. */
+export function guestFitLabel(score: number): string {
+  if (score >= 85) return 'Very High';
+  if (score >= 70) return 'High';
+  if (score >= 55) return 'Medium';
+  if (score >= 40) return 'Neutral';
+  if (score >= 25) return 'Low';
+  return 'Very Low';
+}
+
 const SEVERITY_COLOR: Record<DietResponse['parsed_rules']['severity'], string> = {
   high: '#ef4444',
   medium: '#f59e0b',

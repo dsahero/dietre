@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RestaurantCardData } from '../types';
+import { coveragePercent, guestFitLabel } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
 import { MapPin, DollarSign, AlertTriangle } from 'lucide-react';
 
@@ -8,6 +9,49 @@ interface RestaurantCardProps {
   isShortlisted?: boolean;
   onToggleShortlist?: (id: string) => void;
   onClickDetails?: (restaurant: RestaurantCardData) => void;
+}
+
+function CoverageCircle({ pct }: { pct: number }) {
+  const size = 44;
+  const stroke = 3.5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.min(100, Math.max(0, pct));
+  const offset = c * (1 - clamped / 100);
+
+  return (
+    <div
+      className="relative shrink-0"
+      style={{ width: size, height: size }}
+      title={`${clamped}% of guests have safe options`}
+      aria-label={`${clamped}% of guests can eat here`}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--dash-border)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--dash-accent)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center font-heading text-[11px] font-semibold tabular-nums text-[var(--dash-text)]">
+        {clamped}%
+      </span>
+    </div>
+  );
 }
 
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({
@@ -36,6 +80,11 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   const coveredCount = restaurant.matchedResponses.length;
   const totalGuests = restaurant.totalResponses;
   const safeItemCount = restaurant.suggestedMenuItems.length;
+  // Headcount coverage: guests with ≥1 safe menu item / all responding guests.
+  const coveragePct = coveragePercent(coveredCount, totalGuests);
+  // guestFitScore is already 0–100 from bayesian_score; neutral prior is 50 when unset.
+  const fitScore = restaurant.guestFitScore ?? 50;
+  const fitBand = guestFitLabel(fitScore);
 
   return (
     <div
@@ -110,6 +159,20 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           )}
         </div>
 
+        <div className="mb-2 flex items-center gap-3">
+          <CoverageCircle pct={coveragePct} />
+          <div className="min-w-0">
+            <p className="text-[12px] text-[var(--dash-text-soft)]">
+              {totalGuests === 0
+                ? 'No guest responses yet'
+                : `${coveredCount} of ${totalGuests} guest${totalGuests === 1 ? '' : 's'} can eat here`}
+            </p>
+            <p className="mt-0.5 text-[12px] text-[var(--dash-text)]">
+              Guest fit: {fitBand}
+            </p>
+          </div>
+        </div>
+
         <div className="space-y-2 py-1">
           <span className="text-[12px] font-medium text-[var(--dash-text-soft)]">Details</span>
 
@@ -117,16 +180,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
             <p className="text-[12px] text-[var(--dash-text-muted)]">No menu on file yet.</p>
           ) : (
             <>
-              <div className="flex items-start gap-2 text-[13px] text-[var(--dash-text-soft)]">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" />
-                <span>
-                  {totalGuests === 0
-                    ? 'No guest responses yet'
-                    : coveredCount === 0
-                      ? `No safe options for ${totalGuests} guest${totalGuests === 1 ? '' : 's'} yet`
-                      : `Safe options for ${coveredCount} of ${totalGuests} guest${totalGuests === 1 ? '' : 's'}`}
-                </span>
-              </div>
               {restaurant.dietaryConflicts.length > 0 && (
                 <div className="flex items-start gap-2 text-[13px] text-[#f4a9a9]">
                   <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#ef4444]" />
