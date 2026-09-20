@@ -377,23 +377,14 @@ html, body {
 
 .content-card {
   display: flex;
+  flex-direction: column;
   background-color: var(--dash-surface-raised);
   border-radius: 6px;
-  min-height: 156px;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--dash-border);
   box-shadow: 0 2px 6px rgba(35, 20, 10, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-@media (max-width: 640px) {
-  .content-card {
-    flex-direction: column;
-  }
-  .card-thumbnail {
-    width: 100%;
-    min-height: 140px;
-  }
 }
 
 .content-card:hover {
@@ -402,12 +393,13 @@ html, body {
   border-color: var(--dash-border-strong);
 }
 
-/* Left thumbnail inside card */
+/* Photo strip on top of stacked card */
 .card-thumbnail {
-  width: 220px;
+  width: 100%;
   flex-shrink: 0;
-  min-height: 100%;
-  border-radius: 4px;
+  min-height: 148px;
+  height: 148px;
+  border-radius: 4px 4px 0 0;
   padding: 16px;
   background-size: cover;
   background-position: center;
