@@ -18,6 +18,7 @@ export interface EventComplexContext {
     address: string;
     radiusMiles: number;
     budgetRange: string;
+    budgetPerPerson?: number;
     expectedHeadcount: number;
     hostNotes: string;
     checklistItems: Array<{ id: string; label: string }>;
@@ -90,6 +91,7 @@ export function buildEventComplexContext(
       address: event.location,
       radiusMiles: event.radius,
       budgetRange: event.budget_range,
+      budgetPerPerson: event.budget_per_person,
       expectedHeadcount: event.expected_headcount,
       hostNotes: event.limitations ?? "",
       checklistItems: event.limitations_checklist ?? [],
@@ -123,7 +125,7 @@ export function buildEventComplexContext(
 **Event**: ${event.name}
 **Event ID**: ${event.id}
 **Updated At**: ${context.generatedAt}
-**Location**: ${event.location} (Radius: ${event.radius} miles | Budget Tier: ${event.budget_range} | Expected Headcount: ${event.expected_headcount})
+**Location**: ${event.location} (Radius: ${event.radius} miles | Budget: $${event.budget_per_person ?? event.budget_range}/person | Expected Headcount: ${event.expected_headcount})
 
 ## 1. Event Detail Limits (Host Parameters)
 - **Host Notes**: "${context.eventLimitations.hostNotes || "No extra host limitations specified."}"

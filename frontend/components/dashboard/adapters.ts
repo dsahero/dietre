@@ -1,4 +1,8 @@
 import type { DietreEvent, DietResponse, MatchResult, RestaurantMatch } from '@/shared/lib/types';
+import {
+  eventBudgetCap,
+  formatPredictedCost,
+} from '@/shared/lib/predictedCost';
 import type {
   DonutSegment,
   EventDetails,
@@ -39,6 +43,7 @@ export function toEventDetails(event: DietreEvent, responses?: DietResponse[]): 
     date: event.date,
     maxDistanceRadius: `${event.radius} ${event.radius === 1 ? 'mile' : 'miles'}`,
     radiusMiles: event.radius,
+    budgetPerPerson: eventBudgetCap(event),
     maxBudget: event.budget_range,
     expectedHeadcount: event.expected_headcount,
     limitations: event.limitations ?? '',
@@ -107,6 +112,14 @@ export function toRestaurantCardData(
       withinRadius: match.within_radius,
       withinBudget: match.within_budget,
       priceLevel: match.restaurant.price_level,
+      predictedCostPerPerson: match.predicted_cost_per_person,
+      predictedCostSource: match.predicted_cost_source,
+      predictedPartyTotal: match.predicted_party_total,
+      predictedCostLabel: formatPredictedCost({
+        perPerson: match.predicted_cost_per_person,
+        source: match.predicted_cost_source,
+        sampleSize: 0,
+      }),
       lat: match.restaurant.lat,
       lng: match.restaurant.lng,
       textureType: textureForId(match.restaurant.id),

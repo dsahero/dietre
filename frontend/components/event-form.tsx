@@ -6,9 +6,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/frontend/components/ui/al
 import { Button } from "@/frontend/components/ui/button";
 import { Input } from "@/frontend/components/ui/input";
 import { Label } from "@/frontend/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select";
 import { LocationAutocomplete } from "@/frontend/components/location-autocomplete";
-import type { BudgetRange } from "@/shared/lib/types";
+import { DEFAULT_BUDGET_PER_PERSON } from "@/shared/lib/predictedCost";
 
 export function EventForm() {
   const router = useRouter();
@@ -18,7 +17,7 @@ export function EventForm() {
   const [placeId, setPlaceId] = useState<string | null>(null);
   const [searchEnabled, setSearchEnabled] = useState(true);
   const [radius, setRadius] = useState("2");
-  const [budget, setBudget] = useState<BudgetRange>("$$");
+  const [budgetPerPerson, setBudgetPerPerson] = useState(String(DEFAULT_BUDGET_PER_PERSON));
   const [headcount, setHeadcount] = useState("120");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,7 +36,7 @@ export function EventForm() {
           location,
           place_id: placeId,
           radius: Number(radius),
-          budget_range: budget,
+          budget_per_person: Number(budgetPerPerson),
           expected_headcount: Number(headcount),
         }),
       });
@@ -51,6 +50,13 @@ export function EventForm() {
       setBusy(false);
     }
   }
+
+  const headcountNum = Number(headcount);
+  const budgetNum = Number(budgetPerPerson);
+  const partyTotal =
+    Number.isFinite(headcountNum) && headcountNum > 0 && Number.isFinite(budgetNum) && budgetNum > 0
+      ? Math.round(budgetNum * headcountNum)
+      : null;
 
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
@@ -94,7 +100,7 @@ export function EventForm() {
           <p className="text-xs text-muted-foreground">Pick a suggestion from the dropdown to confirm this location.</p>
         )}
         {location.trim() && !placeId && !searchEnabled && (
-          <p className="text-xs text-muted-foreground">Type the full address. We'll geocode it when you create the event.</p>
+          <p className="text-xs text-muted-foreground">Type the full address. We&apos;ll geocode it when you create the event.</p>
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -112,17 +118,21 @@ export function EventForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Budget range</Label>
-          <Select value={budget} onValueChange={(value) => setBudget(value as BudgetRange)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Budget" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="$">$ · campus cheap eats</SelectItem>
-              <SelectItem value="$$">$$ · most downtown spots</SelectItem>
-              <SelectItem value="$$$">$$$ · include Palisades-level</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="budget">Max budget per person ($)</Label>
+          <Input
+            id="budget"
+            type="number"
+            min={1}
+            max={500}
+            step={1}
+            required
+            value={budgetPerPerson}
+            onChange={(event) => setBudgetPerPerson(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Compared to each restaurant&apos;s predicted dish cost from menu prices
+            {partyTotal !== null ? ` · ~$${partyTotal.toLocaleString()} party ceiling` : ""}.
+          </p>
         </div>
       </div>
       {error && (

@@ -3,6 +3,10 @@ import { getSession } from "@/backend/lib/auth";
 import { createEvent, listEventsByHost } from "@/backend/lib/db";
 import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
 import { discoverAndUpsertRestaurants, RESTAURANTS_VERSION } from "@/backend/lib/restaurantDiscovery";
+import {
+  budgetRangeFromPerPerson,
+  DEFAULT_BUDGET_PER_PERSON,
+} from "@/shared/lib/predictedCost";
 import type { BudgetRange, DietreEvent } from "@/shared/lib/types";
 
 export async function GET() {
@@ -20,21 +24,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign in as a host to create an event." }, { status: 401 });
   }
 
-  const body = (await request.json()) as Partial<DietreEvent> & { place_id?: string };
+  const body = (await request.json()) as Partial<DietreEvent> & {
+    place_id?: string;
+    budget_per_person?: number;
+  };
   const name = body.name?.trim();
   const date = body.date?.trim();
   const location = body.location?.trim();
   const place_id = body.place_id?.trim();
   const radius = Number(body.radius);
   const expected_headcount = Number(body.expected_headcount);
-  const budget_range = body.budget_range as BudgetRange | undefined;
+  const rawBudget =
+    body.budget_per_person !== undefined ? Number(body.budget_per_person) : Number.NaN;
+  const legacyRange = body.budget_range as BudgetRange | undefined;
 
   if (!name || !date || !location) {
     return NextResponse.json({ error: "Name, date, and location are required." }, { status: 400 });
   }
-  if (!budget_range || !["$", "$$", "$$$"].includes(budget_range)) {
-    return NextResponse.json({ error: "Choose a budget range." }, { status: 400 });
+
+  let budget_per_person: number;
+  let budget_range: BudgetRange;
+  if (Number.isFinite(rawBudget) && rawBudget > 0 && rawBudget <= 500) {
+    budget_per_person = Math.round(rawBudget);
+    budget_range = budgetRangeFromPerPerson(budget_per_person);
+  } else if (legacyRange && ["$", "$$", "$$$"].includes(legacyRange)) {
+    budget_range = legacyRange;
+    budget_per_person =
+      legacyRange === "$" ? 15 : legacyRange === "$$" ? DEFAULT_BUDGET_PER_PERSON : 75;
+  } else {
+    return NextResponse.json(
+      { error: "Enter a max budget per person (dollars)." },
+      { status: 400 }
+    );
   }
+
   if (!Number.isFinite(radius) || radius <= 0 || radius > 30) {
     return NextResponse.json({ error: "Radius must be between 0 and 30 miles." }, { status: 400 });
   }
@@ -65,6 +88,7 @@ export async function POST(request: Request) {
     lng,
     radius,
     budget_range,
+    budget_per_person,
     expected_headcount,
     created_at: new Date().toISOString(),
     google_place_id: googlePlaceId,

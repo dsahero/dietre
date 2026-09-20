@@ -34,7 +34,12 @@
  *     (an allergic guest matters more than a "I prefer spicy" guest)
  */
 
-import { haversineMiles, priceLevelFromBudget } from "@/shared/lib/places";
+import { haversineMiles } from "@/shared/lib/places";
+import {
+  estimatedPartyTotal,
+  eventBudgetCap,
+  predictRestaurantCost,
+} from "@/shared/lib/predictedCost";
 import { isItemSafeForResponse, severityWeight } from "@/backend/lib/parser";
 import { saveRestaurantScores } from "@/backend/lib/db";
 import type {
@@ -82,22 +87,32 @@ export async function matchEvent(input: {
   // dashboard isn't blank while waiting for responses.
   if (responses.length === 0) {
     void saveRestaurantScores([], event.id);
-    const maxPrice = priceLevelFromBudget(event.budget_range);
+    const budgetCap = eventBudgetCap(event);
     return {
-      restaurants: restaurants.map((restaurant) => ({
-        restaurant,
-        distance_miles: round1(haversineMiles(event, restaurant)),
-        within_radius: haversineMiles(event, restaurant) <= event.radius + 0.05,
-        within_budget: restaurant.price_level <= maxPrice,
-        coverage_pct: 0,
-        weighted_coverage_pct: 0,
-        covered_count: 0,
-        total_responses: 0,
-        safe_items: [],
-        complex_notes: [],
-        bayesian_score: 0.5,
-        overall_score: 0,
-      })),
+      restaurants: restaurants.map((restaurant) => {
+        const items = menuItemsByRestaurant.get(restaurant.id) ?? [];
+        const predicted = predictRestaurantCost({
+          menuPrices: items.map((item) => item.price),
+          priceLevel: restaurant.price_level,
+        });
+        return {
+          restaurant,
+          distance_miles: round1(haversineMiles(event, restaurant)),
+          within_radius: haversineMiles(event, restaurant) <= event.radius + 0.05,
+          within_budget: predicted.perPerson <= budgetCap,
+          predicted_cost_per_person: predicted.perPerson,
+          predicted_cost_source: predicted.source,
+          predicted_party_total: estimatedPartyTotal(predicted.perPerson, event.expected_headcount),
+          coverage_pct: 0,
+          weighted_coverage_pct: 0,
+          covered_count: 0,
+          total_responses: 0,
+          safe_items: [],
+          complex_notes: [],
+          bayesian_score: 0.5,
+          overall_score: 0,
+        };
+      }),
       zero_matches: [],
       response_count: 0,
       expected_headcount: event.expected_headcount,
@@ -108,7 +123,7 @@ export async function matchEvent(input: {
   // Core scoring loop
   // ---------------------------------------------------------------------------
 
-  const maxPrice = priceLevelFromBudget(event.budget_range);
+  const budgetCap = eventBudgetCap(event);
   const totalWeight = responses.reduce((sum, r) => sum + severityWeight(r.parsed_rules.severity), 0);
 
   // Track which guests can eat somewhere (used for zero-match alerts).
@@ -118,7 +133,6 @@ export async function matchEvent(input: {
     const items = menuItemsByRestaurant.get(restaurant.id) ?? [];
     const distance = haversineMiles(event, restaurant);
     const within_radius = distance <= event.radius + 0.05;
-    const within_budget = restaurant.price_level <= maxPrice;
 
     // --- Step A: for each menu item, which guests can eat it? ---
     //
@@ -139,6 +153,13 @@ export async function matchEvent(input: {
       })
       .filter((entry) => entry.covered_response_ids.length > 0)
       .sort((a, b) => b.covered_response_ids.length - a.covered_response_ids.length);
+
+    const predicted = predictRestaurantCost({
+      menuPrices: items.map((item) => item.price),
+      safeMenuPrices: safeItems.map((entry) => entry.item.price),
+      priceLevel: restaurant.price_level,
+    });
+    const within_budget = predicted.perPerson <= budgetCap;
 
     // --- Step B: for each guest, are they covered by this restaurant? ---
     //
@@ -165,6 +186,9 @@ export async function matchEvent(input: {
       distance_miles: round1(distance),
       within_radius,
       within_budget,
+      predicted_cost_per_person: predicted.perPerson,
+      predicted_cost_source: predicted.source,
+      predicted_party_total: estimatedPartyTotal(predicted.perPerson, event.expected_headcount),
       coverage_pct,
       weighted_coverage_pct,
       covered_count: coveredGuestIds.length,

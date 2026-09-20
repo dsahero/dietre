@@ -1060,6 +1060,7 @@ export const SEED_DEMO_EVENT: DietreEvent = {
   lng: -80.4187,
   radius: 2,
   budget_range: "$$",
+  budget_per_person: 25,
   expected_headcount: 180,
   created_at: "2026-09-18T16:00:00.000Z",
 };
@@ -1239,6 +1240,7 @@ export const SEED_EVENT_2: DietreEvent = {
   lng: -80.4233,
   radius: 1.5,
   budget_range: "$",
+  budget_per_person: 15,
   expected_headcount: 60,
   created_at: "2026-09-10T14:00:00.000Z",
 };
@@ -1320,6 +1322,7 @@ export const SEED_EVENT_3: DietreEvent = {
   lng: -80.4255,
   radius: 3,
   budget_range: "$$$",
+  budget_per_person: 75,
   expected_headcount: 250,
   created_at: "2026-09-15T10:00:00.000Z",
 };

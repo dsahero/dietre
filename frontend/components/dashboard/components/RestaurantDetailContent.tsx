@@ -27,7 +27,11 @@ export interface RestaurantDetailContentProps {
   compact?: boolean;
 }
 
-const PRICE_LABEL: Record<1 | 2 | 3, string> = { 1: '$', 2: '$$', 3: '$$$' };
+const PRICE_SOURCE_HINT: Record<RestaurantCardData['predictedCostSource'], string> = {
+  safe_menu_avg: 'avg of safe menu prices',
+  menu_avg: 'avg of menu prices',
+  places_estimate: 'Places estimate (no menu prices)',
+};
 
 export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = ({
   restaurant,
@@ -75,7 +79,8 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
             <span className="text-[var(--dash-text-muted)]">•</span>
             <span className="flex items-center gap-1 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)] px-2 py-0.5 font-mono text-[10.5px] text-[var(--dash-text-soft)] shadow-2xs">
               <MapPin className="h-3 w-3 text-[var(--dash-accent)]" />
-              {restaurant.distanceMiles} mi · {PRICE_LABEL[restaurant.priceLevel]}
+              {restaurant.distanceMiles} mi · ~${restaurant.predictedCostPerPerson}/pp
+              <span className="text-[var(--dash-text-muted)]"> ({PRICE_SOURCE_HINT[restaurant.predictedCostSource]})</span>
             </span>
             {(!restaurant.withinRadius || !restaurant.withinBudget) && (
               <span className="flex items-center gap-1 rounded-sm border border-[#ef4444]/40 bg-[#ef4444]/15 px-2 py-0.5 font-mono text-[10px] font-medium text-[#c24134]">
@@ -405,7 +410,9 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
 
       <div className={`flex items-center justify-between gap-3 border-t border-[var(--dash-border)] bg-[var(--dash-surface-raised)] ${headPad}`}>
         <div className="font-mono text-xs text-[var(--dash-text-muted)]">
-          {restaurant.distanceMiles} mi from event · {PRICE_LABEL[restaurant.priceLevel]}
+          {restaurant.distanceMiles} mi from event · ~${restaurant.predictedCostPerPerson}/pp (
+          {PRICE_SOURCE_HINT[restaurant.predictedCostSource]}) · party est. ~$
+          {restaurant.predictedPartyTotal.toLocaleString()}
         </div>
         <button
           type="button"

@@ -24,6 +24,10 @@ import {
   ensureEventRestaurants,
   RESTAURANTS_VERSION,
 } from "@/backend/lib/restaurantDiscovery";
+import {
+  budgetRangeFromPerPerson,
+  BUDGET_RANGE_CAP,
+} from "@/shared/lib/predictedCost";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
 export async function GET(
@@ -99,6 +103,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     place_id?: string;
     radius?: number;
     budget_range?: BudgetRange;
+    budget_per_person?: number;
     expected_headcount?: number;
     limitations?: string;
   };
@@ -136,11 +141,22 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
     patch.radius = radius;
   }
-  if (body.budget_range !== undefined) {
+  if (body.budget_per_person !== undefined) {
+    const budget_per_person = Number(body.budget_per_person);
+    if (!Number.isFinite(budget_per_person) || budget_per_person <= 0 || budget_per_person > 500) {
+      return NextResponse.json(
+        { error: "Budget per person must be between $1 and $500." },
+        { status: 400 }
+      );
+    }
+    patch.budget_per_person = Math.round(budget_per_person);
+    patch.budget_range = budgetRangeFromPerPerson(patch.budget_per_person);
+  } else if (body.budget_range !== undefined) {
     if (!["$", "$$", "$$$"].includes(body.budget_range)) {
       return NextResponse.json({ error: "Choose a valid budget range." }, { status: 400 });
     }
     patch.budget_range = body.budget_range;
+    patch.budget_per_person = BUDGET_RANGE_CAP[body.budget_range];
   }
   if (body.expected_headcount !== undefined) {
     const expected_headcount = Number(body.expected_headcount);
@@ -192,11 +208,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (suggestions.radius !== undefined && (body.radius === undefined || body.radius === event.radius)) {
         patch.radius = suggestions.radius;
       }
-      if (
-        suggestions.budget_range !== undefined &&
-        (body.budget_range === undefined || body.budget_range === event.budget_range)
-      ) {
+      const budgetUntouched =
+        body.budget_per_person === undefined &&
+        (body.budget_range === undefined || body.budget_range === event.budget_range);
+      if (suggestions.budget_per_person !== undefined && budgetUntouched) {
+        patch.budget_per_person = suggestions.budget_per_person;
+        patch.budget_range = budgetRangeFromPerPerson(suggestions.budget_per_person);
+      } else if (suggestions.budget_range !== undefined && budgetUntouched) {
         patch.budget_range = suggestions.budget_range;
+        patch.budget_per_person = BUDGET_RANGE_CAP[suggestions.budget_range];
       }
 
       // A limitations-suggested radius may itself change the restaurant list.

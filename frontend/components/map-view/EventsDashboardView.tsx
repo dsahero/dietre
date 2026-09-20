@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Users, Calendar, MapPin, Search, Plus } from 'lucide-react';
 import type { Collaborator, DietreEvent, PendingInvite } from '@/shared/lib/types';
+import { eventBudgetCap, formatBudgetPerPerson } from '@/shared/lib/predictedCost';
 import { EventPeoplePopover } from '@/frontend/components/dashboard/components/EventPeoplePopover';
 import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
 
@@ -191,7 +192,7 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
 
                     <div className="flex items-center gap-2 font-mono text-[10.5px] text-[var(--dash-text-muted)] pt-2 border-t border-[var(--dash-border)]/60">
                       <span className="px-1.5 py-0.5 rounded-xs bg-[var(--dash-surface)] border border-[var(--dash-border)] font-semibold">
-                        {event.budget_range}
+                        {formatBudgetPerPerson(eventBudgetCap(event))}
                       </span>
                       <span className="px-1.5 py-0.5 rounded-xs bg-[var(--dash-surface)] border border-[var(--dash-border)] font-semibold">
                         {event.radius} mi radius

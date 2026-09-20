@@ -8,7 +8,7 @@ export interface EventEditPatch {
   address: string;
   place_id: string | null;
   radiusMiles: number;
-  maxBudget: '$' | '$$' | '$$$';
+  budgetPerPerson: number;
   expectedHeadcount: number;
   limitations: string;
 }
@@ -22,8 +22,6 @@ interface EditEventModalProps {
   onDelete?: () => Promise<void>;
 }
 
-const BUDGET_OPTIONS: Array<'$' | '$$' | '$$$'> = ['$', '$$', '$$$'];
-
 export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose, eventDetails, onSave, onDelete }) => {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -34,7 +32,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
   const [placeId, setPlaceId] = useState<string | null>(eventDetails.placeId ?? null);
   const [searchEnabled, setSearchEnabled] = useState(true);
   const [radiusMiles, setRadiusMiles] = useState(eventDetails.radiusMiles);
-  const [maxBudget, setMaxBudget] = useState(eventDetails.maxBudget);
+  const [budgetPerPerson, setBudgetPerPerson] = useState(eventDetails.budgetPerPerson);
   const [expectedHeadcount, setExpectedHeadcount] = useState(eventDetails.expectedHeadcount);
   const [limitations, setLimitations] = useState(eventDetails.limitations);
   const [saving, setSaving] = useState(false);
@@ -60,7 +58,15 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
     setSaving(true);
     setError(null);
     try {
-      await onSave({ name, address, place_id: placeId, radiusMiles, maxBudget, expectedHeadcount, limitations });
+      await onSave({
+        name,
+        address,
+        place_id: placeId,
+        radiusMiles,
+        budgetPerPerson,
+        expectedHeadcount,
+        limitations,
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save event details.');
@@ -192,24 +198,26 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
           </div>
 
           <div>
-            <label className="mb-1 flex items-center gap-1.5 font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
+            <label
+              htmlFor="event-budget-input"
+              className="mb-1 flex items-center gap-1.5 font-heading text-[11px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]"
+            >
               <DollarSign className="h-3.5 w-3.5 text-[#16a34a]" />
-              Budget Range
+              Max budget per person ($)
             </label>
-            <div className="inline-flex w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] p-1 text-xs">
-              {BUDGET_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setMaxBudget(option)}
-                  className={`flex-1 rounded-xs py-1.5 font-mono font-bold tracking-wider transition-all cursor-pointer ${
-                    maxBudget === option ? 'border border-[var(--dash-border)] bg-[var(--dash-accent)] text-white shadow-2xs' : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
+            <input
+              type="number"
+              id="event-budget-input"
+              required
+              min={1}
+              max={500}
+              value={budgetPerPerson}
+              onChange={(e) => setBudgetPerPerson(Number(e.target.value))}
+              className="w-full rounded-xs border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3.5 py-2 font-mono text-sm text-[var(--dash-text)] transition-colors focus:border-[var(--dash-accent)] focus:outline-none"
+            />
+            <p className="mt-1 font-serif text-[11px] italic text-[var(--dash-text-muted)]">
+              Matched against predicted dish cost from menu prices (Places estimate when menus lack prices).
+            </p>
           </div>
 
           <div className="space-y-2 border-t border-[var(--dash-border)] pt-4">

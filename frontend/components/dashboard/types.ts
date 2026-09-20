@@ -76,6 +76,11 @@ export interface RestaurantCardData {
   withinRadius: boolean;
   withinBudget: boolean;
   priceLevel: 1 | 2 | 3;
+  /** Predicted $/person from menu avg (or Places estimate). */
+  predictedCostPerPerson: number;
+  predictedCostSource: 'safe_menu_avg' | 'menu_avg' | 'places_estimate';
+  predictedPartyTotal: number;
+  predictedCostLabel: string;
   lat: number;
   lng: number;
   textureType: 'sand' | 'rust' | 'marble';
@@ -133,6 +138,9 @@ export interface EventDetails {
   date: string;
   maxDistanceRadius: string; // display string, e.g. "5 miles"
   radiusMiles: number;
+  /** Host max $/person (primary). */
+  budgetPerPerson: number;
+  /** Legacy tier kept for display fallbacks. */
   maxBudget: '$' | '$$' | '$$$';
   expectedHeadcount: number;
   limitations: string;
