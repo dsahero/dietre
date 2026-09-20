@@ -154,15 +154,6 @@ export function RemixHomePageView() {
             Guests describe what they can eat in their own words. You get
             restaurant rankings and safe menu options.
           </motion.p>
-          <motion.p
-            className="remix-hero-stat"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.21, ease: [0.16, 1, 0.3, 1] }}
-          >
-            10.8% of US adults have a food allergy. Add religious and ethical
-            diets, and most catering forms still offer just a checkbox.
-          </motion.p>
           <motion.div
             className="remix-hero-cta-row"
             initial={{ opacity: 0, y: 10 }}

@@ -260,19 +260,6 @@
   color: #6B6055;
 }
 
-.remix-hero-stat {
-  margin: 10px 0 0;
-  width: 100%;
-  max-width: 420px;
-  font-family: var(--font-inter), 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: center;
-  color: #D7531F;
-}
-
 .remix-hero-cta-row {
   margin-top: 22px;
   display: flex;
@@ -404,6 +391,37 @@
   margin: 0;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* Devpost-style stat callouts inside the pinned dark card */
+.remix-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+}
+
+.remix-stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.remix-stat-value {
+  font-family: var(--font-display), 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1.1;
+  color: #D7531F;
+}
+
+.remix-stat-label {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #F1E9DC;
 }
 
 /* Concentric Decorative Discs (Plate) */
@@ -965,9 +983,5 @@
   .remix-hero-support {
     font-size: 14px;
     max-width: 360px;
-  }
-  .remix-hero-stat {
-    font-size: 12px;
-    max-width: 340px;
   }
 }
