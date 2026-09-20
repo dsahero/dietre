@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
     "pdfjs-dist",
     "@napi-rs/canvas",
     "@firecrawl/html-extractor",
+    "puppeteer-core",
+    "@sparticuz/chromium-min",
   ],
 };
 

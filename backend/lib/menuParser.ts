@@ -148,13 +148,18 @@ function finalize(source: MenuSource, text: string, method: ExtractMethod): Menu
 }
 
 async function htmlUrlToText(url: string): Promise<{ text: string; method: ExtractMethod }> {
-  const res = await fetch(url, { redirect: "follow", headers: FETCH_HEADERS });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  let html = await res.text();
+  let html: string | null = null;
+  try {
+    const res = await fetch(url, { redirect: "follow", headers: FETCH_HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    html = await res.text();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/HTTP (401|403|429|503)\b/.test(msg)) throw err;
+  }
 
-  // SPA fallback: if raw HTML is a JS shell, render with browser + intercept XHR
-  const spa = detectSpaSignals(html);
-  if (spa.isSpa) {
+  const spa = html ? detectSpaSignals(html) : { isSpa: true };
+  if (spa.isSpa || html === null) {
     try {
       const rendered = await renderWithBrowser(url);
 
@@ -164,11 +169,13 @@ async function htmlUrlToText(url: string): Promise<{ text: string; method: Extra
       }
 
       html = rendered.html;
-    } catch {
+    } catch (err) {
+      if (html === null) throw err;
       // Continue with raw HTML
     }
   }
 
+  if (html === null) throw new Error(`HTTP fetch and browser render both failed for ${url}`);
   return htmlToPlainText(html, url);
 }
 
