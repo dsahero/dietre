@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle, ListChecks, Stamp, Trash2 } from 'lucide-react';
 import { EventDetails } from '../types';
 import { LocationAutocomplete } from '@/frontend/components/location-autocomplete';
+import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
 
 export interface EventEditPatch {
   name: string;
@@ -25,6 +26,7 @@ interface EditEventModalProps {
 const BUDGET_OPTIONS: Array<'$' | '$$' | '$$$'> = ['$', '$$', '$$$'];
 
 export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose, eventDetails, onSave, onDelete }) => {
+  useBodyScrollLock(isOpen);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Remounted via a `key` on the parent's open state, so these initializers
@@ -71,7 +73,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 transition-all duration-300 sm:p-6"
+      className="fixed inset-0 z-[4000] flex items-center justify-center overflow-y-auto overscroll-contain p-3 transition-all duration-300 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-headline"

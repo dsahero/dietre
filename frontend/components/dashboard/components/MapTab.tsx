@@ -6,6 +6,7 @@ import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
 import { confidenceTitle } from './ConfidenceChip';
 import { useIsMobile } from '@/frontend/lib/use-is-mobile';
+import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
 
 interface MapTabProps {
   event: { name: string; lat: number; lng: number; radiusMiles: number };
@@ -137,13 +138,9 @@ export const MapTab: React.FC<MapTabProps> = ({
       if (e.key === 'Escape') setIsMaximized(false);
     };
     document.addEventListener('keydown', handleKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMaximized]);
+  useBodyScrollLock(isMaximized);
 
   // Only venues within the event radius plus a reasonable buffer, so the
   // map isn't cluttered with places nobody could realistically travel to.
@@ -332,7 +329,7 @@ export const MapTab: React.FC<MapTabProps> = ({
       className={
         isMaximized
           ? 'fixed inset-0 z-[2000] flex overflow-hidden border border-[var(--dash-border)]'
-          : 'flex h-[70vh] min-h-[420px] overflow-hidden rounded-sm border border-[var(--dash-border)] sm:h-[720px]'
+          : 'isolate flex h-[70vh] min-h-[420px] overflow-hidden rounded-sm border border-[var(--dash-border)] sm:h-[720px]'
       }
       id="map-tab-container"
     >

@@ -1,6 +1,7 @@
 import React from 'react';
 import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
+import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
 
 interface RestaurantDetailModalProps {
   isOpen: boolean;
@@ -19,11 +20,13 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   onClose,
   onSelectResponse,
 }) => {
+  useBodyScrollLock(isOpen && Boolean(restaurant));
+
   if (!isOpen || !restaurant) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-xs sm:p-5"
+      className="fixed inset-0 z-[4000] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/70 p-3 backdrop-blur-xs sm:p-5"
       onClick={onClose}
     >
       <div

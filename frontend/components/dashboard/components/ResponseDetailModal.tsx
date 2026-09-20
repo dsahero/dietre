@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GuestResponse } from '../types';
+import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
 import { X, ShieldAlert, Heart, Mail, Copy, Check, ExternalLink, Calendar, MessageSquare, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ResponseDetailModalProps {
@@ -69,6 +70,7 @@ function hasAgentLog(rawText: string): boolean {
 }
 
 export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ response, isOpen, onClose }) => {
+  useBodyScrollLock(isOpen && Boolean(response));
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [isDialogueExpanded, setIsDialogueExpanded] = useState(false);
 
@@ -83,7 +85,7 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 transition-all duration-300 sm:p-5"
+      className="fixed inset-0 z-[4000] flex items-center justify-center overscroll-contain p-3 transition-all duration-300 sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="response-token-title"

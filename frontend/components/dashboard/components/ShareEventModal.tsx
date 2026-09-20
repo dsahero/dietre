@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Mail, Send, X } from 'lucide-react';
 import type { PendingInvite } from '@/shared/lib/types';
+import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
 
 interface ShareEventModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
   inviterName,
   onInvited,
 }) => {
+  useBodyScrollLock(isOpen);
   const [email, setEmail] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -118,7 +120,7 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 sm:p-6"
+      className="fixed inset-0 z-[4000] flex items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-headline"
