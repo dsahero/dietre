@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
 import { Sidebar } from './components/Sidebar';
 import { DonutChart } from './components/DonutChart';
@@ -46,6 +47,7 @@ import {
   Layers,
   ShieldCheck,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 
 export type RestaurantSortOption = 'best_fit' | 'closest';
@@ -154,8 +156,7 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
   };
 
   const handleGoHome = () => {
-    setActiveNavId('overview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    router.push('/events');
   };
 
   const handleSaveEvent = async (patch: EventEditPatch) => {
@@ -214,6 +215,14 @@ export default function OverviewDashboard({ event, match, responses, sharePanel 
           {/* Typographic Asymmetry: natural line breaks, off-baseline action, no small-caps bullet eyebrow */}
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-baseline">
             <div className="max-w-2xl">
+              <Link
+                href="/events"
+                id="btn-back-to-events"
+                className="group inline-flex items-center gap-1.5 mb-2.5 py-1.5 px-3 rounded-xs border border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs font-heading font-semibold text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-translate-x-0.5" />
+                <span>Back to My Events</span>
+              </Link>
               {activeNavId !== 'overview' && (
                 <p className="font-serif italic text-xs text-[var(--dash-accent)] mb-1">
                   {activeNavId === 'shortlisted'
