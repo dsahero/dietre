@@ -83,6 +83,9 @@ export interface RestaurantCardData {
   // Bayesian satisfaction score (Beta posterior mean, severity-weighted, 0–1).
   // Used internally for ranking; not displayed directly.
   bayesianScore?: number;
+  // Guest Fit score: 50 + (bayesian_score − 0.5) × 100, range 0–100.
+  // 50 = neutral prior (no preferences stated). Above 50 = positive lean.
+  guestFitScore?: number;
   // Combined host-facing score: coverage anchored, Bayesian nudges ±20 pts.
   // This is the number shown as the headline score on the card.
   overallScore: number;
