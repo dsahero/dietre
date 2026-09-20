@@ -33,8 +33,13 @@ export async function POST(req: NextRequest) {
     }
 
     const userTexts = (rawSummary ?? "")
-      .split(/\s*\|\s*/)
+      .split(/\n\n|\r\n\r\n|\s*\|\s*/)
       .map((s) => s.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const match = line.match(/^Guest:\s*(.+)$/i);
+        return match ? match[1].trim() : line.startsWith("Gemini:") ? "" : line;
+      })
       .filter(Boolean);
     const rules = stripConflictingPreferences(
       promoteHardConstraints(parsedRules, userTexts)

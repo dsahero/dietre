@@ -117,9 +117,9 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
     setSubmitError(null);
     try {
       const rawSummary = history
-        .filter((m) => m.role === "user")
-        .map((m) => m.text)
-        .join(" | ");
+        .filter((m) => m.text && m.text !== "__START__")
+        .map((m) => `${m.role === "assistant" ? "Gemini" : "Guest"}: ${m.text}`)
+        .join("\n\n");
 
       const res = await fetch("/api/joinevent/submit", {
         method: "POST",

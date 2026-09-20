@@ -19,6 +19,55 @@ const severityBadge = (severity: GuestResponse['severity']) => {
   }
 };
 
+type DialogueTurn = {
+  speaker: 'gemini' | 'guest';
+  text: string;
+};
+
+function parseDialogue(rawText: string): DialogueTurn[] {
+  if (!rawText || !rawText.trim()) return [];
+
+  const blocks = rawText.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const turns: DialogueTurn[] = [];
+  let hasPrefix = false;
+
+  for (const block of blocks) {
+    const match = block.match(/^(Gemini|Concierge|AI|Guest|User|Q|A):\s*([\s\S]+)$/i);
+    if (match) {
+      hasPrefix = true;
+      const speakerRaw = match[1].toLowerCase();
+      const speaker: 'gemini' | 'guest' =
+        speakerRaw === 'gemini' || speakerRaw === 'concierge' || speakerRaw === 'ai' || speakerRaw === 'q'
+          ? 'gemini'
+          : 'guest';
+      turns.push({ speaker, text: match[2].trim() });
+    } else if (turns.length > 0) {
+      turns[turns.length - 1].text += `\n\n${block}`;
+    } else {
+      turns.push({ speaker: 'guest', text: block });
+    }
+  }
+
+  if (hasPrefix && turns.length > 0) {
+    return turns;
+  }
+
+  if (rawText.includes('|')) {
+    return rawText
+      .split(/\s*\|\s*/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((text) => ({ speaker: 'guest' as const, text }));
+  }
+
+  return [{ speaker: 'guest', text: rawText.trim() }];
+}
+
+function hasAgentLog(rawText: string): boolean {
+  if (!rawText || !rawText.trim()) return false;
+  return /^(Gemini|Concierge|AI|Q):\s*/im.test(rawText);
+}
+
 export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ response, isOpen, onClose }) => {
   const [copiedEmail, setCopiedEmail] = useState(false);
 
@@ -170,17 +219,60 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
             )}
           </div>
 
-          {/* Guest's own words — kept as supporting context beneath the parsed rules above, since those are what a host scans first; always shown verbatim, never replaced by the AI's read */}
+          {/* Guest's own words */}
           <div className="rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs">
-            <div className="mb-2.5 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
-                <MessageSquare className="h-3.5 w-3.5" />
-              </div>
-              <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">In their own words</h3>
-            </div>
-            <p className="whitespace-pre-wrap rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3.5 font-serif text-sm leading-relaxed text-[var(--dash-text)]">
-              {response.rawText}
-            </p>
+            {hasAgentLog(response.rawText) ? (
+              <>
+                <div className="mb-3 flex items-center gap-2 border-b border-[var(--dash-border)] pb-2.5">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">
+                      In their own words
+                    </h3>
+                    <p className="font-serif italic text-[11px] text-[var(--dash-text-muted)]">
+                      Intake dialogue transcript between Gemini Concierge and guest
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {parseDialogue(response.rawText).map((turn, i) => (
+                    <div key={i} className="space-y-1">
+                      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em]">
+                        {turn.speaker === 'gemini' ? (
+                          <span className="text-[var(--dash-accent)]">Gemini Concierge</span>
+                        ) : (
+                          <span className="text-[var(--dash-text-muted)]">{response.guestName || response.token || 'Guest'}</span>
+                        )}
+                      </p>
+                      <div
+                        className={`rounded-xs border p-3 font-serif text-xs leading-relaxed ${
+                          turn.speaker === 'gemini'
+                            ? 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-soft)]'
+                            : 'border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-[var(--dash-text)] shadow-2xs'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{turn.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-2.5 flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  </div>
+                  <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">In their own words</h3>
+                </div>
+                <p className="whitespace-pre-wrap rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3.5 font-serif text-sm leading-relaxed text-[var(--dash-text)]">
+                  {response.rawText}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Optional contact */}

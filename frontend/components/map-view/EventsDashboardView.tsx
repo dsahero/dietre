@@ -35,7 +35,6 @@ const EventCardPeople: React.FC<{ event: EventWithResponseCount; hostEmail: stri
       collaborators={collaborators}
       pendingInvites={pendingInvites}
       onChange={(next) => {
-      onChange={(next: { collaborators: Collaborator[]; pendingInvites: PendingInvite[] }) => {
         setCollaborators(next.collaborators);
         setPendingInvites(next.pendingInvites);
       }}
