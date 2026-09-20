@@ -1,285 +1,172 @@
-# DietRe — Anonymous Dietary Matching for Group Catering
+# DietRe
 
-> **When2meet for catering.** Ingredient-level dietary matching that lets hosts
-> find restaurants safe for every guest at events of 30 – 300+ people.
+**Live at [dietre.us](https://dietre.us)**
 
----
+DietRe is a catering-decision tool for events large enough that surveying
+guests by hand stops working. Instead of collecting free-text allergy notes
+and eyeballing menus, hosts get a ranked list of nearby restaurants whose
+actual menus can safely feed every guest at the event.
 
-## Table of Contents
+## Features
 
-1. [Quick Start](#quick-start)
-2. [Project Overview](#project-overview)
-3. [Architecture](#architecture)
-4. [Environment Variables](#environment-variables)
-5. [Running Locally](#running-locally)
-6. [Seed Data & Demo Event](#seed-data--demo-event)
-7. [Testing Guide](#testing-guide)
-8. [Design Guidelines](#design-guidelines)
-9. [TODO](#todo)
+### Conversational AI intake
+Guests can talk to a Gemini-powered concierge that walks through
+allergies, religious restrictions, and preferences in plain language,
+one topic at a time. The intake handles the messy parts most forms
+punt on: detecting contradictions between turns ("no pork" then "I ate
+bacon yesterday"), automatically promoting anything phrased as an
+allergy from a preference to a hard constraint, stripping preferences
+that conflict with hard restrictions, and reading a plain-English
+summary back to the guest for confirmation before it lets them submit.
+A traditional free-text form intake is also available for guests who'd
+rather type once and be done.
 
----
+### Ingredient-level dietary parsing
+Free-text responses from either intake are parsed into structured
+`hard_excludes`, preferences, and complex restrictions, resolved down to
+the ingredient level. "No dairy," "no whey," and "lactose intolerant"
+collapse to the same underlying signal, and umbrella terms like
+"vegetarian," "vegan," and "halal" expand into the specific ingredients
+they imply, so matching isn't fooled by wording differences between
+guests.
 
-## Quick Start
+### Automatic menu ingestion
+Finding reliable menus isn't always consistent. Some older local
+restaurants ship static HTML pages, some hide their menu inside a PDF
+linked off the footer, and newer sites built on frameworks like Next.js,
+Nuxt, or Squarespace render everything client-side, which trips up
+conventional scrapers and even search-engine indexers. DietRe walks
+through progressively heavier strategies until one works: a static HTML
+fetch parsed with Cheerio for the simple case, a Puppeteer-driven
+headless browser for JS-rendered pages, Firecrawl as a fallback for
+pages that fight back, and a PDF extraction path for menus that only
+exist as attachments. Extracted text, whether from raw HTML, JSON-LD
+structured data, or PDF, is then parsed into structured menu items
+with estimated ingredients and dietary flags. The whole pipeline runs
+in a background queue that only touches restaurants near the current
+event, caches results, refreshes them on a schedule, and retries after
+failures, so the host UI never waits on a scrape. If scraping fails
+outright for a specific venue (the site is dead, gated, or too unusual
+to parse), hosts can upload a PDF or paste raw menu text on that
+restaurant's card, and it flows through the same ingredient parser as
+scraped menus.
+
+### Restaurant matching engine
+For each event, every restaurant is scored against every guest at the
+menu-item level. A restaurant "covers" a guest if at least one dish on
+its menu is safe for them; safety checks the guest's hard constraints
+against each item's ingredient flags and estimated ingredients, with
+special handling for vegan and vegetarian requirements, kosher
+meat-and-dairy combinations, and low-confidence items where allergy
+guests are blocked from anything the parser isn't certain about. On top
+of raw coverage, a Bayesian preference model (Beta-Bernoulli, uniform
+prior) nudges the ranking by how well each menu satisfies softer
+preferences, and an explicit uncertainty score tracks how much of a
+restaurant's menu was extracted with high confidence versus estimated,
+so a venue with a thin or partially-scraped menu is flagged rather
+than silently over-ranked. Results are ranked by weighted coverage
+first, then preferences, distance, and cost against the event budget.
+
+### AI-generated dashboard overview
+On top of the ranked list, Gemini writes a short natural-language
+briefing for the host: a summary paragraph on the group's constraint
+landscape (severity mix, most common restrictions, who drives them,
+compound rules) and per-restaurant blurbs explaining coverage against
+the table, standout safe dishes, the price/distance trade-off, menu
+confidence, and, when relevant, which specific guests a venue can't
+feed. It turns the underlying numeric scores into something a host can
+actually read and act on without staring at a table.
+
+### Event sharing with co-organizers
+Hosts can invite other organizers to an event by email. Invitees get the
+event in their "shared with me" list and can co-manage responses,
+shortlists, and matches with the same permissions as the owner (except
+deleting the event or removing the owner). Pending invites are tracked
+separately from accepted collaborators so hosts can see who's been asked
+but hasn't joined yet.
+
+### Host dashboard
+Ranked restaurant cards with per-guest match reasons, a Leaflet map with
+distance and cuisine filters, a shortlist tab for candidate venues, a
+responses table for individual submissions, and a shareable QR / link
+panel for distributing the guest intake URL.
+
+## How it works
+
+At a high level, an event flows through four stages:
+
+```
+Host creates event
+        │
+        ▼
+Google Places discovery ─── adaptive spatial tiling gets up to 250
+                            nearby restaurants past the 20-result cap
+        │
+        ▼
+Menu ingestion ──────────── Cheerio → Puppeteer → Firecrawl → PDF
+                            (plus manual upload fallback)
+                            Gemini extracts dishes + ingredients
+        │
+        ▼
+Guest intake ────────────── Gemini concierge chat  ── or ──  free-text form
+                                    │
+                                    ▼
+                            Parser resolves to hard_excludes,
+                            preferences, and complex rules
+        │
+        ▼
+Matching engine ─────────── per-guest × per-dish safety check
+                            severity-weighted coverage (3× / 2× / 1×)
+                            Beta-Bernoulli preference nudge (±20 pts)
+                            menu-confidence tier
+        │
+        ▼
+Host dashboard ──────────── ranked cards, map, shortlist, responses,
+                            Gemini-written overview
+```
+
+Everything after "Host creates event" runs incrementally: guests can
+join at any time, menus are refreshed in the background, and matches
+re-score whenever new data arrives.
+
+## Tech stack
+
+| Area | Technologies |
+|---|---|
+| Framework | Next.js 16 (App Router, Server Components, Route Handlers), React 19, TypeScript |
+| Styling & UI | Tailwind CSS v4, shadcn/ui, Radix primitives, Motion, Lucide icons |
+| AI | Google Gemini for dietary-text parsing and the guest concierge chatbot |
+| Menu ingestion | Puppeteer, Cheerio, Firecrawl HTML extractor |
+| Matching | In-house ingredient-level matching engine |
+| Data & auth | Firebase (Firestore + Authentication) |
+| Map | Leaflet |
+| Sharing | QR-code intake links, email-based event co-organizer invites |
+| Hosting | Vercel, [dietre.us](https://dietre.us) |
+
+## Repository layout
+
+```
+app/         Next.js App Router: pages and API route handlers
+frontend/    React components, dashboard views, hooks, global styles
+backend/     Server-side libs: matching engine, menu scraping,
+             Gemini parser/concierge, DB access, mailer, seed scripts
+shared/      Domain types, runtime config, geocoding utilities
+```
+
+## Development
+
+The product itself lives at [dietre.us](https://dietre.us); no local
+setup is required to use it.
+
+For contributors (Node 22+):
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Copy the env template and fill in values (see section below)
-cp .env.example .env.local
-
-# 3. Start the dev server
-npm run dev
-# → http://localhost:4321
-```
-
----
-
-## Project Overview
-
-DietRe consists of two main user flows:
-
-### Host Flow (requires login)
-- **Login** → `/login`
-- **Event Dashboard** → `/events` → click event → `/events/[id]`
-- Dashboard shows: restaurant matching, guest responses, map, shortlisted venues
-- The **Overview** page includes a collapsible QR code panel, zero-match alerts,
-  donut chart constraint breakdown, and restaurant cards
-
-### Guest Flow (public, no login required)
-- **Form intake** → `/r/[eventId]` — traditional form where guests type their
-  dietary needs and get AI-parsed ingredient chips
-- **Chat intake** → `/joinevent/[eventCode]` — Gemini-powered conversational
-  flow that asks about allergies, religious restrictions, etc.
-
----
-
-## Architecture
-
-```
-app/                     # Next.js 16 App Router (pages & API routes)
-├── api/                 # REST endpoints (auth, events, joinevent, parse, profile)
-├── events/              # Host event pages (list, new, detail)
-├── joinevent/[code]/    # Guest chatbot intake page
-├── login/               # Auth page
-├── profile/             # Host profile
-└── r/[id]/              # Guest form intake page
-
-frontend/
-├── components/          # All React components
-│   ├── dashboard/       # Dashboard layout + sub-components
-│   │   ├── OverviewDashboard.tsx   # Main dashboard orchestrator
-│   │   ├── dashboard.css           # Dashboard-specific CSS layout
-│   │   ├── adapters.ts             # Data transformation layer
-│   │   ├── types.ts                # Dashboard view model types
-│   │   └── components/             # Dashboard sub-components
-│   │       ├── Sidebar.tsx
-│   │       ├── ResponsesView.tsx
-│   │       ├── ResponseDetailModal.tsx
-│   │       ├── RestaurantCard.tsx
-│   │       ├── RestaurantDetailContent.tsx
-│   │       ├── RestaurantDetailModal.tsx
-│   │       ├── ShortlistedView.tsx
-│   │       ├── MapTab.tsx
-│   │       ├── EditEventModal.tsx
-│   │       ├── AudienceStatsCard.tsx
-│   │       └── DonutChart.tsx
-│   ├── share-panel.tsx             # Server component: generates QR
-│   ├── share-panel-collapsible.tsx # Client component: collapsible QR UI
-│   ├── zero-match-panel.tsx        # Collapsible expeditor ticket
-│   ├── join-event-chat.tsx         # Gemini chatbot intake UI
-│   └── diet-form.tsx               # Traditional form intake
-├── lib/                 # Hooks (theme toggle, etc.)
-└── styles/
-    └── globals.css      # Theme tokens, Tailwind config, tactile utilities
-
-backend/
-└── lib/
-    ├── db.ts            # Database abstraction (MongoDB or local JSON)
-    ├── parser.ts        # Gemini dietary text parser
-    └── matcher.ts       # Restaurant matching engine
-
-shared/
-└── lib/
-    ├── types.ts         # Domain types shared between frontend & backend
-    ├── config.ts        # Runtime mode detection (mongo/gemini/firebase)
-    └── places.ts        # Geocoding & Blacksburg location presets
-```
-
----
-
-## Environment Variables
-
-Create a `.env.local` file with these values:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GEMINI_API_KEY` | For AI features | Google Gemini API key for dietary parsing & chatbot |
-| `MONGODB_URI` | For persistence | MongoDB connection string (falls back to local JSON) |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | For auth | Firebase API key (falls back to mock auth) |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | For auth | Firebase project ID |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | For auth | Firebase auth domain |
-| `CHROMIUM_REMOTE_URL` | Optional (Vercel) | Override Chromium pack URL; usually unnecessary with `@sparticuz/chromium` |
-
-### Runtime Modes
-
-DietRe auto-detects what's available:
-- **No env vars** → local JSON storage, mock parser, mock auth (fully functional demo)
-- **GEMINI_API_KEY only** → AI parsing + chatbot, but local storage and mock auth
-- **All vars set** → full production mode with MongoDB + Gemini + Firebase
-
----
-
-## Running Locally
-
-```bash
-# Development server (hot reload)
-npm run dev
-# → http://localhost:4321
-
-# Production build
+npm run dev     # local dev server
 npm run build
-npm start
-
-# Lint
 npm run lint
 ```
 
----
-
-## Seed Data & Demo Event
-
-When running without MongoDB (`MONGODB_URI` not set), the app uses a built-in
-local JSON data store with pre-seeded data.
-
-### Default Demo Event
-
-The demo event **"VT Hacks XI"** is pre-seeded and accessible at:
-
-| Page | URL |
-|------|-----|
-| Host Dashboard | `http://localhost:4321/events/demo-vt-hacks` |
-| Guest Form | `http://localhost:4321/r/demo-vt-hacks` |
-| Guest Chat | `http://localhost:4321/joinevent/demo-vt-hacks` |
-
-### Default Login Credentials
-
-For mock auth (no Firebase configured):
-
-| Field | Value |
-|-------|-------|
-| Email | `demo@dietre.us` |
-| Password | `demo1234` |
-
----
-
-## Testing Guide
-
-### 1. Host Dashboard Flow
-
-1. Navigate to `http://localhost:4321/login`
-2. Sign in with `demo@dietre.us` / `demo1234`
-3. Click the **VT Hacks XI** event to open the dashboard
-4. Verify:
-   - ✅ Sidebar collapses when clicking the `←` button
-   - ✅ Content stretches to fill the full width when sidebar is collapsed
-   - ✅ QR code section is collapsed by default, expands on click
-   - ✅ Zero-match panel is collapsible with a paperclip decoration
-   - ✅ Restaurant cards display match percentages
-   - ✅ Click "View Details" on a restaurant → modal appears on top
-   - ✅ Navigate to Responses tab → table shows guest tokens
-   - ✅ Click a response row → detail modal opens over the table
-   - ✅ Map tab loads with Leaflet markers and filter controls
-   - ✅ Shortlisted tab shows bookmarked restaurants
-   - ✅ "Edit event details" modal opens and saves changes
-
-### 2. Guest Form Intake
-
-1. Open `http://localhost:4321/r/demo-vt-hacks` in a new tab (no login needed)
-2. Type dietary needs (e.g., "I'm allergic to peanuts and shellfish, prefer vegetarian")
-3. Click "Parse" → verify AI chips appear for hard/soft restrictions
-4. Submit the form
-5. Return to the host dashboard → verify the new response appears
-
-### 3. Guest Chat Intake (Gemini)
-
-1. Open `http://localhost:4321/joinevent/demo-vt-hacks`
-2. Verify the invitation card shows the host name and event details
-3. Chat with the concierge:
-   - Provide your name when asked
-   - Answer allergy/restriction questions
-   - Confirm the summary
-   - Optionally provide contact email
-4. After completion, verify the response appears in the host dashboard
-
-### 4. Theme Toggle
-
-- Light/dark theme toggle appears in sidebar and on guest pages
-- Verify both themes render correctly across all pages
-- Host and guest theme preferences are stored separately
-
-### 5. Responsiveness
-
-- Test at various viewport widths (mobile, tablet, desktop)
-- Sidebar should auto-collapse on narrow viewports
-- Restaurant cards should reflow into single column on mobile
-
----
-
-## Design Guidelines
-
-### Fonts
-- **Headings**: Fraunces (`font-heading`) — warm editorial serif
-- **Body text**: Lora (`font-serif` / `font-sans`) — readable text serif
-- **Code/data**: Geist Mono (`font-mono`) — monospace for tokens, stats
-
-### Colors
-- Cardstock/terracotta palette defined as `--dash-*` CSS custom properties
-- Light theme: warm cream/parchment backgrounds
-- Dark theme: leather/walnut backgrounds
-- Accent: burnt orange (`#b9502a` light / `#c1592f` dark)
-
-### Border Radius
-- Use `rounded-xs` or `rounded-sm` (2-4px) throughout
-- Never use `rounded-xl`, `rounded-2xl`, or `rounded-full` on containers
-- Exception: decorative elements (dot indicators, avatar circles)
-
-### Tactile Utilities
-- `.ink-stamp` — monospace uppercase stamped label
-- `.paper-grain` — subtle fractal noise overlay
-- `.deckle-divider` — diagonal dashed border divider
-- `.tilt-left`, `.tilt-right`, `.tilt-slight` — subtle rotation transforms
-
----
-
-## TODO
-
-### High Priority
-- [ ] Wire Gemini API integration for the `/joinevent` chat flow
-- [ ] Add MongoDB persistence layer for production deployment
-- [ ] Implement Firebase authentication
-- [ ] Add email notifications for zero-match guests
-
-### Medium Priority
-- [ ] Add bulk export of guest responses (CSV/PDF)
-- [ ] Implement restaurant detail page with full menu view
-- [ ] Add event creation wizard with location autocomplete
-- [ ] Implement response editing/updating for guests
-
-### Low Priority
-- [ ] Add PWA support for offline guest form access
-- [ ] Implement multi-language support
-- [ ] Add analytics dashboard for event insights
-- [ ] Implement collaborative shortlisting (multiple hosts)
-
-### Design Polish
-- [ ] Verify all components use `rounded-xs`/`rounded-sm` consistently
-- [ ] Ensure no hardcoded `text-white` outside of accent-colored backgrounds
-- [ ] Add subtle entrance animations to restaurant cards
-- [ ] Improve mobile layout for the map tab sidebar
-
----
-
 ## License
 
-Private — all rights reserved.
+Private. All rights reserved.
