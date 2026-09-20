@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
+import React, { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
@@ -43,11 +43,7 @@ import {
   PieChart,
   ArrowUpDown,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
-  MoveHorizontal,
-  Layers,
   ShieldCheck,
   Sparkles,
   ArrowLeft,
@@ -158,10 +154,8 @@ export default function OverviewDashboard({
 
   const [shortlistedIds, setShortlistedIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<RestaurantSortOption>('best_fit');
-  const [restaurantLayout, setRestaurantLayout] = useState<'side_scroll' | 'stacked'>('stacked');
   const [showOnlyWithMenus, setShowOnlyWithMenus] = useState(false);
   const [showNotification, setShowNotification] = useState<string | null>(null);
-  const restaurantScrollRef = useRef<HTMLDivElement>(null);
 
   // Process panel state — hydrate from persisted scrape/match signals so a
   // refresh does not look like the pipeline never ran.
@@ -181,12 +175,6 @@ export default function OverviewDashboard({
   const triggerNotification = (msg: string) => {
     setShowNotification(msg);
     setTimeout(() => setShowNotification(null), 3000);
-  };
-
-  const handleScrollRestaurants = (direction: 'left' | 'right') => {
-    if (restaurantScrollRef.current) {
-      restaurantScrollRef.current.scrollBy({ left: direction === 'left' ? -460 : 460, behavior: 'smooth' });
-    }
   };
 
   const navItems: NavItem[] = useMemo(
@@ -610,48 +598,6 @@ export default function OverviewDashboard({
                     </h2>
 
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <div className="inline-flex rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => setRestaurantLayout('side_scroll')}
-                          className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
-                            restaurantLayout === 'side_scroll' ? 'bg-[var(--dash-accent)] text-white shadow-2xs' : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
-                          }`}
-                        >
-                          <MoveHorizontal className="h-3.5 w-3.5" /> Side Scroll
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRestaurantLayout('stacked')}
-                          className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
-                            restaurantLayout === 'stacked' ? 'bg-[var(--dash-accent)] text-white shadow-2xs' : 'text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
-                          }`}
-                        >
-                          <Layers className="h-3.5 w-3.5" /> Stacked
-                        </button>
-                      </div>
-
-                      {restaurantLayout === 'side_scroll' && (
-                        <div className="flex items-center gap-1 rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface)] p-0.5 shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => handleScrollRestaurants('left')}
-                            aria-label="Scroll restaurants left"
-                            className="rounded-sm p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleScrollRestaurants('right')}
-                            aria-label="Scroll restaurants right"
-                            className="rounded-sm p-1 text-[var(--dash-accent)] transition-colors hover:bg-[var(--dash-accent)]/15 hover:text-[var(--dash-accent-deep)] cursor-pointer"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="mr-1 flex items-center gap-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
                           <ArrowUpDown className="h-3 w-3 text-[var(--dash-accent)]" /> Sort:
@@ -702,35 +648,17 @@ export default function OverviewDashboard({
                     </p>
                   )}
 
-                  {restaurantLayout === 'side_scroll' ? (
-                    <div
-                      ref={restaurantScrollRef}
-                      className="scrollbar-thin flex snap-x items-stretch gap-4 overflow-x-auto pb-4 pt-1"
-                    >
-                      {sortedRestaurants.map((restaurant) => (
-                        <div key={restaurant.id} className="w-[360px] shrink-0 snap-start sm:w-[500px] md:w-[560px]">
-                          <RestaurantCard
-                            restaurant={restaurant}
-                            isShortlisted={shortlistedIds.includes(restaurant.id)}
-                            onToggleShortlist={handleToggleShortlist}
-                            onClickDetails={handleOpenRestaurantDetails}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <section className="content-cards-section">
-                      {sortedRestaurants.map((restaurant) => (
-                        <RestaurantCard
-                          key={restaurant.id}
-                          restaurant={restaurant}
-                          isShortlisted={shortlistedIds.includes(restaurant.id)}
-                          onToggleShortlist={handleToggleShortlist}
-                          onClickDetails={handleOpenRestaurantDetails}
-                        />
-                      ))}
-                    </section>
-                  )}
+                  <section className="content-cards-section">
+                    {sortedRestaurants.map((restaurant) => (
+                      <RestaurantCard
+                        key={restaurant.id}
+                        restaurant={restaurant}
+                        isShortlisted={shortlistedIds.includes(restaurant.id)}
+                        onToggleShortlist={handleToggleShortlist}
+                        onClickDetails={handleOpenRestaurantDetails}
+                      />
+                    ))}
+                  </section>
             </>
           )}
         </div>
