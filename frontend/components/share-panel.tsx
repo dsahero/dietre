@@ -9,7 +9,7 @@ async function eventShareUrl(eventId: string): Promise<string> {
   return `${proto}://${host}/r/${eventId}`;
 }
 
-export async function SharePanel({ eventId, eventName }: { eventId: string; eventName: string }) {
+export async function SharePanel({ eventId }: { eventId: string }) {
   const url = await eventShareUrl(eventId);
   const qr = await QRCode.toDataURL(url, {
     margin: 1,
@@ -18,6 +18,6 @@ export async function SharePanel({ eventId, eventName }: { eventId: string; even
   });
 
   return (
-    <SharePanelCollapsible url={url} eventName={eventName} qrDataUrl={qr} />
+    <SharePanelCollapsible url={url} qrDataUrl={qr} />
   );
 }

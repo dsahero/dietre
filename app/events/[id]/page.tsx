@@ -88,7 +88,7 @@ export default async function EventDashboardPage({
       responses={responses}
       isOwner={isOwner}
       viewerEmail={sessionEmailLower}
-      sharePanel={<SharePanel eventId={event.id} eventName={event.name} />}
+      sharePanel={<SharePanel eventId={event.id} />}
     />
   );
 }
