@@ -3,6 +3,7 @@ import { X, Calendar, MapPin, DollarSign, Navigation, Check, Users, AlertCircle,
 import { EventDetails } from '../types';
 import { LocationAutocomplete } from '@/frontend/components/location-autocomplete';
 import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
+import { ModalPortal } from '@/frontend/components/ui/modal-portal';
 
 export interface EventEditPatch {
   name: string;
@@ -78,8 +79,9 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
   };
 
   return (
+    <ModalPortal>
     <div
-      className="fixed inset-0 z-[4000] flex items-center justify-center overflow-y-auto overscroll-contain p-3 transition-all duration-300 sm:p-6"
+      className="fixed inset-0 z-[9000] flex items-center justify-center overflow-y-auto overscroll-contain p-3 transition-all duration-300 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-headline"
@@ -314,5 +316,6 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, onClose,
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 };

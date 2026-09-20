@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Mail, Send, X } from 'lucide-react';
 import type { PendingInvite } from '@/shared/lib/types';
 import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
+import { ModalPortal } from '@/frontend/components/ui/modal-portal';
 
 interface ShareEventModalProps {
   isOpen: boolean;
@@ -119,8 +120,9 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
   };
 
   return (
+    <ModalPortal>
     <div
-      className="fixed inset-0 z-[4000] flex items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-6"
+      className="fixed inset-0 z-[9000] flex items-center justify-center overflow-y-auto overscroll-contain p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-headline"
@@ -227,5 +229,6 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 };

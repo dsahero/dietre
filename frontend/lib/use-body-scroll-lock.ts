@@ -4,18 +4,33 @@ import { useEffect } from 'react';
 // the lock is reference-counted: the page only scrolls again when the last
 // one closes.
 let lockCount = 0;
-let previous: { overflow: string; paddingRight: string } | null = null;
+let previous: {
+  bodyOverflow: string;
+  bodyPaddingRight: string;
+  htmlOverflow: string;
+  htmlOverscroll: string;
+} | null = null;
 
 function lock() {
   if (lockCount === 0) {
     const body = document.body;
-    previous = { overflow: body.style.overflow, paddingRight: body.style.paddingRight };
+    const html = document.documentElement;
+    previous = {
+      bodyOverflow: body.style.overflow,
+      bodyPaddingRight: body.style.paddingRight,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
     // Losing the scrollbar would shift the page sideways; pad by its width.
-    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    const scrollbar = window.innerWidth - html.clientWidth;
     if (scrollbar > 0) {
       const current = parseFloat(getComputedStyle(body).paddingRight) || 0;
       body.style.paddingRight = `${current + scrollbar}px`;
     }
+    // The app sets its own overflow on <html> (overflow-x: clip), which stops
+    // <body>'s overflow from reaching the viewport — so lock both.
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
     body.style.overflow = 'hidden';
   }
   lockCount++;
@@ -24,8 +39,10 @@ function lock() {
 function unlock() {
   lockCount = Math.max(0, lockCount - 1);
   if (lockCount === 0 && previous) {
-    document.body.style.overflow = previous.overflow;
-    document.body.style.paddingRight = previous.paddingRight;
+    document.body.style.overflow = previous.bodyOverflow;
+    document.body.style.paddingRight = previous.bodyPaddingRight;
+    document.documentElement.style.overflow = previous.htmlOverflow;
+    document.documentElement.style.overscrollBehavior = previous.htmlOverscroll;
     previous = null;
   }
 }

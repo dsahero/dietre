@@ -2,6 +2,7 @@ import React from 'react';
 import { RestaurantCardData } from '../types';
 import { RestaurantDetailContent } from './RestaurantDetailContent';
 import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
+import { ModalPortal } from '@/frontend/components/ui/modal-portal';
 
 interface RestaurantDetailModalProps {
   isOpen: boolean;
@@ -25,8 +26,9 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   if (!isOpen || !restaurant) return null;
 
   return (
+    <ModalPortal>
     <div
-      className="fixed inset-0 z-[4000] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/70 p-3 backdrop-blur-xs sm:p-5"
+      className="fixed inset-0 z-[8000] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/70 p-3 backdrop-blur-xs sm:p-5"
       onClick={onClose}
     >
       <div
@@ -42,5 +44,6 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
         />
       </div>
     </div>
+    </ModalPortal>
   );
 };

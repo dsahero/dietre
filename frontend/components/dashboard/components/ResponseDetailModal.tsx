@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GuestResponse } from '../types';
 import { useBodyScrollLock } from '@/frontend/lib/use-body-scroll-lock';
+import { ModalPortal } from '@/frontend/components/ui/modal-portal';
 import { X, ShieldAlert, Heart, Mail, Copy, Check, ExternalLink, Calendar, MessageSquare, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ResponseDetailModalProps {
@@ -84,8 +85,9 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
   };
 
   return (
+    <ModalPortal>
     <div
-      className="fixed inset-0 z-[4000] flex items-center justify-center overscroll-contain p-3 transition-all duration-300 sm:p-5"
+      className="fixed inset-0 z-[8000] flex items-center justify-center overscroll-contain p-3 transition-all duration-300 sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="response-token-title"
@@ -361,5 +363,6 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };
