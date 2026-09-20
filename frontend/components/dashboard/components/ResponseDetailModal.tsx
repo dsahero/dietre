@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GuestResponse } from '../types';
-import { X, ShieldAlert, Heart, Mail, Copy, Check, ExternalLink, Calendar, MessageSquare, Layers } from 'lucide-react';
+import { X, ShieldAlert, Heart, Mail, Copy, Check, ExternalLink, Calendar, MessageSquare, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ResponseDetailModalProps {
   response: GuestResponse | null;
@@ -70,6 +70,7 @@ function hasAgentLog(rawText: string): boolean {
 
 export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ response, isOpen, onClose }) => {
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [isDialogueExpanded, setIsDialogueExpanded] = useState(false);
 
   if (!isOpen || !response) return null;
 
@@ -223,42 +224,60 @@ export const ResponseDetailModal: React.FC<ResponseDetailModalProps> = ({ respon
           <div className="rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)] p-4 shadow-2xs">
             {hasAgentLog(response.rawText) ? (
               <>
-                <div className="mb-3 flex items-center gap-2 border-b border-[var(--dash-border)] pb-2.5">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">
-                      In their own words
-                    </h3>
-                    <p className="font-serif italic text-[11px] text-[var(--dash-text-muted)]">
-                      Intake dialogue transcript between Gemini Concierge and guest
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {parseDialogue(response.rawText).map((turn, i) => (
-                    <div key={i} className="space-y-1">
-                      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em]">
-                        {turn.speaker === 'gemini' ? (
-                          <span className="text-[var(--dash-accent)]">Gemini Concierge</span>
-                        ) : (
-                          <span className="text-[var(--dash-text-muted)]">{response.guestName || response.token || 'Guest'}</span>
-                        )}
-                      </p>
-                      <div
-                        className={`rounded-xs border p-3 font-serif text-xs leading-relaxed ${
-                          turn.speaker === 'gemini'
-                            ? 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-soft)]'
-                            : 'border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-[var(--dash-text)] shadow-2xs'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap">{turn.text}</p>
-                      </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDialogueExpanded((prev) => !prev)}
+                  className={`flex w-full items-center justify-between text-left cursor-pointer ${
+                    isDialogueExpanded ? 'mb-3 border-b border-[var(--dash-border)] pb-2.5' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-xs border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/15 text-[var(--dash-accent)]">
+                      <MessageSquare className="h-3.5 w-3.5" />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-[var(--dash-text)]">
+                        In their own words
+                      </h3>
+                      <p className="font-serif italic text-[11px] text-[var(--dash-text-muted)]">
+                        Intake dialogue transcript between Gemini Concierge and guest ({parseDialogue(response.rawText).length} turns)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-2.5 py-1 font-heading text-xs font-medium text-[var(--dash-text)] transition-colors hover:bg-[var(--dash-border)]">
+                    <span>{isDialogueExpanded ? 'Hide transcript' : 'Show transcript'}</span>
+                    {isDialogueExpanded ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
+                    )}
+                  </div>
+                </button>
+
+                {isDialogueExpanded && (
+                  <div className="space-y-3 pt-1">
+                    {parseDialogue(response.rawText).map((turn, i) => (
+                      <div key={i} className="space-y-1">
+                        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em]">
+                          {turn.speaker === 'gemini' ? (
+                            <span className="text-[var(--dash-accent)]">Gemini Concierge</span>
+                          ) : (
+                            <span className="text-[var(--dash-text-muted)]">{response.guestName || response.token || 'Guest'}</span>
+                          )}
+                        </p>
+                        <div
+                          className={`rounded-xs border p-3 font-serif text-xs leading-relaxed ${
+                            turn.speaker === 'gemini'
+                              ? 'border-[var(--dash-border)] bg-[var(--dash-bg)] text-[var(--dash-text-soft)]'
+                              : 'border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-[var(--dash-text)] shadow-2xs'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap">{turn.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             ) : (
               <>
