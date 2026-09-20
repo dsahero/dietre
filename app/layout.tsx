@@ -22,9 +22,9 @@ const displaySerif = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "dietre — When2meet for catering",
+  title: "dietre — dietary matching for events",
   description:
-    "Anonymous, ingredient-level dietary matching for hosts running events of 30–300+ people. Demo city: Blacksburg / Virginia Tech.",
+    "Collect anonymous guest dietary needs and match catering that covers everyone.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

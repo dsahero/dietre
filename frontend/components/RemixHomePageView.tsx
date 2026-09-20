@@ -13,7 +13,7 @@
  *   Section anchors in footer → smooth scroll to section
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { ForkGraphic } from './ForkGraphic';
@@ -30,7 +30,6 @@ import './remix.css';
 const SIGNUP_PATH = '/signup';
 const LOGIN_PATH = '/login';
 const DEMO_EVENT_PATH = '/events/demo-vt-hacks';
-const DEMO_GUEST_FORM_PATH = '/r/demo-vt-hacks';
 
 export function RemixHomePageView() {
   const router = useRouter();
@@ -40,7 +39,6 @@ export function RemixHomePageView() {
   const goToSignUp = () => router.push(SIGNUP_PATH);
   const goToLogin = () => router.push(LOGIN_PATH);
   const goToDemo = () => router.push(DEMO_EVENT_PATH);
-  const goToGuestForm = () => router.push(DEMO_GUEST_FORM_PATH);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -93,7 +91,7 @@ export function RemixHomePageView() {
               className="remix-nav-link remix-nav-link-2"
               onClick={scrollToRealEvents}
             >
-              Real Events
+              For hosts
             </button>
             <button
               className="remix-nav-link remix-nav-link-3"
@@ -130,9 +128,9 @@ export function RemixHomePageView() {
         <div className="remix-hero-bg" />
         <motion.div
           className="remix-hero-brand-lockup"
-          initial={{ opacity: 0, y: 32 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <h1 className="remix-hero-brand-title" aria-label="dietre">
             <span className="sr-only">dietre</span>
@@ -140,12 +138,44 @@ export function RemixHomePageView() {
           </h1>
           <motion.h2
             className="remix-hero-tagline"
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           >
-            a smarter way to cater
+            Collect anonymous diets. Match the catering.
           </motion.h2>
+          <motion.p
+            className="remix-hero-support"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          >
+            Guests describe what they can eat in their own words. You get
+            restaurant rankings and safe menu options — no names required.
+          </motion.p>
+          <motion.div
+            className="remix-hero-cta-row"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <button
+              id="btn-hero-signup"
+              type="button"
+              className="remix-hero-cta-primary"
+              onClick={goToSignUp}
+            >
+              Create event
+            </button>
+            <button
+              id="btn-hero-demo"
+              type="button"
+              className="remix-hero-cta-secondary"
+              onClick={goToDemo}
+            >
+              Try demo
+            </button>
+          </motion.div>
         </motion.div>
 
         {/* ==========================================================================
@@ -195,15 +225,12 @@ export function RemixHomePageView() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <h2 className="remix-banner-title">
-            Built for real events
+            Built for hosts
           </h2>
           <p className="remix-banner-body">
-            Weddings, corporate offsites, campus orgs, conference dinners — anything
-            too large to poll by group chat. dietre reads a diet and resolves it into
-            restaurant rankings a caterer can actually act on, and safe menu items
-            rather than a checkbox list that flattens allergies, religious practice,
-            and preference into one category. Ask 30–300+ people what they eat, then
-            let the dashboard do the rest.
+            Share one anonymous link with your guests. dietre turns their replies
+            into ranked restaurants and safe dishes — so you can book catering that
+            covers allergies, religious needs, and preferences without a spreadsheet.
           </p>
         </motion.div>
 
@@ -234,8 +261,8 @@ export function RemixHomePageView() {
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.65, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
         >
-          Ranked restaurant matching, live response dashboards, and automatic
-          zero-match alerts — all without collecting any personal identifiers.
+          Ranked restaurants, a live host dashboard, and alerts when someone has
+          no safe option — without collecting names.
         </motion.p>
 
         {/* Lower Fork */}
@@ -256,8 +283,8 @@ export function RemixHomePageView() {
             Ranked Restaurants
           </h3>
           <p className="remix-card-text">
-            Restaurants ranked by how many actual responses they safely cover, weighted
-            so the most constrained guests count more than optimising for loose preferences.
+            Restaurants ranked by how many guests they safely cover, with more weight
+            on the most constrained diets.
           </p>
         </motion.div>
 
@@ -276,8 +303,8 @@ export function RemixHomePageView() {
             Live Dashboard
           </h3>
           <p className="remix-card-text">
-            Track responses, severity breakdown, and restaurant coverage in real time
-            as the anonymous link gets shared and filled out by your guests.
+            Watch responses come in and see coverage update as guests fill out the
+            anonymous link.
           </p>
         </motion.div>
 
@@ -296,8 +323,8 @@ export function RemixHomePageView() {
             Zero-Match Alerts
           </h3>
           <p className="remix-card-text">
-            If nobody on the menu works for someone, the host finds out before the event —
-            not from a guest going hungry at the venue. Anonymous flag, no name shown.
+            If a guest has no safe option in range, you see an anonymous flag before
+            the event — not after someone goes hungry.
           </p>
         </motion.div>
 
@@ -312,10 +339,10 @@ export function RemixHomePageView() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <h2 className="remix-cta-heading">
-            Ready to stop guessing what your guests can eat?
+            Create an event and start collecting diets
           </h2>
           <p className="remix-cta-subheading">
-            Seeded on real Blacksburg kitchens for the demo — create your own event in under a minute.
+            Share the guest link, then open ranked restaurant matches on your dashboard.
           </p>
           <div className="remix-cta-buttons-wrapper">
             <motion.button
@@ -325,8 +352,8 @@ export function RemixHomePageView() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <CtaUserPlusIcon size={34} color="#2B2118" />
-              <span className="remix-cta-btn-text-signup">Sign Up</span>
+              <CtaUserPlusIcon size={28} color="#2B2118" />
+              <span className="remix-cta-btn-text-signup">Create event</span>
             </motion.button>
             <motion.button
               id="btn-cta-login"
@@ -335,8 +362,8 @@ export function RemixHomePageView() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <CtaLogInIcon size={34} color="#2B2118" />
-              <span className="remix-cta-btn-text-login">Log In</span>
+              <CtaLogInIcon size={28} color="#2B2118" />
+              <span className="remix-cta-btn-text-login">Log in</span>
             </motion.button>
           </div>
         </motion.div>
