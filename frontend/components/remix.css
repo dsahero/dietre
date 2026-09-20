@@ -108,8 +108,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 20px;
   color: #E2D6C3;
   text-decoration: none;
   white-space: nowrap;
@@ -133,15 +133,15 @@
 .remix-btn-signup-nav {
   position: absolute;
   left: 1164px;
-  top: 26px;
-  width: 114px;
-  height: 52px;
+  top: 30px;
+  width: 108px;
+  height: 44px;
   background: #FFFFFF;
   border-radius: 12px;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 18px;
-  line-height: 52px;
+  font-size: 14px;
+  line-height: 44px;
   text-align: center;
   color: #000000;
   text-decoration: none;
@@ -159,15 +159,15 @@
 .remix-btn-login-nav {
   position: absolute;
   left: 1308px;
-  top: 26px;
-  width: 114px;
-  height: 52px;
+  top: 30px;
+  width: 108px;
+  height: 44px;
   background: #C9B79C;
   border-radius: 12px;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 18px;
-  line-height: 52px;
+  font-size: 14px;
+  line-height: 44px;
   text-align: center;
   color: #000000;
   text-decoration: none;
@@ -193,13 +193,14 @@
   background: radial-gradient(ellipse at 28.51% 66.96%, #FBF6EF 0%, #E2D6C3 75%);
 }
 
-/* Hero Brand Lockup (Wordmark + Tagline) */
+/* Hero Brand Lockup (Wordmark + Tagline + CTA) */
 .remix-hero-brand-lockup {
   position: absolute;
   left: 0;
   right: 0;
-  top: 335px;
-  width: 630px;
+  top: 220px;
+  width: 560px;
+  max-width: calc(100% - 48px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -218,7 +219,8 @@
 }
 
 .remix-hero-wordmark-svg {
-  width: 630px;
+  width: 420px;
+  max-width: 100%;
   height: auto;
   display: block;
   color: #D7531F;
@@ -226,23 +228,81 @@
 
 /* Tagline */
 .remix-hero-tagline {
-  margin-top: 18px;
+  margin-top: 14px;
   width: 100%;
-  min-height: 120px;
+  min-height: 0;
   height: auto;
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: italic;
   font-weight: 400;
-  font-size: 62.5px;
-  line-height: 1.2;
+  font-size: 34px;
+  line-height: 1.25;
   letter-spacing: 0.005em;
-  word-spacing: 0.03em;
+  word-spacing: 0.02em;
   text-align: center;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
   color: #2B2118;
   font-variation-settings: 'opsz' 144, 'WONK' 1;
+}
+
+.remix-hero-support {
+  margin: 12px 0 0;
+  width: 100%;
+  max-width: 440px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+  color: #6B6055;
+}
+
+.remix-hero-cta-row {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.remix-hero-cta-primary,
+.remix-hero-cta-secondary {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 12px 22px;
+  border-radius: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.remix-hero-cta-primary {
+  background: #D7531F;
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(215, 83, 31, 0.28);
+}
+
+.remix-hero-cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(215, 83, 31, 0.34);
+}
+
+.remix-hero-cta-secondary {
+  background: transparent;
+  color: #2B2118;
+  border: 1.5px solid #2B2118;
+}
+
+.remix-hero-cta-secondary:hover {
+  background: rgba(43, 33, 24, 0.06);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -310,11 +370,11 @@
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: italic;
   font-weight: 700;
-  font-size: 72px;
+  font-size: 44px;
   line-height: 1.2;
   text-decoration-line: underline;
   text-decoration-color: #FFFFFF;
-  text-underline-offset: 8px;
+  text-underline-offset: 6px;
   color: #FFFFFF;
   margin: 0;
   word-break: break-word;
@@ -325,8 +385,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 24px;
-  line-height: 36px;
+  font-size: 17px;
+  line-height: 1.55;
   color: #FFFFFF;
   margin: 0;
   word-break: break-word;
@@ -479,7 +539,7 @@
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: italic;
   font-weight: 700;
-  font-size: 72px;
+  font-size: 44px;
   line-height: 1.15;
   color: #FFFFFF;
   margin: 0;
@@ -496,8 +556,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 24px;
-  line-height: 36px;
+  font-size: 17px;
+  line-height: 1.55;
   color: #FFFFFF;
   margin: 0;
   word-break: break-word;
@@ -523,35 +583,35 @@
   left: calc(50% - 664px);
   top: 4279px;
   width: 623px;
-  height: 109px;
+  height: auto;
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: italic;
   font-weight: 700;
-  font-size: 96px;
-  line-height: 118px;
+  font-size: 52px;
+  line-height: 1.15;
   color: #D7531F;
 }
 
 .remix-section-cards-divider {
   position: absolute;
   left: calc(50% - 662px);
-  top: 4388px;
-  width: 560px;
+  top: 4350px;
+  width: 420px;
   height: 0px;
-  border: 3px solid #E2D6C3;
+  border: 2px solid #E2D6C3;
 }
 
 .remix-section-cards-subtitle {
   position: absolute;
   left: calc(50% - 662px);
-  top: 4409px;
-  width: 694px;
-  height: 116px;
+  top: 4370px;
+  width: 620px;
+  height: auto;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 24px;
-  line-height: 29px;
+  font-size: 16px;
+  line-height: 1.45;
   color: #6B6055;
 }
 
@@ -572,15 +632,15 @@
   top: 4545px;
   width: 404px;
   height: auto;
-  min-height: 428px;
+  min-height: 360px;
   background: #FFFFFF;
-  border: 5px solid #E2D6C3;
+  border: 4px solid #E2D6C3;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 15px;
   display: flex;
   flex-direction: column;
-  padding: 36px 28px;
-  gap: 16px;
+  padding: 28px 24px;
+  gap: 12px;
   overflow-y: auto;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -614,8 +674,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 700;
-  font-size: 32px;
-  line-height: 1.2;
+  font-size: 22px;
+  line-height: 1.25;
   color: #D7531F;
   margin: 0;
   word-break: break-word;
@@ -632,8 +692,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 24px;
-  line-height: 29px;
+  font-size: 15px;
+  line-height: 1.45;
   color: #6B6055;
   margin: 0;
   word-break: break-word;
@@ -653,7 +713,7 @@
   width: 1174px;
   max-width: calc(100% - 48px);
   height: auto;
-  min-height: 368px;
+  min-height: 280px;
   background: #D7531F;
   box-shadow: 14px 14px 4px rgba(0, 0, 0, 0.25);
   border-radius: 25px;
@@ -661,8 +721,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 60px;
-  gap: 20px;
+  padding: 36px 48px;
+  gap: 14px;
   box-sizing: border-box;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -677,8 +737,8 @@
   font-family: var(--font-display), 'Fraunces', serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 48px;
-  line-height: 1.25;
+  font-size: 32px;
+  line-height: 1.3;
   text-align: center;
   color: #FFFFFF;
   margin: 0;
@@ -692,11 +752,12 @@
   right: auto;
   top: auto;
   width: 100%;
+  max-width: 560px;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 19px;
-  line-height: 26px;
+  font-size: 15px;
+  line-height: 1.45;
   text-align: center;
   color: #FFFFFF;
   margin: 0;
@@ -708,8 +769,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 32px;
-  margin-top: 8px;
+  gap: 20px;
+  margin-top: 6px;
   flex-wrap: wrap;
 }
 
@@ -718,14 +779,16 @@
   position: relative;
   left: auto;
   top: auto;
-  width: 271px;
-  height: 82px;
+  width: auto;
+  min-width: 180px;
+  height: 56px;
+  padding: 0 22px;
   background: #FFFFFF;
-  border-radius: 25px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   text-decoration: none;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border: none;
@@ -742,8 +805,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 16px;
+  line-height: 1.2;
   color: #2B2118;
 }
 
@@ -752,14 +815,16 @@
   position: relative;
   left: auto;
   top: auto;
-  width: 231px;
-  height: 82px;
+  width: auto;
+  min-width: 150px;
+  height: 56px;
+  padding: 0 22px;
   background: #C9B79C;
-  border-radius: 25px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   text-decoration: none;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border: none;
@@ -776,8 +841,8 @@
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 16px;
+  line-height: 1.2;
   color: #2B2118;
 }
 
@@ -846,13 +911,13 @@
 .remix-footer-link {
   position: absolute;
   top: 49px;
-  width: 158px;
+  width: 140px;
   height: 20px;
   font-family: var(--font-inter), 'Inter', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 24px;
-  line-height: 29px;
+  font-size: 15px;
+  line-height: 20px;
   text-align: center;
   color: #A69884;
   text-decoration: none;
@@ -870,3 +935,22 @@
 .remix-footer-link-signup { left: 1088px; }
 .remix-footer-link-login  { left: 1268px; }
 
+
+
+/* Tight mobile adjustments for hero type (artboard layout preserved) */
+@media (max-width: 768px) {
+  .remix-hero-brand-lockup {
+    top: 160px;
+    width: min(560px, calc(100% - 32px));
+  }
+  .remix-hero-wordmark-svg {
+    width: min(320px, 88vw);
+  }
+  .remix-hero-tagline {
+    font-size: 26px;
+  }
+  .remix-hero-support {
+    font-size: 14px;
+    max-width: 360px;
+  }
+}

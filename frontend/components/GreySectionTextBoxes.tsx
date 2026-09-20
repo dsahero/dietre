@@ -16,15 +16,15 @@ interface TextItem {
 const TEXT_ITEMS: TextItem[] = [
   {
     title: 'Anonymous by design',
-    body: 'Guests are identified only by a rotating token — "Guest 07", never a name. No login, no avatar, no account. Diet information is never stored alongside any personal identifier.',
+    body: 'Guests show up as "Guest 07" — never a name. No login, no account. Diet notes stay separate from personal identity.',
   },
   {
     title: 'Ingredient-level matching',
-    body: 'Hard excludes collide with estimated ingredients — pork, gluten, shellfish, meat-dairy combos — not a restaurant\'s self-tagged checkbox. Dietre reads your dietary description the same way a caterer would.',
+    body: 'Hard excludes meet estimated ingredients — pork, gluten, shellfish, meat-dairy combos — not a restaurant\'s self-tagged checkbox.',
   },
   {
     title: 'Zero-match protection',
-    body: 'If a guest has no safe option anywhere in range, the host sees an anonymous flag — plus an email only if that guest chose to leave one. No one goes hungry at your event.',
+    body: 'If a guest has no safe option in range, you see an anonymous flag — and an email only if they chose to leave one.',
   },
 ];
 
