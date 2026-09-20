@@ -33,6 +33,29 @@ const SORT_LABELS: Record<SortKey, string> = {
 const SEVERITY_RANK: Record<GuestResponse['severity'], number> = { high: 0, medium: 1, low: 2 };
 
 const displayName = (r: GuestResponse) => (r.guestName?.trim() || r.token).trim();
+
+const AVATAR_COLORS = [
+  'bg-[#3d6b5a] text-[#e8f2ed]',
+  'bg-[#5c4a3a] text-[#f3ebe3]',
+  'bg-[#3a4f6b] text-[#e8eef5]',
+  'bg-[#6b4a52] text-[#f5e8eb]',
+  'bg-[#4a5c3a] text-[#eef3e8]',
+  'bg-[#5a3d6b] text-[#f0e8f5]',
+  'bg-[#6b5c3a] text-[#f5f0e8]',
+  'bg-[#3a5c6b] text-[#e8f2f5]',
+];
+
+function guestInitial(name: string): string {
+  const ch = name.trim().charAt(0);
+  return ch ? ch.toUpperCase() : '?';
+}
+
+function avatarColorClass(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 const restrictionCount = (r: GuestResponse) => r.hardExcludes.length + (r.complexRestrictions?.length ?? 0);
 const firstRestriction = (r: GuestResponse) =>
   [...r.hardExcludes].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))[0] ?? null;
@@ -333,7 +356,9 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--dash-border)] text-xs">
-                {filtered.map((response) => (
+                {filtered.map((response) => {
+                  const name = displayName(response);
+                  return (
                   <tr
                     key={response.id}
                     onClick={() => onSelectResponse(response)}
@@ -341,6 +366,13 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${avatarColorClass(name)}`}
+                          title={name}
+                        >
+                          {guestInitial(name)}
+                        </span>
                         <span className="font-mono font-semibold text-[var(--dash-text)] group-hover:text-[var(--dash-accent)]">
                           {response.token}
                         </span>
@@ -435,7 +467,8 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
-import { coveragePercent } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
-import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
-import { ConfidenceChip } from './ConfidenceChip';
+import { MapPin, DollarSign, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 
 interface RestaurantCardProps {
   restaurant: RestaurantCardData;
@@ -44,11 +42,9 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
     setTextureUrl(url);
   }, [restaurant.textureType]);
 
-  const getMatchBadgeStyle = (pct: number) => {
-    if (pct >= 85) return 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50';
-    if (pct >= 60) return 'bg-[#eab308]/20 text-[#facc15] border-[#eab308]/50';
-    return 'bg-[#ef4444]/20 text-[#f87171] border-[#ef4444]/50';
-  };
+  const coveredCount = restaurant.matchedResponses.length;
+  const totalGuests = restaurant.totalResponses;
+  const safeItemCount = restaurant.suggestedMenuItems.length;
 
   return (
     <div
@@ -75,42 +71,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           ) : (
             <span />
           )}
-          <div className="flex flex-col items-end gap-1">
-            <span
-              className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
-                restaurant.overallScore ?? restaurant.matchPercentage
-              )}`}
-              title="Overall score and guest coverage — share of guests with at least one safe menu item"
-            >
-              {restaurant.overallScore}% · Coverage {restaurant.matchPercentage}% ·{' '}
-              {restaurant.coveredCount}/{restaurant.totalResponses}
-            </span>
-            {restaurant.guestFitScore !== undefined ? (
-              <span
-                title="Guest Fit estimates preference alignment after dietary requirements are met. 50 = neutral (no preferences stated)."
-                className="rounded-full border border-white/35 bg-black/50 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-white backdrop-blur-sm"
-              >
-                Guest Fit ·{' '}
-                {restaurant.guestFitScore >= 85
-                  ? 'Very High'
-                  : restaurant.guestFitScore >= 70
-                    ? 'High'
-                    : restaurant.guestFitScore >= 55
-                      ? 'Medium'
-                      : restaurant.guestFitScore >= 40
-                        ? 'Neutral'
-                        : restaurant.guestFitScore >= 25
-                          ? 'Low'
-                          : 'Very Low'}{' '}
-                ({restaurant.guestFitScore}/100)
-              </span>
-            ) : restaurant.menuDataThin ? (
-              <span className="rounded-full border border-white/25 bg-black/50 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-white/80 backdrop-blur-sm">
-                Guest Fit · No menu data
-              </span>
-            ) : null}
-            {restaurant.confidence && <ConfidenceChip confidence={restaurant.confidence} />}
-          </div>
         </div>
 
         <div className="relative z-10 mt-auto">
@@ -138,17 +98,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       {/* Right side details, scrollable */}
       <div className="card-details relative min-w-0 flex-1 overflow-hidden py-3 px-4 sm:px-5">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--dash-border)]/70 pb-2 text-xs">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[var(--dash-accent-soft)]">
-              <Hash className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
-              Match Details
-            </span>
-            {restaurant.hasUnconfirmedItems && (
-              <span className="rounded-md border border-dashed border-[#eab308]/50 bg-[#eab308]/10 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase text-[#facc15]">
-                Includes unconfirmed items
-              </span>
-            )}
-          </div>
+          <span className="text-[12px] font-medium text-[var(--dash-text-soft)]">Details</span>
 
           <div className="flex shrink-0 items-center gap-2">
             <div className="flex items-center gap-1 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-bg)] p-0.5">
@@ -192,28 +142,29 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         <div ref={detailsScrollRef} className="scrollbar-thin min-w-0 flex-1 overflow-x-auto py-2">
           <div className="min-w-[560px] space-y-2.5 pr-2">
             {restaurant.menuDataThin ? (
-              <p className="text-[12px] italic text-[var(--dash-text-muted)]">
-                Limited ingredient detail available for this venue — match confidence is lower than usual.
-              </p>
+              <p className="text-[12px] text-[var(--dash-text-muted)]">No menu on file yet.</p>
             ) : (
               <>
                 <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[var(--dash-text-soft)]">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" />
-                  {restaurant.matchedResponses.length === 0
-                    ? 'No responses safely covered yet'
-                    : `Safe for ${coveragePercent(restaurant.matchedResponses.length, restaurant.totalResponses)}% of participants`}
+                  {totalGuests === 0
+                    ? 'No guest responses yet'
+                    : coveredCount === 0
+                      ? `No safe options for ${totalGuests} guest${totalGuests === 1 ? '' : 's'} yet`
+                      : `Safe options for ${coveredCount} of ${totalGuests} guest${totalGuests === 1 ? '' : 's'}`}
                 </div>
                 {restaurant.dietaryConflicts.length > 0 && (
                   <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[#f4a9a9]">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-[#ef4444]" />
-                    {restaurant.dietaryConflicts.length} response
-                    {restaurant.dietaryConflicts.length === 1 ? '' : 's'} not covered here
+                    {restaurant.dietaryConflicts.length} guest
+                    {restaurant.dietaryConflicts.length === 1 ? '' : 's'} not covered
                   </div>
                 )}
                 {restaurant.complexNotes && restaurant.complexNotes.length > 0 && (
                   <div className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-[#b45309]">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-[#f59e0b]" />
-                    {restaurant.complexNotes.length} complex rule audit{restaurant.complexNotes.length === 1 ? '' : 's'} recorded
+                    {restaurant.complexNotes.length} guest
+                    {restaurant.complexNotes.length === 1 ? '' : 's'} with special requests
                   </div>
                 )}
               </>
@@ -221,11 +172,12 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
             <div className="flex items-center justify-between gap-4 whitespace-nowrap border-t border-[var(--dash-border)] pt-2 text-xs">
               <span className="text-[11px] text-[var(--dash-text-muted)]">
-                {restaurant.suggestedMenuItems.length} safe menu item
-                {restaurant.suggestedMenuItems.length === 1 ? '' : 's'} identified
+                {safeItemCount > 0
+                  ? `${safeItemCount} safe menu item${safeItemCount === 1 ? '' : 's'}`
+                  : 'No safe menu items yet'}
               </span>
               <span className="flex shrink-0 items-center gap-1 font-medium text-[var(--dash-accent)] transition-colors group-hover:text-[var(--dash-accent-soft)]">
-                View details & suggested menu →
+                View details →
               </span>
             </div>
           </div>
