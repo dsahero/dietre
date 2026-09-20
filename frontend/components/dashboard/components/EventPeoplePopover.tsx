@@ -126,16 +126,15 @@ export const EventPeoplePopover: React.FC<EventPeoplePopoverProps> = ({
             {pendingInvites.map((p) => (
               <li key={p.email} className="flex items-center gap-2">
                 <Users className="h-3.5 w-3.5 shrink-0 text-[var(--dash-text-muted)]/60" />
-                <span className="truncate italic text-[var(--dash-text-soft)]" title={p.email}>
+                <span className="truncate" title={p.email}>
                   {p.email}
                 </span>
-                <span className="shrink-0 text-[9px] uppercase tracking-wider text-[var(--dash-text-muted)]">Pending</span>
                 <button
                   type="button"
                   onClick={() => remove(p.email)}
                   disabled={busyEmail === p.email}
-                  aria-label={`Cancel invite for ${p.email}`}
-                  className="shrink-0 cursor-pointer rounded-xs p-0.5 text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface-hover)] hover:text-[#c24134] disabled:opacity-50"
+                  aria-label={`Remove ${p.email}`}
+                  className="ml-auto shrink-0 cursor-pointer rounded-xs p-0.5 text-[var(--dash-text-muted)] hover:bg-[var(--dash-surface-hover)] hover:text-[#c24134] disabled:opacity-50"
                 >
                   {busyEmail === p.email ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                 </button>

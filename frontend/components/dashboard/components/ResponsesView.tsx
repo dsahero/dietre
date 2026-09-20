@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { GuestResponse } from '../types';
-import { Users, Search, ShieldAlert, Mail, ChevronRight, CheckCircle2, Flame } from 'lucide-react';
+import { Users, Search, ShieldAlert, Mail, ChevronRight, CheckCircle2, Flame, ArrowUpDown, X } from 'lucide-react';
 
 interface ResponsesViewProps {
   responses: GuestResponse[];
@@ -18,9 +18,72 @@ const severityBadge = (severity: GuestResponse['severity']) => {
   }
 };
 
+type SortKey = 'submitted' | 'name-asc' | 'name-desc' | 'restrictions-desc' | 'restrictions-asc' | 'severity' | 'restriction-az';
+
+const SORT_LABELS: Record<SortKey, string> = {
+  submitted: 'As submitted',
+  'name-asc': 'Name A–Z',
+  'name-desc': 'Name Z–A',
+  'restrictions-desc': 'Most restrictions',
+  'restrictions-asc': 'Fewest restrictions',
+  severity: 'Severity (high first)',
+  'restriction-az': 'Restriction A–Z',
+};
+
+const SEVERITY_RANK: Record<GuestResponse['severity'], number> = { high: 0, medium: 1, low: 2 };
+
+const displayName = (r: GuestResponse) => (r.guestName?.trim() || r.token).trim();
+const restrictionCount = (r: GuestResponse) => r.hardExcludes.length + (r.complexRestrictions?.length ?? 0);
+const firstRestriction = (r: GuestResponse) =>
+  [...r.hardExcludes].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))[0] ?? null;
+const byName = (a: GuestResponse, b: GuestResponse) =>
+  displayName(a).localeCompare(displayName(b), undefined, { numeric: true, sensitivity: 'base' });
+
+function sortResponses(list: GuestResponse[], sortBy: SortKey): GuestResponse[] {
+  if (sortBy === 'submitted') return list;
+  const sorted = [...list];
+  switch (sortBy) {
+    case 'name-asc':
+      return sorted.sort(byName);
+    case 'name-desc':
+      return sorted.sort((a, b) => byName(b, a));
+    case 'restrictions-desc':
+      return sorted.sort((a, b) => restrictionCount(b) - restrictionCount(a) || byName(a, b));
+    case 'restrictions-asc':
+      return sorted.sort((a, b) => restrictionCount(a) - restrictionCount(b) || byName(a, b));
+    case 'severity':
+      return sorted.sort(
+        (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || restrictionCount(b) - restrictionCount(a) || byName(a, b)
+      );
+    case 'restriction-az':
+      return sorted.sort((a, b) => {
+        const fa = firstRestriction(a);
+        const fb = firstRestriction(b);
+        if (fa === null && fb === null) return byName(a, b);
+        if (fa === null) return 1;
+        if (fb === null) return -1;
+        return fa.localeCompare(fb, undefined, { sensitivity: 'base' }) || byName(a, b);
+      });
+    default:
+      return sorted;
+  }
+}
+
 export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelectResponse }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'zero-match' | 'high' | 'contact'>('all');
+  const [sortBy, setSortBy] = useState<SortKey>('submitted');
+  const [activeRestriction, setActiveRestriction] = useState<string | null>(null);
+
+  const restrictionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const response of responses) {
+      for (const rule of new Set(response.hardExcludes.map((r) => r.trim().toLowerCase()).filter(Boolean))) {
+        counts.set(rule, (counts.get(rule) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [responses]);
 
   const stats = useMemo(() => {
     return {
@@ -32,10 +95,16 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
   }, [responses]);
 
   const filtered = useMemo(() => {
-    return responses.filter((response) => {
+    const matching = responses.filter((response) => {
       if (activeCategory === 'zero-match' && !response.hasZeroMatch) return false;
       if (activeCategory === 'high' && response.severity !== 'high') return false;
       if (activeCategory === 'contact' && !response.contactEmail) return false;
+      if (
+        activeRestriction &&
+        !response.hardExcludes.some((rule) => rule.trim().toLowerCase() === activeRestriction)
+      ) {
+        return false;
+      }
 
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -50,7 +119,11 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
       }
       return true;
     });
-  }, [responses, activeCategory, searchQuery]);
+    return sortResponses(matching, sortBy);
+  }, [responses, activeCategory, searchQuery, sortBy, activeRestriction]);
+
+  // Clicking a sortable header toggles between its two directions.
+  const toggleSort = (asc: SortKey, desc: SortKey) => setSortBy((prev) => (prev === asc ? desc : asc));
 
   return (
     <div className="space-y-6" id="responses-view-container">
@@ -97,10 +170,36 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by guest name or rule text (e.g. peanuts, kosher, vegan)..."
-            className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] py-2 pl-10 pr-4 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] font-serif transition-colors focus:border-[var(--dash-accent)] focus:outline-none shadow-2xs"
+            placeholder="Search participants by name or rule (e.g. Sam, peanuts, kosher, vegan)..."
+            className="w-full rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] py-2 pl-10 pr-9 text-xs text-[var(--dash-text)] placeholder-[var(--dash-text-muted)] font-serif transition-colors focus:border-[var(--dash-accent)] focus:outline-none shadow-2xs"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2.5 top-2.5 cursor-pointer rounded-xs p-0.5 text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+
+        <label className="flex items-center gap-2 font-mono text-[10.5px] font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
+          <ArrowUpDown className="h-3.5 w-3.5 text-[var(--dash-accent)]" />
+          <span className="sr-only sm:not-sr-only">Sort</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortKey)}
+            className="cursor-pointer rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-2 py-1.5 font-serif text-xs normal-case tracking-normal text-[var(--dash-text)] focus:border-[var(--dash-accent)] focus:outline-none"
+          >
+            {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+              <option key={key} value={key}>
+                {SORT_LABELS[key]}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 font-mono text-xs sm:pb-0">
           <button
@@ -153,6 +252,36 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
         </div>
       </div>
 
+      {/* Filter by a specific restriction */}
+      {restrictionCounts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]" id="responses-restriction-chips">
+          <span className="mr-1 font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">Restriction</span>
+          {restrictionCounts.map(([rule, count]) => (
+            <button
+              key={rule}
+              type="button"
+              onClick={() => setActiveRestriction((prev) => (prev === rule ? null : rule))}
+              className={`cursor-pointer rounded-xs border px-2 py-1 font-semibold transition-colors ${
+                activeRestriction === rule
+                  ? 'border-[#ef4444]/60 bg-[#ef4444]/20 text-[#c24134]'
+                  : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-muted)] hover:text-[var(--dash-text)]'
+              }`}
+            >
+              {rule} ({count})
+            </button>
+          ))}
+          {activeRestriction && (
+            <button
+              type="button"
+              onClick={() => setActiveRestriction(null)}
+              className="cursor-pointer px-1 text-[var(--dash-accent)] underline"
+            >
+              clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Responses Table */}
       <div
         className="overflow-hidden rounded-md border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] shadow-xs"
@@ -179,8 +308,24 @@ export const ResponsesView: React.FC<ResponsesViewProps> = ({ responses, onSelec
             <table className="w-full border-collapse text-left" id="responses-table">
               <thead>
                 <tr className="border-b border-[var(--dash-border)] bg-[var(--dash-surface)] text-[10.5px] font-mono font-bold uppercase tracking-wider text-[var(--dash-text-muted)]">
-                  <th className="px-6 py-3.5">Guest</th>
-                  <th className="px-4 py-3.5">Hard Restrictions</th>
+                  <th className="px-6 py-3.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('name-asc', 'name-desc')}
+                      className="inline-flex cursor-pointer items-center gap-1 font-bold uppercase tracking-wider hover:text-[var(--dash-text)]"
+                    >
+                      Guest {sortBy === 'name-asc' ? '↑' : sortBy === 'name-desc' ? '↓' : ''}
+                    </button>
+                  </th>
+                  <th className="px-4 py-3.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('restrictions-desc', 'restrictions-asc')}
+                      className="inline-flex cursor-pointer items-center gap-1 font-bold uppercase tracking-wider hover:text-[var(--dash-text)]"
+                    >
+                      Hard Restrictions {sortBy === 'restrictions-desc' ? '↓' : sortBy === 'restrictions-asc' ? '↑' : ''}
+                    </button>
+                  </th>
                   <th className="px-4 py-3.5">Complex & Special</th>
                   <th className="px-4 py-3.5">Soft Preferences</th>
                   <th className="px-4 py-3.5">Contact</th>
