@@ -44,11 +44,16 @@ export function LocationAutocomplete({
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listboxId = useId();
+  const onSearchEnabledRef = useRef(onSearchEnabledChange);
+  useEffect(() => {
+    onSearchEnabledRef.current = onSearchEnabledChange;
+  }, [onSearchEnabledChange]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const needle = value.trim();
     if (needle.length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with the debounced query, not derivable during render
       setSuggestions([]);
       setLoading(false);
       return;
@@ -63,8 +68,10 @@ export function LocationAutocomplete({
       })
         .then((res) => res.json())
         .then((data: { suggestions?: Suggestion[]; enabled?: boolean }) => {
-          if (data.enabled === false) {
-            setSearchEnabled(false);
+          const enabled = data.enabled !== false;
+          setSearchEnabled(enabled);
+          onSearchEnabledRef.current?.(enabled);
+          if (!enabled) {
             setSuggestions([]);
             return;
           }
@@ -81,7 +88,7 @@ export function LocationAutocomplete({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [value, onSearchEnabledChange]);
+  }, [value]);
 
   // Close on outside click.
   useEffect(() => {

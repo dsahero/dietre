@@ -57,7 +57,8 @@ export async function autocompletePlaces(input: string): Promise<PlaceSuggestion
     "places autocomplete"
   );
   if (!res.ok) {
-    throw new Error(`places autocomplete ${res.status}`);
+    const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+    throw new Error(`places autocomplete ${res.status}: ${detail}`);
   }
   const data = (await res.json()) as {
     suggestions?: Array<{
@@ -194,24 +195,28 @@ async function textSearchPlace(address: string, apiKey: string): Promise<Resolve
 /** Places Autocomplete when the key works; Nominatim otherwise so the dropdown still fills. */
 export async function autocompleteAddress(
   input: string
-): Promise<{ suggestions: PlaceSuggestion[]; enabled: boolean }> {
+): Promise<{ suggestions: PlaceSuggestion[]; enabled: boolean; source: "google" | "osm" | "none" }> {
   const needle = input.trim();
-  if (needle.length < 2) return { suggestions: [], enabled: true };
+  if (needle.length < 2) return { suggestions: [], enabled: true, source: "none" };
 
   if (hasPlacesApiKey()) {
     try {
       const suggestions = await autocompletePlaces(needle);
-      if (suggestions.length > 0) return { suggestions, enabled: true };
-    } catch {
-      // Places 4xx/timeout — try a geocoder that does not need the key.
+      if (suggestions.length > 0) return { suggestions, enabled: true, source: "google" };
+    } catch (err) {
+      // Places 4xx/timeout — fall back to a geocoder that does not need the key.
+      console.warn("[places] Google autocomplete failed, falling back to OSM:", err instanceof Error ? err.message : err);
     }
+  } else {
+    console.warn("[places] PLACES_API_KEY not set, using OSM for address search");
   }
 
   try {
     const suggestions = await nominatimSearch(needle, 6);
-    return { suggestions, enabled: true };
-  } catch {
-    return { suggestions: [], enabled: false };
+    return { suggestions, enabled: true, source: "osm" };
+  } catch (err) {
+    console.warn("[places] OSM address search failed:", err instanceof Error ? err.message : err);
+    return { suggestions: [], enabled: false, source: "none" };
   }
 }
 
