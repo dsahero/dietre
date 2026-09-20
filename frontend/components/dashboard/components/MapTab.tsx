@@ -40,7 +40,7 @@ const TIER_LABEL: Record<MatchTier, string> = {
   strong: 'Strong match',
   partial: 'Partial match',
   weak: 'Weak match',
-  outside: 'Outside radius/budget',
+  outside: 'Outside radius',
 };
 
 const METERS_PER_MILE = 1609.344;
@@ -85,7 +85,9 @@ function northEdge(lat: number, lng: number, radiusMiles: number): [number, numb
 }
 
 function tierFor(restaurant: RestaurantCardData): MatchTier {
-  if (!restaurant.withinRadius || !restaurant.withinBudget) return 'outside';
+  // Grey only for places actually beyond the radius. Budget no longer greys a
+  // pin out — it keeps its red / yellow / green match color.
+  if (!restaurant.withinRadius) return 'outside';
   if (restaurant.matchPercentage >= 85) return 'strong';
   if (restaurant.matchPercentage >= 60) return 'partial';
   return 'weak';
