@@ -2,6 +2,25 @@ import { discoverNearbyRestaurants, hasPlacesApiKey } from "@/backend/lib/places
 import { listRestaurantsForEvent, updateEvent, upsertRestaurants } from "@/backend/lib/db";
 import type { DietreEvent, Restaurant } from "@/shared/lib/types";
 
+function slug(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+/** Readable, stable Firestore doc id, e.g. `bennys-marzanos--blacksburg--r1gjo4ohq`. */
+export function restaurantDocId(name: string, address: string, googlePlaceId: string): string {
+  const parts = address.split(",").map((p) => p.trim());
+  const city = parts.length >= 3 ? parts[parts.length - 3] : parts.length === 2 ? parts[0] : "";
+  const tail = googlePlaceId.replace(/[^A-Za-z0-9]/g, "").slice(-10).toLowerCase();
+  return [slug(name) || "restaurant", slug(city), tail].filter(Boolean).join("--");
+}
+
 /**
  * Discovers real nearby restaurants for a location via Google Places, caches
  * them in the shared restaurant collection, and returns their ids so the
@@ -17,13 +36,15 @@ export async function discoverAndUpsertRestaurants(
     const found = await discoverNearbyRestaurants(center, radiusMiles);
     if (!found.length) return empty;
     const restaurants: Restaurant[] = found.map((r) => ({
-      id: `google-${r.googlePlaceId}`,
+      id: restaurantDocId(r.name, r.address, r.googlePlaceId),
       name: r.name,
       location: r.address,
       cuisine: r.cuisine,
       price_level: r.priceLevel,
       lat: r.lat,
       lng: r.lng,
+      google_place_id: r.googlePlaceId,
+      alias_ids: [`google-${r.googlePlaceId}`],
     }));
     await upsertRestaurants(restaurants);
     return { discovered: found.length, upserted: restaurants.length, ids: restaurants.map((r) => r.id) };

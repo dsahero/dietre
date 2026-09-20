@@ -100,6 +100,11 @@ export type Restaurant = {
   price_level: 1 | 2 | 3;
   lat: number;
   lng: number;
+  // Other ids this restaurant was stored under before it was re-keyed;
+  // events that still list an old id keep resolving to it.
+  alias_ids?: string[];
+  // Google Places id for discovered restaurants.
+  google_place_id?: string;
 };
 
 export type MenuItem = {

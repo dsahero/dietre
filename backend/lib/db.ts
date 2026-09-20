@@ -234,7 +234,9 @@ export async function listRestaurantsForEvent(event: DietreEvent): Promise<Resta
   const ids = event.candidate_restaurant_ids;
   if (ids && ids.length > 0) {
     const wanted = new Set(ids);
-    return all.filter((restaurant) => wanted.has(restaurant.id));
+    return all.filter(
+      (restaurant) => wanted.has(restaurant.id) || (restaurant.alias_ids ?? []).some((alias) => wanted.has(alias))
+    );
   }
   return all.filter((restaurant) => haversineMiles(event, restaurant) <= event.radius + 0.05);
 }
@@ -258,29 +260,61 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
   const { restaurantToDoc } = await import("@/backend/lib/collections");
 
   if (useFirestore()) {
-    const existingMenuIds = await Promise.all(
-      restaurants.map((restaurant) =>
-        getDocument<{ menu_item_ids?: string[] }>(COLLECTIONS.restaurants, restaurant.id)
-      )
-    );
-    const writes = restaurants.map((restaurant, index) => ({
-      collection: COLLECTIONS.restaurants,
-      id: restaurant.id,
-      data: restaurantToDoc(restaurant, existingMenuIds[index]?.menu_item_ids ?? []),
-    }));
-    await commitWrites(writes);
+    // One read of the collection, indexed by Google place id (also derived
+    // from the older opaque `google-<placeId>` doc ids).
+    const existing = await listDocuments<Record<string, unknown>>(COLLECTIONS.restaurants);
+    const byPlaceId = new Map<string, (typeof existing)[number]>();
+    for (const doc of existing) {
+      const placeId =
+        typeof doc.google_place_id === "string"
+          ? doc.google_place_id
+          : doc.id.startsWith("google-")
+            ? doc.id.slice("google-".length)
+            : null;
+      if (placeId) byPlaceId.set(placeId, doc);
+    }
+
+    const toDelete: string[] = [];
+    const writes: Array<{ collection: string; id: string; data: Record<string, unknown> }> = [];
+    for (const restaurant of restaurants) {
+      const placeId = restaurant.google_place_id;
+      const old = placeId ? byPlaceId.get(placeId) : undefined;
+      if (old && old.id === restaurant.id && sameRestaurantFields(old, restaurant)) continue;
+      if (old && old.id !== restaurant.id) toDelete.push(old.id);
+      writes.push({
+        collection: COLLECTIONS.restaurants,
+        id: restaurant.id,
+        data: restaurantToDoc(restaurant, asStringArray(old?.menu_item_ids)),
+      });
+    }
+    for (const id of toDelete) await deleteDocument(COLLECTIONS.restaurants, id);
+    if (writes.length) await commitWrites(writes);
     return;
   }
 
   await enqueueWrite(async () => {
     const store = await readJsonStore();
-    const byId = new Map(store.restaurants.map((restaurant) => [restaurant.id, restaurant]));
-    for (const restaurant of restaurants) {
-      byId.set(restaurant.id, restaurant);
-    }
-    store.restaurants = Array.from(byId.values());
+    const incomingPlaceIds = new Set(restaurants.map((r) => r.google_place_id).filter(Boolean));
+    const incomingIds = new Set(restaurants.map((r) => r.id));
+    const kept = store.restaurants.filter((existing) => {
+      if (incomingIds.has(existing.id)) return false;
+      const placeId = existing.google_place_id ?? (existing.id.startsWith("google-") ? existing.id.slice(7) : null);
+      return !(placeId && incomingPlaceIds.has(placeId));
+    });
+    store.restaurants = [...kept, ...restaurants];
     await persistJson(store);
   });
+}
+
+function sameRestaurantFields(doc: Record<string, unknown>, restaurant: Restaurant): boolean {
+  return (
+    doc.name === restaurant.name &&
+    doc.location === restaurant.location &&
+    doc.cuisine === restaurant.cuisine &&
+    doc.price_level === restaurant.price_level &&
+    doc.lat === restaurant.lat &&
+    doc.lng === restaurant.lng
+  );
 }
 
 function asStringArray(value: unknown): string[] {
@@ -296,7 +330,7 @@ export async function filterValidCandidateRestaurantIds(ids: string[]): Promise<
   if (!ids.length) return [];
   const restaurants = await listRestaurants();
   if (restaurants.length === 0) return [];
-  const known = new Set(restaurants.map((restaurant) => restaurant.id));
+  const known = new Set(restaurants.flatMap((restaurant) => [restaurant.id, ...(restaurant.alias_ids ?? [])]));
   const menuItems = await listMenuItems();
   for (const item of menuItems) {
     if (item.restaurant_id) known.add(item.restaurant_id);

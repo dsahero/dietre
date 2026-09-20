@@ -1,5 +1,6 @@
 import { withTimeout } from "@/backend/lib/with-timeout";
 import { hasPlacesApiKey as hasPlacesApiKeyConfig } from "@/shared/lib/config";
+import { haversineMiles } from "@/shared/lib/places";
 
 export type PlaceSuggestion = { placeId: string; mainText: string; secondaryText: string };
 export type ResolvedPlace = { formattedAddress: string; lat: number; lng: number; displayName: string };
@@ -306,39 +307,72 @@ export function cuisineFromTypes(types: string[] | undefined): string {
   return word.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const MAX_DISCOVERED = 40;
+const MAX_DISCOVERED = 120;
+const METERS_PER_MILE = 1609.344;
+const TYPE_GROUPS = [["restaurant"], ["cafe", "bakery", "fast_food_restaurant"]];
 
-// searchNearby returns at most 20 per call, so fan out over a few type groups
-// and merge by place id to give each event a fuller list.
+function offsetPoint(center: { lat: number; lng: number }, meters: number, bearingRad: number) {
+  const dLat = (meters * Math.cos(bearingRad)) / 111320;
+  const dLng = (meters * Math.sin(bearingRad)) / (111320 * Math.cos((center.lat * Math.PI) / 180));
+  return { lat: center.lat + dLat, lng: center.lng + dLng };
+}
+
+// searchNearby returns at most 20 per call, nearest first, so a single call
+// only covers a small inner disc in dense areas. For larger radii, sample the
+// circle with the center plus a ring of sub-circles, merge by place id, then
+// keep only places truly inside the requested radius.
 export async function discoverNearbyRestaurants(
   center: { lat: number; lng: number },
   radiusMiles: number,
   maxResultCount = MAX_DISCOVERED
 ): Promise<DiscoveredRestaurant[]> {
-  const groups = await Promise.all([
-    searchNearbyOnce(center, radiusMiles, ["restaurant"]),
-    searchNearbyOnce(center, radiusMiles, ["cafe", "bakery", "fast_food_restaurant"]),
-  ]);
+  const radiusMeters = Math.max(0.1, radiusMiles) * METERS_PER_MILE;
+  const samples: Array<{ center: { lat: number; lng: number }; radius: number }> = [
+    { center, radius: Math.min(50000, radiusMeters) },
+  ];
+  if (radiusMiles > 0.75) {
+    const subRadius = radiusMeters * 0.55;
+    for (let i = 0; i < 6; i++) {
+      samples.push({
+        center: offsetPoint(center, radiusMeters * 0.6, (i * Math.PI) / 3),
+        radius: Math.min(50000, subRadius),
+      });
+    }
+  }
+
+  const results = await Promise.all(
+    samples.flatMap((sample) => TYPE_GROUPS.map((types) => searchNearbyOnce(sample.center, sample.radius, types)))
+  );
   const seen = new Set<string>();
-  const out: DiscoveredRestaurant[] = [];
-  for (const restaurant of groups.flat()) {
+  const inside: Array<DiscoveredRestaurant & { distance: number }> = [];
+  for (const restaurant of results.flat()) {
     if (seen.has(restaurant.googlePlaceId)) continue;
     seen.add(restaurant.googlePlaceId);
-    out.push(restaurant);
-    if (out.length >= maxResultCount) break;
+    const distance = haversineMiles(center, restaurant);
+    if (distance <= radiusMiles) inside.push({ ...restaurant, distance });
   }
-  return out;
+  return inside
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, maxResultCount)
+    .map((entry) => ({
+      googlePlaceId: entry.googlePlaceId,
+      name: entry.name,
+      address: entry.address,
+      lat: entry.lat,
+      lng: entry.lng,
+      priceLevel: entry.priceLevel,
+      cuisine: entry.cuisine,
+    }));
 }
 
 async function searchNearbyOnce(
   center: { lat: number; lng: number },
-  radiusMiles: number,
+  radiusMeters: number,
   includedTypes: string[]
 ): Promise<DiscoveredRestaurant[]> {
   const apiKey = process.env.PLACES_API_KEY;
   if (!apiKey) return [];
   try {
-    const radiusMeters = Math.min(50000, Math.max(1, radiusMiles) * 1609.34);
     const res = await withTimeout(
       fetch(NEARBY_URL, {
         method: "POST",

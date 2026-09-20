@@ -163,7 +163,12 @@ Return ONLY JSON:
     }
     return Object.keys(out).length > 0 ? out : null;
   } catch (e) {
-    console.warn("Gemini complex requirements evaluation fallback:", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("429") || msg.includes("Quota exceeded") || msg.includes("quota")) {
+      console.warn("Gemini quota reached or rate-limited; using rule-based evaluation fallback.");
+    } else {
+      console.warn("Gemini complex requirements evaluation fallback:", msg);
+    }
     return null;
   }
 }

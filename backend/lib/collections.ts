@@ -339,7 +339,17 @@ export function docToResponse(id: string, doc: Record<string, unknown>): DietRes
 }
 
 export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): Record<string, unknown> {
+  const googlePlaceId = restaurant.google_place_id ?? null;
+  const discovered = googlePlaceId
+    ? {
+        google_place_id: googlePlaceId,
+        source: "google_places",
+        discovered_at: new Date().toISOString(),
+        legacy_ids: restaurant.alias_ids ?? [],
+      }
+    : {};
   return {
+    ...discovered,
     name: restaurant.name,
     location: restaurant.location,
     cuisine: restaurant.cuisine,
@@ -347,7 +357,7 @@ export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): 
     lat: restaurant.lat,
     lng: restaurant.lng,
     location_geo: geoPoint(restaurant.lng, restaurant.lat),
-    data_source: { tier: 1, google_place_id: null, yelp_id: null },
+    data_source: { tier: 1, google_place_id: googlePlaceId, yelp_id: null },
     accessibility: { dine_in: true, is_preliminary: true },
     review_evidence: [],
     menu_item_ids: menuItemIds,
@@ -366,6 +376,10 @@ export function docToRestaurant(id: string, doc: Record<string, unknown>): Resta
     price_level: price === 1 || price === 3 ? price : 2,
     lat: asNumber(doc.lat, asNumber(coords[1])),
     lng: asNumber(doc.lng, asNumber(coords[0])),
+    ...(typeof doc.google_place_id === "string" ? { google_place_id: doc.google_place_id } : {}),
+    ...(Array.isArray(doc.legacy_ids) && doc.legacy_ids.length
+      ? { alias_ids: doc.legacy_ids.filter((x): x is string => typeof x === "string") }
+      : {}),
   };
 }
 
