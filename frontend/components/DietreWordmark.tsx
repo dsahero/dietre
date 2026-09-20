@@ -37,6 +37,15 @@ export const DietreWordmark: React.FC<DietreWordmarkProps> = ({
           style={{ display: 'inline', fill: color }}
         />
       </g>
+      {/* Macron over final e — visual cue for die-eh-tree */}
+      <rect
+        x={157.8}
+        y={11.6}
+        width={21.2}
+        height={2.1}
+        rx={1.05}
+        fill={color}
+      />
     </svg>
   );
 };
