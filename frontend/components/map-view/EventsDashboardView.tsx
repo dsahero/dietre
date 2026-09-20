@@ -8,6 +8,7 @@ import type { Collaborator, DietreEvent, PendingInvite } from '@/shared/lib/type
 import { eventBudgetCap, formatBudgetPerPerson } from '@/shared/lib/predictedCost';
 import { EventPeoplePopover } from '@/frontend/components/dashboard/components/EventPeoplePopover';
 import { HostThemeToggle } from '@/frontend/components/host-theme-toggle';
+import { DietreLogo } from '@/frontend/components/dietre-logo';
 
 export interface EventWithResponseCount extends DietreEvent {
   responseCount: number;
@@ -63,10 +64,8 @@ export const EventsDashboardView: React.FC<EventsDashboardViewProps> = ({
     <div id="events-dashboard" className="min-h-screen w-full bg-[var(--dash-bg)] flex flex-col text-[var(--dash-text)] select-none">
       {/* Dashboard Top Header */}
       <header className="h-16 w-full bg-[var(--dash-surface)] border-b border-[var(--dash-border)] px-6 md:px-8 flex items-center justify-between shadow-xs sticky top-0 z-30">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--dash-accent)] text-white flex items-center justify-center shadow-xs">
-            <Calendar className="w-5 h-5 text-[#FFDEC9]" />
-          </div>
+        <Link href="/" className="flex items-center gap-3" aria-label="dietre home">
+          <DietreLogo className="h-8 w-auto text-[var(--dash-text)] transition-colors hover:text-[var(--dash-accent)]" />
           <div>
             <h1 className="text-lg font-bold font-heading text-[var(--dash-text)] leading-tight">Your Events</h1>
             <p className="text-xs text-[var(--dash-text-soft)]">Signed in as {hostEmail}</p>

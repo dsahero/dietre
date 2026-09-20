@@ -15,6 +15,7 @@ import {
   KeyRound,
   ArrowRight,
 } from 'lucide-react';
+import { DietreLogo } from '@/frontend/components/dietre-logo';
 
 function firebaseConfiguredInBrowser(): boolean {
   return Boolean(
@@ -199,13 +200,16 @@ export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login'
       id="login-page"
       className="min-h-screen w-full bg-[var(--dash-bg)] flex flex-col items-center justify-center p-4 sm:p-6 text-[var(--dash-text)] select-none"
     >
-      <div className="w-full max-w-md flex items-center mb-4 px-2">
+      <div className="w-full max-w-md flex items-center justify-between mb-4 px-2">
         <Link
           href="/"
           className="flex items-center gap-1.5 text-xs font-semibold text-[var(--dash-text-soft)] hover:text-[var(--dash-text)] cursor-pointer bg-[var(--dash-surface-raised)] hover:bg-[var(--dash-surface-hover)] px-3 py-1.5 rounded-sm border border-[var(--dash-border)] transition-all shadow-2xs font-heading"
         >
           <ArrowLeft className="w-3.5 h-3.5 text-[var(--dash-accent)]" />
           <span>Back Home</span>
+        </Link>
+        <Link href="/" aria-label="dietre home" className="flex items-center">
+          <DietreLogo className="h-7 w-auto text-[var(--dash-text)] transition-opacity hover:opacity-85" />
         </Link>
       </div>
 
