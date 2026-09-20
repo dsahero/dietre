@@ -119,7 +119,7 @@ Create a `.env.local` file with these values:
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | For auth | Firebase API key (falls back to mock auth) |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | For auth | Firebase project ID |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | For auth | Firebase auth domain |
-| `CHROMIUM_REMOTE_URL` | Optional (Vercel) | Chromium pack URL for headless scrape; defaults to Sparticuz v153 x64 |
+| `CHROMIUM_REMOTE_URL` | Optional (Vercel) | Override Chromium pack URL; usually unnecessary with `@sparticuz/chromium` |
 
 ### Runtime Modes
 

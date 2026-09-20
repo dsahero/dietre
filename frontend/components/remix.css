@@ -260,6 +260,19 @@
   color: #6B6055;
 }
 
+.remix-hero-stat {
+  margin: 10px 0 0;
+  width: 100%;
+  max-width: 420px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  color: #D7531F;
+}
+
 .remix-hero-cta-row {
   margin-top: 22px;
   display: flex;
@@ -952,5 +965,9 @@
   .remix-hero-support {
     font-size: 14px;
     max-width: 360px;
+  }
+  .remix-hero-stat {
+    font-size: 12px;
+    max-width: 340px;
   }
 }

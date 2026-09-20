@@ -510,6 +510,8 @@ export async function matchEvent(input: {
     const items = itemsByRestaurant.get(restaurant.id) ?? [];
     let coveredWeight = 0;
     let bayesianWeightedSum = 0;
+    let bayesianPrefWeightTotal = 0;
+    let bayesianSampleSize = 0;
     const coveredIds: string[] = [];
     const safeItems = items
       .map((item) => {
@@ -544,28 +546,38 @@ export async function matchEvent(input: {
         if (within_radius && within_budget) coveredAnywhere.add(response.id);
       }
 
-      // Bayesian utility scoring (tiebreaker when feasibility is equal)
+      // Bayesian utility scoring (tiebreaker when feasibility is equal).
+      // Only guests who stated soft preferences contribute — silent guests
+      // sit at the Beta(1,1) prior (utility = 0.5) and would otherwise drag
+      // every restaurant's mean toward 0.5, drowning out real signal.
+      const hasPrefs = (response.parsed_rules.soft_preferences?.length ?? 0) > 0;
       const guestToken = guestTokenIndex(response.id);
-      const prefSignal = preferenceSignals[response.id]?.[restaurant.id] ?? null;
       const complexVerdict = getComplexVerdictForGuest(
         complexNotesByRestaurant[restaurant.id],
         guestToken,
       );
-      bayesianWeightedSum +=
-        severityWeight(response.parsed_rules.severity) *
-        bayesianUtility(hasSafe, prefSignal, complexVerdict);
+      if (hasPrefs) {
+        const prefSignal = preferenceSignals[response.id]?.[restaurant.id] ?? null;
+        const w = severityWeight(response.parsed_rules.severity);
+        bayesianWeightedSum += w * bayesianUtility(hasSafe, prefSignal, complexVerdict);
+        bayesianPrefWeightTotal += w;
+        bayesianSampleSize += 1;
+      }
     }
 
     const coverage_pct = responses.length === 0 ? 0 : Math.round((coveredIds.length / responses.length) * 100);
     const weighted_coverage_pct =
       totalWeight === 0 ? 0 : Math.round((coveredWeight / totalWeight) * 100);
 
-    // bayesian_score: severity-weighted sum of per-guest Beta posterior
-    // means. Only meaningful when at least one guest has stated preferences;
-    // when no signals exist every guest contributes Beta(1,1).mean = 0.5,
-    // producing identical scores everywhere (no effect on ranking).
+    // bayesian_score: severity-weighted mean of Beta posterior means, taken
+    // only over guests who stated soft preferences. Silent guests would all
+    // sit at Beta(1,1).mean = 0.5 and, at 46-of-61 typical scale, drag every
+    // restaurant's mean back toward 0.5. Excluding them lets real signal show.
+    // Falls back to 0.5 when nobody has preferences (neutral prior).
     const bayesian_score =
-      totalWeight === 0 ? 0 : Math.round((bayesianWeightedSum / totalWeight) * 1000) / 1000;
+      bayesianPrefWeightTotal === 0
+        ? 0.5
+        : Math.round((bayesianWeightedSum / bayesianPrefWeightTotal) * 1000) / 1000;
 
     // overall_score: the single number shown to the organiser.
     // Coverage anchors it; Bayesian preference signal nudges it by up to ±20 pts.
@@ -589,6 +601,7 @@ export async function matchEvent(input: {
       safe_items: safeItems,
       complex_notes: complexNotesByRestaurant[restaurant.id] ?? [],
       bayesian_score,
+      bayesian_sample_size: bayesianSampleSize,
       overall_score,
       menu_stats: menuStatsFor(items),
     };
