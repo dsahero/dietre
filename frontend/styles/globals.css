@@ -10,12 +10,12 @@
  * and user-provided color swatch for Dark Mode.
  */
 :root {
-  --dash-bg: #F5EFE6;
-  --dash-surface: #EADFCF;
+  --dash-bg: #FBF6EF;
+  --dash-surface: #F1E9DC;
   --dash-surface-raised: #FFFFFF;
-  --dash-surface-hover: #E3D7C5;
-  --dash-border: rgba(201, 183, 156, 0.25);
-  --dash-border-strong: rgba(201, 183, 156, 0.45);
+  --dash-surface-hover: #EFE7DA;
+  --dash-border: #E2D6C3;
+  --dash-border-strong: #C9B79C;
   --dash-text: #2B2118;
   --dash-text-soft: #6B6055;
   --dash-text-muted: #A69884;
@@ -24,26 +24,16 @@
   --dash-accent-deep: #B9502A;
   --dash-button-tan: #C9B79C;
   --dash-button-tan-text: #2B2118;
-
-  /* Desaturated indication palette */
-  --dash-danger: #C2594E;
-  --dash-danger-bg: rgba(194, 89, 78, 0.12);
-  --dash-warning: #C88A3B;
-  --dash-warning-bg: rgba(200, 138, 59, 0.12);
-  --dash-success: #6E8B6B;
-  --dash-success-bg: rgba(110, 139, 107, 0.12);
-  --dash-info: #6B8A99;
-  --dash-info-bg: rgba(107, 138, 153, 0.12);
 }
 
 :root[data-theme="dark"],
 .dark {
-  --dash-bg: #141210;
-  --dash-surface: #1E1B18;
-  --dash-surface-raised: #28241F;
-  --dash-surface-hover: #342F28;
-  --dash-border: rgba(104, 96, 86, 0.25);
-  --dash-border-strong: rgba(104, 96, 86, 0.45);
+  --dash-bg: #181614;
+  --dash-surface: #23201C;
+  --dash-surface-raised: #25221E;
+  --dash-surface-hover: #3B3630;
+  --dash-border: #3B3630;
+  --dash-border-strong: #686056;
   --dash-text: #FBF6EF;
   --dash-text-soft: #D8C9B8;
   --dash-text-muted: #A0957B;
@@ -51,17 +41,7 @@
   --dash-accent-soft: #D77242;
   --dash-accent-deep: #9C4A26;
   --dash-button-tan: #A0957B;
-  --dash-button-tan-text: #141210;
-
-  /* Desaturated indication palette for dark mode */
-  --dash-danger: #D46E63;
-  --dash-danger-bg: rgba(212, 110, 99, 0.15);
-  --dash-warning: #D49B4B;
-  --dash-warning-bg: rgba(212, 155, 75, 0.15);
-  --dash-success: #7F9C7C;
-  --dash-success-bg: rgba(127, 156, 124, 0.15);
-  --dash-info: #7B9AA9;
-  --dash-info-bg: rgba(123, 154, 169, 0.15);
+  --dash-button-tan-text: #181614;
 }
 
 /* Tactile craft utilities */

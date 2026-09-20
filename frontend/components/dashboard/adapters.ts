@@ -95,7 +95,11 @@ export function toRestaurantCardData(
     const suggestedMenuItems = match.safe_items.map((safeItem) => ({
       id: safeItem.item.id,
       name: safeItem.item.name,
-      price: safeItem.item.price,
+      price:
+        typeof safeItem.item.price === "number" && safeItem.item.price > 0
+          ? safeItem.item.price
+          : null,
+      ingredients: safeItem.item.estimated_ingredients ?? [],
       coveredResponses: safeItem.covered_response_ids.map((id) => ({
         responseId: id,
         token: guestTokenById.get(id) ?? '—',
@@ -152,6 +156,12 @@ export function toRestaurantCardData(
       },
       checklistNotes: checklistNotesByRestaurant?.get(match.restaurant.id) ?? [],
       complexNotes: match.complex_notes ?? [],
+      website: match.restaurant.website,
+      menuUrls: (match.restaurant.menu_urls ?? []).map((u) => ({
+        kind: u.kind,
+        label: u.label,
+        url: u.url,
+      })),
     };
   });
 }

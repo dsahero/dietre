@@ -237,24 +237,17 @@ export function LoginPageView({ initialMode = 'login' }: { initialMode?: 'login'
         </div>
       </div>
 
-      <div className="w-full max-w-md bg-[var(--dash-surface-raised)] rounded-3xl border-0 shadow-xl overflow-hidden transition-all duration-300">
+      <div className="w-full max-w-md bg-[var(--dash-surface-raised)] rounded-md border-2 border-[var(--dash-border-strong)] shadow-[0_4px_16px_rgba(25,12,6,0.1)] overflow-hidden transition-all duration-300">
         <div className="bg-[var(--dash-surface)] border-b border-[var(--dash-border)] p-6 text-center space-y-1.5">
           <span className="ink-stamp inline-block px-2 py-0.5 text-[9px] font-bold text-[var(--dash-accent)] border-[var(--dash-accent)] mb-1">
             Host Authentication
           </span>
           <h2 className="text-2xl font-bold font-heading text-[var(--dash-text)] tracking-tight">
-        {/* Bold orange card header — matches front page remix-cta-card */}
-        <div className="bg-[#D7531F] p-7 text-center space-y-2 rounded-t-3xl">
-          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3">
-            <KeyRound className="w-6 h-6 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold font-heading text-white tracking-tight">
             {authMode === 'login' && 'Host Sign In'}
             {authMode === 'signup' && 'Create Host Account'}
             {authMode === 'forgot-password' && 'Reset Host Password'}
           </h2>
           <p className="text-xs text-[var(--dash-text-muted)] font-serif italic">
-          <p className="text-xs text-white/75 font-serif italic leading-relaxed">
             {authMode === 'login' && 'Sign in to review candidate venues and access your banquet ledgers'}
             {authMode === 'signup' && 'Register as a banquet host to begin collecting confidential dietary profiles'}
             {authMode === 'forgot-password' && 'Enter your registered host email to recover access'}

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
 import { createMarbleTexture, createRustTexture, createSandTexture } from '../utils/textures';
-import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react';
+import { MapPin, DollarSign, Hash, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { ConfidenceChip } from './ConfidenceChip';
 
 interface RestaurantCardProps {
@@ -45,17 +45,17 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   }, [restaurant.textureType]);
 
   const getMatchBadgeStyle = (pct: number) => {
-    if (pct >= 85) return 'bg-[#6E8B6B]/20 text-[#6E8B6B] border-[#6E8B6B]/40';
-    if (pct >= 60) return 'bg-[#C88A3B]/20 text-[#C88A3B] border-[#C88A3B]/40';
-    return 'bg-[#C2594E]/20 text-[#C2594E] border-[#C2594E]/40';
+    if (pct >= 85) return 'bg-[#22c55e]/20 text-[#4ade80] border-[#22c55e]/50';
+    if (pct >= 60) return 'bg-[#eab308]/20 text-[#facc15] border-[#eab308]/50';
+    return 'bg-[#ef4444]/20 text-[#f87171] border-[#ef4444]/50';
   };
 
   return (
     <div
-      className="content-card relative group rounded-2xl bg-[var(--dash-surface-raised)] transition-all duration-200 hover:-translate-y-0.5 shadow-sm hover:shadow-md cursor-pointer overflow-hidden"
+      className="content-card relative group border border-transparent transition-all duration-200 hover:-translate-y-0.5 hover:rotate-[-0.3deg] hover:border-[var(--dash-border-strong)] cursor-pointer"
       onClick={() => onClickDetails?.(restaurant)}
     >
-      {/* Left thumbnail with Google Places venue photo and gradient image fade */}
+      {/* Left thumbnail with Google Places venue photo */}
       <div className="card-thumbnail relative flex flex-col justify-between overflow-hidden bg-[var(--dash-surface)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -64,12 +64,12 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
 
         <div className="relative z-10 flex items-center justify-between gap-1">
           {!restaurant.withinRadius || !restaurant.withinBudget ? (
             <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold text-[var(--dash-accent-soft)] backdrop-blur-sm">
-              <AlertTriangle className="h-3 w-3 text-[#C88A3B]" />
+              <AlertTriangle className="h-3 w-3" />
               {!restaurant.withinRadius ? 'Outside radius' : 'Over budget'}
             </span>
           ) : (
@@ -80,9 +80,35 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-bold tracking-wide backdrop-blur-sm ${getMatchBadgeStyle(
                 restaurant.overallScore ?? restaurant.matchPercentage
               )}`}
+              title="Overall score and guest coverage — share of guests with at least one safe menu item"
             >
-              {restaurant.overallScore ?? restaurant.matchPercentage}% · {restaurant.coveredCount}/{restaurant.totalResponses}
+              {restaurant.overallScore}% · Coverage {restaurant.matchPercentage}% ·{' '}
+              {restaurant.coveredCount}/{restaurant.totalResponses}
             </span>
+            {restaurant.guestFitScore !== undefined ? (
+              <span
+                title="Guest Fit estimates preference alignment after dietary requirements are met. 50 = neutral (no preferences stated)."
+                className="rounded-full border border-white/35 bg-black/50 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-white backdrop-blur-sm"
+              >
+                Guest Fit ·{' '}
+                {restaurant.guestFitScore >= 85
+                  ? 'Very High'
+                  : restaurant.guestFitScore >= 70
+                    ? 'High'
+                    : restaurant.guestFitScore >= 55
+                      ? 'Medium'
+                      : restaurant.guestFitScore >= 40
+                        ? 'Neutral'
+                        : restaurant.guestFitScore >= 25
+                          ? 'Low'
+                          : 'Very Low'}{' '}
+                ({restaurant.guestFitScore}/100)
+              </span>
+            ) : restaurant.menuDataThin ? (
+              <span className="rounded-full border border-white/25 bg-black/50 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-white/80 backdrop-blur-sm">
+                Guest Fit · No menu data
+              </span>
+            ) : null}
             {restaurant.confidence && <ConfidenceChip confidence={restaurant.confidence} />}
           </div>
         </div>
@@ -98,44 +124,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               <DollarSign className="h-3 w-3 text-[var(--dash-accent-soft)]" />
               ~${restaurant.predictedCostPerPerson}/pp
             </span>
-          </div>
-          {/* Coverage + Guest Fit labels */}
-          <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--dash-text-soft)]/70">
-            <span title="Severity-weighted % of guests with at least one safe menu item">
-              Coverage: {restaurant.matchPercentage}%
-            </span>
-            {restaurant.guestFitScore !== undefined && (
-              <>
-                <span className="opacity-40">·</span>
-                <span
-                  title="Guest Fit combines stated cuisine preferences and dietary context to estimate how well this restaurant aligns with the group's preferences after dietary requirements are satisfied. 50 = neutral (no preferences stated)."
-                  className={
-                    restaurant.guestFitScore >= 70
-                      ? 'text-[#6E8B6B]'
-                      : restaurant.guestFitScore >= 55
-                      ? 'text-[var(--dash-accent-soft)]/90'
-                      : restaurant.guestFitScore < 40
-                      ? 'text-[#C2594E]'
-                      : 'text-[var(--dash-text-soft)]/70'
-                  }
-                >
-                  <Sparkles className="inline h-2.5 w-2.5 mr-0.5 opacity-70" />
-                  {'Guest Fit: '}
-                  {restaurant.guestFitScore >= 85
-                    ? 'Very High'
-                    : restaurant.guestFitScore >= 70
-                    ? 'High'
-                    : restaurant.guestFitScore >= 55
-                    ? 'Medium'
-                    : restaurant.guestFitScore >= 40
-                    ? 'Neutral'
-                    : restaurant.guestFitScore >= 25
-                    ? 'Low'
-                    : 'Very Low'}
-                  {' '}({restaurant.guestFitScore}/100)
-                </span>
-              </>
-            )}
           </div>
           <div className="mt-1 flex items-center justify-between text-[10.5px] text-[var(--dash-text-soft)]/80">
             <span className="truncate">{restaurant.location}</span>
@@ -156,7 +144,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               Match Details
             </span>
             {restaurant.hasUnconfirmedItems && (
-              <span className="rounded-full border border-dashed border-[#C88A3B]/40 bg-[#C88A3B]/10 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase text-[#C88A3B]">
+              <span className="rounded-md border border-dashed border-[#eab308]/50 bg-[#eab308]/10 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase text-[#facc15]">
                 Includes unconfirmed items
               </span>
             )}
@@ -189,10 +177,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   e.stopPropagation();
                   onToggleShortlist(restaurant.id);
                 }}
-                className={`rounded-full px-3 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
+                className={`rounded-sm border px-2.5 py-1 font-heading text-xs font-semibold transition-all cursor-pointer ${
                   isShortlisted
-                    ? 'bg-[#6E8B6B]/20 text-[#6E8B6B]'
-                    : 'bg-[var(--dash-surface)] text-[var(--dash-text-soft)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)]'
+                    ? 'border-[#22c55e]/40 bg-[#22c55e]/20 text-[#22c55e]'
+                    : 'border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
                 }`}
               >
                 {isShortlisted ? '✓ Shortlisted' : '+ Shortlist'}
@@ -210,21 +198,21 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
             ) : (
               <>
                 <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[var(--dash-text-soft)]">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#6E8B6B]" />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" />
                   {restaurant.matchedResponses.length === 0
                     ? 'No responses safely covered yet'
                     : `Safe for ${coveragePercent(restaurant.matchedResponses.length, restaurant.totalResponses)}% of participants`}
                 </div>
                 {restaurant.dietaryConflicts.length > 0 && (
-                  <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[#C2594E]">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#C2594E]" />
+                  <div className="flex items-center gap-2 whitespace-nowrap text-[13px] text-[#f4a9a9]">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#ef4444]" />
                     {restaurant.dietaryConflicts.length} response
                     {restaurant.dietaryConflicts.length === 1 ? '' : 's'} not covered here
                   </div>
                 )}
                 {restaurant.complexNotes && restaurant.complexNotes.length > 0 && (
-                  <div className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-[#C88A3B]">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#C88A3B]" />
+                  <div className="flex items-center gap-2 whitespace-nowrap text-[12.5px] text-[#b45309]">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#f59e0b]" />
                     {restaurant.complexNotes.length} complex rule audit{restaurant.complexNotes.length === 1 ? '' : 's'} recorded
                   </div>
                 )}

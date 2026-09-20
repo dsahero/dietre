@@ -346,7 +346,8 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<Rest
 export async function upsertMenuItems(
   restaurantId: string,
   items: MenuItem[],
-  status: "ready" | "none" | "failed"
+  status: "ready" | "none" | "failed",
+  menuUrls?: { kind: "pdf" | "html"; label: string; url: string }[]
 ): Promise<void> {
   const checkedAt = new Date().toISOString();
   const finalStatus = items.length === 0 && status === "ready" ? "none" : status;
@@ -354,6 +355,7 @@ export async function upsertMenuItems(
   if (useFirestore()) {
     const { menuItemToDoc } = await import("@/backend/lib/collections");
     const restaurantPatch: Record<string, unknown> = { menu_status: finalStatus, menu_checked_at: checkedAt };
+    if (menuUrls && menuUrls.length > 0) restaurantPatch.menu_urls = menuUrls;
     if (items.length > 0) {
       const keep = new Set(items.map((item) => item.id));
       const existing = await queryDocuments(COLLECTIONS.menu_items, "restaurant_id", "EQUAL", restaurantId);
@@ -378,6 +380,7 @@ export async function upsertMenuItems(
     if (restaurant) {
       restaurant.menu_status = finalStatus;
       restaurant.menu_checked_at = checkedAt;
+      if (menuUrls && menuUrls.length > 0) restaurant.menu_urls = menuUrls;
     }
     await persistJson(store);
   });

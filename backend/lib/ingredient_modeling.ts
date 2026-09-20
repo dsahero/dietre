@@ -137,51 +137,150 @@ export type RawMenuItem = {
   ingredients: string[];
 };
 
+function extractJsonPayload(raw: string): unknown {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const startArr = cleaned.indexOf("[");
+    const endArr = cleaned.lastIndexOf("]");
+    if (startArr >= 0 && endArr > startArr) {
+      return JSON.parse(cleaned.slice(startArr, endArr + 1));
+    }
+    const startObj = cleaned.indexOf("{");
+    const endObj = cleaned.lastIndexOf("}");
+    if (startObj >= 0 && endObj > startObj) {
+      return JSON.parse(cleaned.slice(startObj, endObj + 1));
+    }
+    throw new Error("Gemini response was not valid JSON");
+  }
+}
+
+function coercePrice(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9.]/g, "");
+    if (!cleaned) return null;
+    const n = Number.parseFloat(cleaned);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return null;
+}
+
+function coerceMenuItemArray(parsed: unknown): Omit<RawMenuItem, "id" | "restaurant_id">[] {
+  const list = Array.isArray(parsed)
+    ? parsed
+    : parsed != null &&
+        typeof parsed === "object" &&
+        Array.isArray((parsed as Record<string, unknown>).items)
+      ? ((parsed as Record<string, unknown>).items as unknown[])
+      : parsed != null &&
+          typeof parsed === "object" &&
+          Array.isArray((parsed as Record<string, unknown>).menu_items)
+        ? ((parsed as Record<string, unknown>).menu_items as unknown[])
+        : null;
+  if (!list) return [];
+  return list
+    .filter(
+      (item: unknown): item is Omit<RawMenuItem, "id" | "restaurant_id"> =>
+        item != null &&
+        typeof item === "object" &&
+        typeof (item as Record<string, unknown>).name === "string" &&
+        String((item as Record<string, unknown>).name).trim().length > 0,
+    )
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      return {
+        name: String(row.name).trim(),
+        price: coercePrice(row.price),
+        description: typeof row.description === "string" ? row.description : "",
+        ingredients: Array.isArray(row.ingredients)
+          ? row.ingredients.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+          : [],
+      };
+    });
+}
+
+async function parseMenuTextChunk(
+  menuText: string,
+): Promise<Omit<RawMenuItem, "id" | "restaurant_id">[]> {
+  if (!geminiModel || !menuText.trim()) return [];
+
+  const prompt = `You are extracting dishes from restaurant menu text (often from a PDF — layout may be jumbled, columns mixed, prices on separate lines).
+
+For each food/drink dish extract:
+- name: dish name (required)
+- price: numeric dollars if listed (e.g. 18 or 18.5). Accept "$18", "18", "18.00" as numbers. Use null only when no price appears near the item.
+- description: description/subtitle if present, else ""
+- ingredients: ingredients EXPLICITLY mentioned in the name or description only — do NOT invent
+
+Menu text:
+${menuText}
+
+Return a JSON array (or {"items":[...]}):
+[{ "name": string, "price": number|null, "description": string, "ingredients": string[] }]
+
+Rules:
+- Include real menu dishes and drinks people order. Skip headers, hours, addresses, allergen disclaimers, and pure marketing blurbs.
+- If text is messy, still recover dish names you can identify.
+- Prefer recall: if unsure whether something is a dish but it looks like one with a price or description, include it.
+- Prices are often on the same line or the next line as the dish name — attach them when possible.
+- For "Egg, Bacon on Brioche Bun" → ingredients: ["egg", "bacon", "brioche", "bun"]
+- Do NOT invent ingredients absent from the text.`;
+
+  const result = await geminiModel.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.2,
+    },
+  });
+  const text = result.response.text().trim();
+  return coerceMenuItemArray(extractJsonPayload(text));
+}
+
 async function parseMenuTextToItems(
   menuText: string,
 ): Promise<Omit<RawMenuItem, "id" | "restaurant_id">[]> {
   if (!geminiModel || !menuText.trim()) return [];
 
-  const prompt = `Parse this restaurant menu text into structured items.
-For each item extract:
-- name: the item name
-- price: numeric price (null if not listed)
-- description: the description/subtitle if present, else ""
-- ingredients: array of ingredients EXPLICITLY mentioned in the name or description. Only include ingredients you can see in the text — do NOT guess.
-
-Menu text:
-${menuText.slice(0, 80_000)}
-
-Return ONLY a JSON array:
-[{ "name": string, "price": number|null, "description": string, "ingredients": string[] }]
-
-Rules:
-- Include food items only, skip section headers, category labels, and non-food entries.
-- For "Egg, Bacon on Brioche Bun" → ingredients: ["egg", "bacon", "brioche", "bun"]
-- For "Cheese Pizza" with no description → ingredients: ["cheese"] (only what's in the name)
-- Do NOT invent ingredients that aren't in the text.`;
+  const CHUNK = 24_000;
+  const OVERLAP = 800;
+  const chunks: string[] = [];
+  if (menuText.length <= CHUNK) {
+    chunks.push(menuText);
+  } else {
+    for (let i = 0; i < menuText.length; i += CHUNK - OVERLAP) {
+      chunks.push(menuText.slice(i, i + CHUNK));
+      if (i + CHUNK >= menuText.length) break;
+    }
+  }
 
   try {
-    const result = await geminiModel.generateContent(prompt);
-    const text = result.response.text().trim();
-    const jsonText = text.replace(/^```json\s*|\s*```$/g, "");
-    const parsed = JSON.parse(jsonText);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (item: unknown): item is Omit<RawMenuItem, "id" | "restaurant_id"> =>
-          item != null &&
-          typeof item === "object" &&
-          typeof (item as Record<string, unknown>).name === "string",
-      )
-      .map((item) => ({
-        name: item.name,
-        price: typeof item.price === "number" ? item.price : null,
-        description: typeof item.description === "string" ? item.description : "",
-        ingredients: Array.isArray(item.ingredients)
-          ? item.ingredients.filter((s): s is string => typeof s === "string")
-          : [],
-      }));
+    const byName = new Map<string, Omit<RawMenuItem, "id" | "restaurant_id">>();
+    for (const chunk of chunks) {
+      const items = await parseMenuTextChunk(chunk);
+      for (const item of items) {
+        const key = item.name.toLowerCase();
+        const prev = byName.get(key);
+        if (!prev) {
+          byName.set(key, item);
+          continue;
+        }
+        // Keep the richer duplicate
+        byName.set(key, {
+          name: prev.name,
+          price: prev.price ?? item.price,
+          description: prev.description.length >= item.description.length ? prev.description : item.description,
+          ingredients: [...new Set([...prev.ingredients, ...item.ingredients])],
+        });
+      }
+    }
+    return [...byName.values()];
   } catch (err) {
     console.error("Gemini menu parse failed:", err instanceof Error ? err.message : err);
     return [];
@@ -409,7 +508,7 @@ export function rawItemsToMenuItems(rawItems: RawMenuItem[]): MenuItem[] {
       estimated_ingredients: raw.ingredients,
       flags: hasExplicit ? ingredientsToFlags(raw.ingredients) : {},
       confidence: hasExplicit ? ("high" as Confidence) : ("low" as Confidence),
-      price: raw.price ?? 0,
+      price: raw.price,
     };
   });
 }

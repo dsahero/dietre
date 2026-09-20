@@ -426,6 +426,7 @@ export function restaurantToDoc(restaurant: Restaurant, menuItemIds: string[]): 
     accessibility: { dine_in: true, is_preliminary: true },
     review_evidence: [],
     menu_item_ids: menuItemIds,
+    ...(restaurant.menu_urls?.length ? { menu_urls: restaurant.menu_urls } : {}),
   };
 }
 
@@ -454,6 +455,20 @@ export function docToRestaurant(id: string, doc: Record<string, unknown>): Resta
       : {}),
     ...(Array.isArray(doc.legacy_ids) && doc.legacy_ids.length
       ? { alias_ids: doc.legacy_ids.filter((x): x is string => typeof x === "string") }
+      : {}),
+    ...(Array.isArray(doc.menu_urls) && doc.menu_urls.length
+      ? {
+          menu_urls: doc.menu_urls
+            .filter(
+              (u): u is { kind: string; label: string; url: string } =>
+                u != null && typeof u === "object" && typeof (u as Record<string, unknown>).url === "string"
+            )
+            .map((u) => ({
+              kind: (u.kind === "pdf" ? "pdf" : "html") as "pdf" | "html",
+              label: typeof u.label === "string" ? u.label : "",
+              url: u.url,
+            })),
+        }
       : {}),
   };
 }
@@ -488,7 +503,7 @@ export function docToMenuItem(id: string, doc: Record<string, unknown>): MenuIte
     estimated_ingredients: estimated.length > 0 ? estimated : asStringArray(doc.ingredients),
     flags: asRecord(doc.flags) as MenuItem["flags"],
     confidence,
-    price: asNumber(doc.price, 0),
+    price: doc.price == null || doc.price === "" ? null : asNumber(doc.price, 0) || null,
   };
 }
 

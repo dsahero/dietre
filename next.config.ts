@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
   // Silences the Next.js dev-server cross-origin warning when the app is
   // reached via 127.0.0.1 instead of localhost.
   allowedDevOrigins: ["127.0.0.1"],
+  // Keep pdf.js off the Turbopack/webpack graph so its worker file resolves
+  // from node_modules instead of `.next/dev/server/chunks/`.
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
 };
 
 export default nextConfig;

@@ -15,6 +15,11 @@
  *   4. Writes all menu items to Firestore in batches
  */
 
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(process.cwd(), "backend/.env") });
+config({ path: resolve(process.cwd(), ".env") });
+
 import { promises as fs } from "fs";
 import path from "path";
 import { rawItemsToMenuItems, type RawMenuItem } from "@/backend/lib/ingredient_modeling";

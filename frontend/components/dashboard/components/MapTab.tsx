@@ -14,6 +14,8 @@ interface MapTabProps {
   shortlistedIds: string[];
   onToggleShortlist: (id: string) => void;
   onSelectResponse: (responseId: string) => void;
+  eventId?: string;
+  onMenuUploaded?: () => void;
 }
 
 type MatchTier = 'strong' | 'partial' | 'weak' | 'outside';
@@ -100,6 +102,8 @@ export const MapTab: React.FC<MapTabProps> = ({
   shortlistedIds,
   onToggleShortlist,
   onSelectResponse,
+  eventId,
+  onMenuUploaded,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -561,6 +565,8 @@ export const MapTab: React.FC<MapTabProps> = ({
                 setDetailRestaurant(null);
               }}
               onSelectResponse={onSelectResponse}
+              eventId={eventId}
+              onMenuUploaded={onMenuUploaded}
               compact
             />
           </div>

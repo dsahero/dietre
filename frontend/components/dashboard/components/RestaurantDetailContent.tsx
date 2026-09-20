@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { RestaurantCardData } from '../types';
 import { coveragePercent } from '../adapters';
 import { ConfidenceChip, confidenceTitle } from './ConfidenceChip';
@@ -15,6 +15,11 @@ import {
   UserX,
   MinusCircle,
   Info,
+  FileText,
+  Globe,
+  ExternalLink,
+  FileUp,
+  Loader2,
 } from 'lucide-react';
 
 export interface RestaurantDetailContentProps {
@@ -25,6 +30,10 @@ export interface RestaurantDetailContentProps {
   onSelectResponse: (responseId: string) => void;
   /** Compact mode drops the large header padding for the narrower side-panel presentation. */
   compact?: boolean;
+  /** Event id for host-only menu PDF upload. */
+  eventId?: string;
+  /** Called after a PDF upload successfully adds menu items. */
+  onMenuUploaded?: () => void;
 }
 
 const PRICE_SOURCE_HINT: Record<RestaurantCardData['predictedCostSource'], string> = {
@@ -40,12 +49,20 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
   onClose,
   onSelectResponse,
   compact = false,
+  eventId,
+  onMenuUploaded,
 }) => {
   const [showMatched, setShowMatched] = useState(true);
   const [showConflicts, setShowConflicts] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showChecklist, setShowChecklist] = useState(true);
   const [showComplexNotes, setShowComplexNotes] = useState(true);
+  const [showMenuSources, setShowMenuSources] = useState(
+    () => Boolean(eventId) || (restaurant.menuUrls?.length ?? 0) > 0
+  );
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getMatchBadgeColor = (pct: number) => {
     if (pct >= 85) return 'text-[#4ade80] bg-[#22c55e]/20 border-[#22c55e]/50';
@@ -55,6 +72,43 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
 
   const pct = coveragePercent(restaurant.matchedResponses.length, restaurant.totalResponses);
   const headPad = compact ? 'p-4' : 'p-5 sm:p-6';
+
+  const handlePdfUpload = async (file: File | null) => {
+    if (!file || !eventId) return;
+    setUploadStatus('uploading');
+    setUploadMessage(null);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch(`/api/events/${eventId}/restaurants/${restaurant.id}/menu-upload`, {
+        method: 'POST',
+        body,
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        added?: number;
+        total?: number;
+        textPreview?: string;
+      };
+      if (!res.ok) {
+        setUploadStatus('error');
+        setUploadMessage(
+          data.textPreview
+            ? `${data.error || 'Upload failed.'} Extracted: “${data.textPreview}${data.textPreview.length >= 180 ? '…' : ''}”`
+            : data.error || 'Upload failed.'
+        );
+        return;
+      }
+      setUploadStatus('done');
+      setUploadMessage(`Added ${data.added ?? 0} item(s) · ${data.total ?? 0} total on menu`);
+      onMenuUploaded?.();
+    } catch (err) {
+      setUploadStatus('error');
+      setUploadMessage(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <>
@@ -94,6 +148,19 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
             {restaurant.name}
           </h2>
           <p className="mt-1 text-xs text-[var(--dash-text-muted)] font-serif italic">{restaurant.location}</p>
+          {restaurant.website && (
+            <a
+              href={restaurant.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 inline-flex max-w-full items-center gap-1.5 text-xs font-heading font-semibold text-[var(--dash-accent)] transition-colors hover:text-[var(--dash-accent-soft)]"
+            >
+              <Globe className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{restaurant.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+              <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
+            </a>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -349,6 +416,121 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
           </div>
         )}
 
+        {/* Menu Sources — links and PDFs found during webscraping */}
+        {(restaurant.menuUrls?.length > 0 || eventId) && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowMenuSources(!showMenuSources)}
+              className="flex w-full items-center justify-between text-xs font-heading font-bold uppercase tracking-wider text-[var(--dash-text)] cursor-pointer"
+            >
+              <span className="flex items-center gap-1.5">
+                <Globe className="h-4 w-4 text-[var(--dash-accent)]" />
+                Menu Sources{restaurant.menuUrls?.length ? ` (${restaurant.menuUrls.length})` : ''}
+                {restaurant.menuUrls?.length > 0 && (
+                  <span className="ink-stamp px-1.5 py-0.5 text-[9px] font-semibold text-[var(--dash-accent)] border-[var(--dash-accent)]">
+                    Scraped
+                  </span>
+                )}
+              </span>
+              {showMenuSources ? <ChevronUp className="h-4 w-4 text-[var(--dash-text-muted)]" /> : <ChevronDown className="h-4 w-4 text-[var(--dash-text-muted)]" />}
+            </button>
+            {showMenuSources && (
+              <div className="space-y-2">
+                {restaurant.menuUrls?.map((source, idx) => (
+                  source.url.startsWith('upload://') ? (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3 shadow-2xs"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/10 shadow-2xs">
+                        <FileText className="h-4 w-4 text-[#ef4444]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-heading text-xs font-bold text-[var(--dash-text)] truncate">
+                            {source.label || 'Uploaded PDF'}
+                          </span>
+                          <span className="shrink-0 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface)] px-1.5 py-0.2 font-mono text-[9px] font-semibold uppercase text-[var(--dash-text-muted)]">
+                            uploaded
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <a
+                      key={idx}
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] p-3 shadow-2xs transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] group"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-[var(--dash-accent)]/30 bg-[var(--dash-accent)]/10 shadow-2xs">
+                        {source.kind === 'pdf' ? (
+                          <FileText className="h-4 w-4 text-[#ef4444]" />
+                        ) : (
+                          <Globe className="h-4 w-4 text-[var(--dash-accent)]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-heading text-xs font-bold text-[var(--dash-text)] truncate">
+                            {source.label || (source.kind === 'pdf' ? 'PDF Menu' : 'Menu Page')}
+                          </span>
+                          <span className="shrink-0 rounded-full border border-[var(--dash-border)] bg-[var(--dash-surface)] px-1.5 py-0.2 font-mono text-[9px] font-semibold uppercase text-[var(--dash-text-muted)]">
+                            {source.kind}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 font-mono text-[10px] text-[var(--dash-text-muted)] truncate">
+                          {source.url}
+                        </p>
+                      </div>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[var(--dash-text-muted)] transition-colors group-hover:text-[var(--dash-accent)]" />
+                    </a>
+                  )
+                ))}
+
+                {eventId && (
+                  <div className="rounded-sm border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="hidden"
+                      onChange={(e) => void handlePdfUpload(e.target.files?.[0] ?? null)}
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadStatus === 'uploading'}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex w-full items-center justify-center gap-2 rounded-sm border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 py-2.5 font-heading text-xs font-semibold text-[var(--dash-text)] transition-all hover:border-[var(--dash-accent)] hover:text-[var(--dash-accent)] cursor-pointer disabled:cursor-wait disabled:opacity-70"
+                    >
+                      {uploadStatus === 'uploading' ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-[var(--dash-accent)]" />
+                      ) : (
+                        <FileUp className="h-4 w-4 text-[var(--dash-accent)]" />
+                      )}
+                      {uploadStatus === 'uploading' ? 'Parsing PDF…' : 'Upload menu PDF'}
+                    </button>
+                    <p className="mt-2 text-center font-serif text-[10.5px] italic text-[var(--dash-text-muted)]">
+                      Text-based PDFs work best. Items merge into this restaurant&apos;s menu.
+                    </p>
+                    {uploadMessage && (
+                      <p
+                        className={`mt-2 text-center font-mono text-[10.5px] ${
+                          uploadStatus === 'error' ? 'text-[#ef4444]' : 'text-[#22c55e]'
+                        }`}
+                      >
+                        {uploadMessage}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Suggested menu items — real prices, honest about uncertainty */}
         <div className="pt-2">
           <button
@@ -379,21 +561,51 @@ export const RestaurantDetailContent: React.FC<RestaurantDetailContentProps> = (
                   >
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <span className="font-heading text-sm font-bold text-[var(--dash-text)]">{item.name}</span>
-                      <span className="shrink-0 font-mono text-xs font-semibold text-[var(--dash-accent-soft)]">${item.price}</span>
+                      <span className="shrink-0 font-mono text-xs font-semibold text-[var(--dash-accent-soft)]">
+                        {item.price != null ? `$${item.price % 1 === 0 ? item.price : item.price.toFixed(2)}` : '—'}
+                      </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {item.coveredResponses.map((ref) => (
-                        <button
-                          key={ref.responseId}
-                          type="button"
-                          onClick={() => onSelectResponse(ref.responseId)}
-                          title="View this guest's response"
-                          className="cursor-pointer rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] px-2 py-0.5 font-mono text-[10px] text-[var(--dash-text-soft)] transition-colors hover:border-[var(--dash-accent)] hover:text-[var(--dash-text)] shadow-2xs"
-                        >
-                          {ref.token}
-                        </button>
-                      ))}
+                    <div className="space-y-1.5">
+                      <p className="font-mono text-[9px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+                        Ingredients
+                      </p>
+                      {item.ingredients.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.ingredients.map((ing) => (
+                            <span
+                              key={ing}
+                              className="rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--dash-text-soft)]"
+                            >
+                              {ing}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="font-serif text-[11px] italic text-[var(--dash-text-muted)]">
+                          No ingredients listed for this item yet.
+                        </p>
+                      )}
                     </div>
+                    {item.coveredResponses.length > 0 && (
+                      <div className="space-y-1.5 border-t border-[var(--dash-border)]/60 pt-2">
+                        <p className="font-mono text-[9px] font-semibold uppercase tracking-wider text-[var(--dash-text-muted)]">
+                          Safe for
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {item.coveredResponses.map((ref) => (
+                            <button
+                              key={ref.responseId}
+                              type="button"
+                              onClick={() => onSelectResponse(ref.responseId)}
+                              title="View this guest's response"
+                              className="cursor-pointer rounded-xs border border-[var(--dash-accent)]/35 bg-[var(--dash-accent)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--dash-accent-deep)] transition-colors hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent)]/20 shadow-2xs"
+                            >
+                              {ref.token}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {item.uncertain && (
                       <p className="flex items-center gap-1.5 border-l-2 border-[#eab308]/60 pl-2 font-serif text-[11px] italic text-[#eab308]">
                         <Stamp className="h-3 w-3 shrink-0" />

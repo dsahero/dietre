@@ -11,6 +11,8 @@ interface RestaurantDetailModalProps {
   onToggleShortlist: (id: string) => void;
   onClose: () => void;
   onSelectResponse: (responseId: string) => void;
+  eventId?: string;
+  onMenuUploaded?: () => void;
 }
 
 export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
@@ -20,6 +22,8 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   onToggleShortlist,
   onClose,
   onSelectResponse,
+  eventId,
+  onMenuUploaded,
 }) => {
   useBodyScrollLock(isOpen && Boolean(restaurant));
 
@@ -41,6 +45,8 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
           onToggleShortlist={onToggleShortlist}
           onClose={onClose}
           onSelectResponse={onSelectResponse}
+          eventId={eventId}
+          onMenuUploaded={onMenuUploaded}
         />
       </div>
     </div>

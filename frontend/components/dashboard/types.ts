@@ -42,7 +42,9 @@ export interface GuestRef {
 export interface SuggestedMenuItem {
   id: string;
   name: string;
-  price: number;
+  /** Null/undefined when the source menu had no parseable price (do not show as $0). */
+  price: number | null;
+  ingredients: string[];
   coveredResponses: GuestRef[];
   uncertain: boolean; // AI-inferred ingredients not yet human-confirmed
 }
@@ -105,6 +107,15 @@ export interface RestaurantCardData {
   confidence: RestaurantConfidenceData;
   checklistNotes: RestaurantChecklistNote[]; // Gemini's read on the host's free-text limitations, per venue
   complexNotes: ComplexRequirementNote[]; // Gemini's read on participant complex/compound dietary requirements
+  website?: string; // Google Places websiteUri, when provided
+  menuUrls: MenuUrlEntry[]; // Links/PDFs found during webscraping
+}
+
+// A menu source URL found during the webscraping process.
+export interface MenuUrlEntry {
+  kind: 'pdf' | 'html';
+  label: string;
+  url: string;
 }
 
 // One constraint Gemini pulled out of the host's free-text limitations,

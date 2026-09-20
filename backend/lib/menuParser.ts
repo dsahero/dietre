@@ -485,8 +485,15 @@ async function pdfUrlToText(url: string): Promise<string> {
   return pdfBufferToText(buf);
 }
 
-async function pdfBufferToText(buf: Buffer): Promise<string> {
+/** Extract plain text from an uploaded/fetched PDF buffer. */
+export async function pdfBufferToText(buf: Buffer): Promise<string> {
+  // Next.js bundles break pdf.js worker resolution ("Setting up fake worker failed").
+  // Prefer the embedded worker data URL from pdf-parse/worker; keep packages
+  // external via next.config serverExternalPackages.
+  const { getData } = await import("pdf-parse/worker");
   const { PDFParse } = await import("pdf-parse");
+  PDFParse.setWorker(getData());
+
   const parser = new PDFParse({ data: new Uint8Array(buf) });
   try {
     const result = await parser.getText();

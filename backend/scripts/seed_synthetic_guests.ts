@@ -1,195 +1,74 @@
 /**
- * Push 15 synthetic guests into Firestore for the demo-vt-hacks event.
- * Run: npx tsx backend/scripts/seed_synthetic_guests.ts
+ * Push 5 synthetic guests into the Miami demo event.
+ * Run: npx tsx --env-file=backend/.env backend/scripts/seed_synthetic_guests.ts
+ * Optional: npx tsx --env-file=backend/.env backend/scripts/seed_synthetic_guests.ts <eventId>
  */
-import { config } from "dotenv";
-config({ path: "backend/.env" });
-
 import { createResponse } from "@/backend/lib/db";
 import type { DietResponse } from "@/shared/lib/types";
 
-const EVENT_ID = "demo-vt-hacks";
+const EVENT_ID = process.argv[2]?.trim() || "e91a7405-0e90-4b69-8401-da3280544192";
 
 const guests: DietResponse[] = [
   {
-    id: "synth-01",
+    id: `miami-synth-01-${EVENT_ID.slice(0, 8)}`,
     event_id: EVENT_ID,
-    guest_name: "Alex T.",
-    raw_text: "No allergies. I love spicy food and Asian cuisines — Indian, Vietnamese are my favorites.",
+    guest_name: "Maya R.",
+    raw_text:
+      "Severe peanut allergy — anaphylaxis risk. Also avoid tree nuts. Happy with seafood, Cuban, or Latin food otherwise.",
     parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: ["spicy", "Indian", "Vietnamese"],
-      severity: "low",
+      hard_excludes: ["peanuts", "tree nuts"],
+      soft_preferences: ["Cuban", "Latin", "seafood"],
+      severity: "high",
     },
-    submitted_at: "2026-09-19T22:00:00.000Z",
+    submitted_at: "2026-09-20T05:00:00.000Z",
   },
   {
-    id: "synth-02",
+    id: `miami-synth-02-${EVENT_ID.slice(0, 8)}`,
     event_id: EVENT_ID,
-    guest_name: "Jordan P.",
-    raw_text: "I'm fine with anything but I really prefer Italian food. Love pasta, pizza, good bread.",
+    guest_name: "Jonah K.",
+    raw_text: "Vegetarian — no meat, poultry, or fish. Love Italian and Mediterranean spots with pasta and salads.",
     parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: ["Italian", "pasta", "pizza"],
-      severity: "low",
+      hard_excludes: ["meat", "poultry", "fish", "shellfish"],
+      soft_preferences: ["Italian", "Mediterranean", "vegetarian"],
+      severity: "medium",
     },
-    submitted_at: "2026-09-19T22:01:00.000Z",
+    submitted_at: "2026-09-20T05:01:00.000Z",
   },
   {
-    id: "synth-03",
+    id: `miami-synth-03-${EVENT_ID.slice(0, 8)}`,
     event_id: EVENT_ID,
-    guest_name: "Sam W.",
-    raw_text: "No restrictions at all. I eat everything.",
-    parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: [],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:02:00.000Z",
-  },
-  {
-    id: "synth-04",
-    event_id: EVENT_ID,
-    guest_name: "Mia C.",
-    raw_text: "Lactose intolerant. I love Mexican food and anything with bold flavors.",
+    guest_name: "Priya S.",
+    raw_text: "Lactose intolerant, no dairy. Big fan of spicy Asian food — Thai, Indian, Vietnamese.",
     parsed_rules: {
       hard_excludes: ["dairy"],
-      soft_preferences: ["Mexican", "bold flavors"],
+      soft_preferences: ["Thai", "Indian", "Vietnamese", "spicy"],
       severity: "medium",
     },
-    submitted_at: "2026-09-19T22:03:00.000Z",
+    submitted_at: "2026-09-20T05:02:00.000Z",
   },
   {
-    id: "synth-05",
+    id: `miami-synth-04-${EVENT_ID.slice(0, 8)}`,
     event_id: EVENT_ID,
-    guest_name: "Riley K.",
-    raw_text: "No allergies at all. Big fan of Greek and Mediterranean food. Love fresh salads and hummus.",
-    parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: ["Greek", "Mediterranean"],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:04:00.000Z",
-  },
-  {
-    id: "synth-06",
-    event_id: EVENT_ID,
-    guest_name: "Casey B.",
-    raw_text: "No dietary restrictions. Happy with whatever the group picks.",
-    parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: [],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:05:00.000Z",
-  },
-  {
-    id: "synth-07",
-    event_id: EVENT_ID,
-    guest_name: "Devon R.",
-    raw_text: "Allergic to shellfish. Would love sushi or Japanese food if possible!",
-    parsed_rules: {
-      hard_excludes: ["shellfish"],
-      soft_preferences: ["sushi", "Japanese"],
-      severity: "high",
-    },
-    submitted_at: "2026-09-19T22:06:00.000Z",
-  },
-  {
-    id: "synth-08",
-    event_id: EVENT_ID,
-    guest_name: "Quinn F.",
-    raw_text: "I'll eat anything, no worries.",
-    parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: [],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:07:00.000Z",
-  },
-  {
-    id: "synth-09",
-    event_id: EVENT_ID,
-    guest_name: "Avery M.",
-    raw_text: "Vegetarian, no meat or fish. I really enjoy Indian food and anything with lots of spice.",
-    parsed_rules: {
-      hard_excludes: ["meat", "fish", "shellfish"],
-      soft_preferences: ["Indian", "spicy"],
-      severity: "medium",
-    },
-    submitted_at: "2026-09-19T22:08:00.000Z",
-  },
-  {
-    id: "synth-10",
-    event_id: EVENT_ID,
-    guest_name: "Blake D.",
-    raw_text: "No food allergies. I love a good burger joint or sports bar type place. Wings and fries are my thing.",
-    parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: ["burgers", "sports bar", "wings"],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:09:00.000Z",
-  },
-  {
-    id: "synth-11",
-    event_id: EVENT_ID,
-    guest_name: "Taylor H.",
-    raw_text: "Gluten intolerant. Love Vietnamese pho and anything with rice noodles.",
-    parsed_rules: {
-      hard_excludes: ["gluten"],
-      soft_preferences: ["Vietnamese", "pho"],
-      severity: "medium",
-    },
-    submitted_at: "2026-09-19T22:10:00.000Z",
-  },
-  {
-    id: "synth-12",
-    event_id: EVENT_ID,
-    guest_name: "Morgan J.",
-    raw_text: "No restrictions at all. Surprise me.",
-    parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: [],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:11:00.000Z",
-  },
-  {
-    id: "synth-13",
-    event_id: EVENT_ID,
-    guest_name: "Drew L.",
-    raw_text: "No pork for religious reasons. Love Cajun food and anything Southern-style.",
+    guest_name: "Carlos M.",
+    raw_text: "No pork for religious reasons. Everything else is fine — burgers, tacos, sushi all good.",
     parsed_rules: {
       hard_excludes: ["pork"],
-      soft_preferences: ["Cajun", "Southern"],
+      soft_preferences: ["burgers", "tacos", "sushi"],
       severity: "medium",
     },
-    submitted_at: "2026-09-19T22:12:00.000Z",
+    submitted_at: "2026-09-20T05:03:00.000Z",
   },
   {
-    id: "synth-14",
+    id: `miami-synth-05-${EVENT_ID.slice(0, 8)}`,
     event_id: EVENT_ID,
-    guest_name: "Skyler N.",
-    raw_text: "I eat anything. Big foodie. Love trying unique/ethnic restaurants.",
+    guest_name: "Elena V.",
+    raw_text: "Celiac / gluten-free only. Prefer lighter seafood or salad-forward places in Brickell.",
     parsed_rules: {
-      hard_excludes: [],
-      soft_preferences: ["unique cuisines", "ethnic restaurants"],
-      severity: "low",
-    },
-    submitted_at: "2026-09-19T22:13:00.000Z",
-  },
-  {
-    id: "synth-15",
-    event_id: EVENT_ID,
-    guest_name: "Charlie V.",
-    raw_text: "Egg allergy. I like Chinese dumplings and dim sum style food a lot.",
-    parsed_rules: {
-      hard_excludes: ["egg"],
-      soft_preferences: ["Chinese", "dumplings"],
+      hard_excludes: ["gluten", "wheat"],
+      soft_preferences: ["seafood", "salads", "gluten-free"],
       severity: "high",
     },
-    submitted_at: "2026-09-19T22:14:00.000Z",
+    submitted_at: "2026-09-20T05:04:00.000Z",
   },
 ];
 
@@ -198,14 +77,17 @@ async function main() {
   for (const guest of guests) {
     try {
       await createResponse(guest);
-      const prefs = guest.parsed_rules.soft_preferences;
-      const label = prefs.length > 0 ? `prefs: ${prefs.join(", ")}` : "no preferences";
-      console.log(`  ✓ ${guest.guest_name} (${label})`);
+      const excludes = guest.parsed_rules.hard_excludes;
+      const label = excludes.length > 0 ? `excludes: ${excludes.join(", ")}` : "no hard excludes";
+      console.log(`  ✓ ${guest.guest_name} (${guest.parsed_rules.severity}) — ${label}`);
     } catch (err) {
       console.error(`  ✗ ${guest.guest_name}:`, err instanceof Error ? err.message : err);
     }
   }
-  console.log("Done.");
+  console.log("Done. Refresh the event dashboard and run matching.");
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

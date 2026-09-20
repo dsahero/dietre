@@ -161,6 +161,8 @@ export type Restaurant = {
   // Menu acquisition state for discovered restaurants.
   menu_status?: "pending" | "ready" | "none" | "failed";
   menu_checked_at?: string;
+  // Menu source URLs found during webscraping (PDFs, HTML pages).
+  menu_urls?: { kind: "pdf" | "html"; label: string; url: string }[];
 };
 
 export type MenuItem = {
@@ -171,7 +173,7 @@ export type MenuItem = {
   estimated_ingredients: string[];
   flags: MenuFlags;
   confidence: Confidence;
-  price: number;
+  price: number | null;
 };
 
 export type HostSession = {

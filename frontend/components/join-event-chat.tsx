@@ -166,7 +166,7 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
 
   if (submitted) {
     return (
-      <div className="paper-grain rounded-3xl border-0 bg-[var(--dash-surface-raised)] px-7 py-10 text-center shadow-lg">
+      <div className="paper-grain rounded-xs border-2 border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] px-7 py-10 text-center shadow-[0_4px_12px_rgba(25,12,6,0.08)]">
         <CheckCircle2 className="mx-auto mb-4 h-8 w-8 text-[var(--dash-accent)]" />
         <h2 className="font-heading text-2xl text-[var(--dash-text)]">
           {pendingName ? `Thank you, ${pendingName}` : "You're all set"}
@@ -212,7 +212,7 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
               )}
             </div>
           )}
-        {submitError && <p className="mt-4 text-xs text-[#C88A3B]">{submitError}</p>}
+        {submitError && <p className="mt-4 text-xs text-[#b45309]">{submitError}</p>}
       </div>
     );
   }
@@ -221,12 +221,6 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
 
   return (
     <div className="flex flex-col">
-      {/* Bold orange Concierge header — matches front page remix-cta-card */}
-      <div className="bg-[#D7531F] rounded-t-3xl px-6 py-5 mb-1">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white/70 mb-1">Dietre Concierge</p>
-        <h2 className="font-heading text-xl font-bold text-white leading-snug">Dietary Intake</h2>
-        <p className="font-serif text-xs text-white/75 mt-1 leading-relaxed">Share your dietary needs confidentially — your host will use them to find a restaurant that works for everyone.</p>
-      </div>
       <div className="space-y-6 px-1 py-2">
         {messages.length === 0 && !loading && (
           <p className="font-serif italic text-sm text-[var(--dash-text-muted)]">Starting…</p>
@@ -250,7 +244,7 @@ export function JoinEventChat({ eventId }: JoinEventChatProps) {
                 <p className="mb-1.5 text-right font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--dash-text-muted)]">
                   You
                 </p>
-                <p className="whitespace-pre-wrap rounded-2xl border-0 bg-[var(--dash-surface-raised)] px-4 py-2.5 text-right font-serif text-[15px] leading-relaxed text-[var(--dash-text)] shadow-sm">
+                <p className="whitespace-pre-wrap rounded-xs border border-[var(--dash-border)] bg-[var(--dash-surface-raised)] px-4 py-2.5 text-right font-serif text-[15px] leading-relaxed text-[var(--dash-text)]">
                   {msg.text}
                 </p>
               </div>

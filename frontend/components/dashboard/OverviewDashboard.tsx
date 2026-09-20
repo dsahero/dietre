@@ -13,6 +13,7 @@ import { ResponsesView } from './components/ResponsesView';
 import { ResponseDetailModal } from './components/ResponseDetailModal';
 import { ShortlistedView } from './components/ShortlistedView';
 import { RestaurantDetailModal } from './components/RestaurantDetailModal';
+import { ProcessPanel, type LogEntry, type ProcessStatus } from './components/ProcessPanel';
 
 // Leaflet touches `window` at module load time, so it can never be evaluated
 // during SSR — load it client-only, the same way the original map module did.
@@ -51,6 +52,7 @@ import {
   Sparkles,
   ArrowLeft,
   Share2,
+  Utensils,
 } from 'lucide-react';
 
 export type RestaurantSortOption = 'best_fit' | 'closest';
@@ -63,6 +65,44 @@ interface OverviewDashboardProps {
   /** True for the event creator; collaborators can do everything except delete the event. */
   isOwner?: boolean;
   viewerEmail?: string;
+}
+
+function initialScrapePanelState(match: MatchResult): { status: ProcessStatus; logs: LogEntry[] } {
+  const scraped = match.restaurants.filter((row) => Boolean(row.restaurant.menu_checked_at));
+  if (scraped.length === 0) return { status: 'idle', logs: [] };
+
+  const withItems = scraped.filter((row) => row.restaurant.menu_status === 'ready').length;
+  const lastChecked = scraped
+    .map((row) => row.restaurant.menu_checked_at!)
+    .sort()
+    .at(-1);
+
+  return {
+    status: 'done',
+    logs: [
+      {
+        message: `✅ Menu scrape already on file for ${scraped.length} restaurant(s) (${withItems} with parsed items).${
+          lastChecked ? ` Last checked ${new Date(lastChecked).toLocaleString()}.` : ''
+        }`,
+        timestamp: Date.now(),
+      },
+    ],
+  };
+}
+
+function initialMatchPanelState(match: MatchResult): { status: ProcessStatus; logs: LogEntry[] } {
+  const fromDb = match.restaurants.some((row) => row.confidence?.source === 'database');
+  if (!fromDb) return { status: 'idle', logs: [] };
+
+  return {
+    status: 'done',
+    logs: [
+      {
+        message: `✅ Matching scores already on file for this event (${match.restaurants.length} restaurants).`,
+        timestamp: Date.now(),
+      },
+    ],
+  };
 }
 
 export default function OverviewDashboard({
@@ -119,8 +159,18 @@ export default function OverviewDashboard({
   const [shortlistedIds, setShortlistedIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<RestaurantSortOption>('best_fit');
   const [restaurantLayout, setRestaurantLayout] = useState<'side_scroll' | 'stacked'>('stacked');
+  const [showOnlyWithMenus, setShowOnlyWithMenus] = useState(false);
   const [showNotification, setShowNotification] = useState<string | null>(null);
   const restaurantScrollRef = useRef<HTMLDivElement>(null);
+
+  // Process panel state — hydrate from persisted scrape/match signals so a
+  // refresh does not look like the pipeline never ran.
+  const initialScrape = useMemo(() => initialScrapePanelState(match), [match]);
+  const initialMatch = useMemo(() => initialMatchPanelState(match), [match]);
+  const [scrapeStatus, setScrapeStatus] = useState<ProcessStatus>(initialScrape.status);
+  const [scrapeLogs, setScrapeLogs] = useState<LogEntry[]>(initialScrape.logs);
+  const [matchStatus, setMatchStatus] = useState<ProcessStatus>(initialMatch.status);
+  const [matchLogs, setMatchLogs] = useState<LogEntry[]>(initialMatch.logs);
 
   // Host-side theme — separate storage key from the guest responder flow's
   // own toggle (see use-theme-toggle.ts), so a host and a guest sharing a
@@ -175,6 +225,87 @@ export default function OverviewDashboard({
     router.push('/events');
   };
 
+  const startSseProcess = (
+    url: string,
+    setStatus: (s: ProcessStatus) => void,
+    setLogs: React.Dispatch<React.SetStateAction<LogEntry[]>>,
+    onDone?: () => void
+  ) => {
+    setStatus('running');
+    setLogs([]);
+
+    fetch(url, { method: 'POST' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: 'Unknown error' }));
+          setLogs((prev) => [...prev, { message: `❌ ${body.error || res.statusText}`, timestamp: Date.now() }]);
+          setStatus('error');
+          return;
+        }
+
+        const reader = res.body?.getReader();
+        if (!reader) { setStatus('error'); return; }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              if (parsed.type === 'log') {
+                setLogs((prev) => [...prev, { message: parsed.data.message, timestamp: parsed.data.timestamp }]);
+              } else if (parsed.type === 'done') {
+                setStatus(parsed.data.success ? 'done' : 'error');
+                if (parsed.data.success) onDone?.();
+              } else if (parsed.type === 'error') {
+                setLogs((prev) => [...prev, { message: `❌ ${parsed.data.message}`, timestamp: Date.now() }]);
+                setStatus('error');
+              }
+            } catch {
+              // Ignore malformed SSE lines
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        setLogs((prev) => [...prev, { message: `❌ Network error: ${err.message}`, timestamp: Date.now() }]);
+        setStatus('error');
+      });
+  };
+
+  const handleStartWebscrape = () => {
+    startSseProcess(
+      `/api/events/${event.id}/webscrape`,
+      setScrapeStatus,
+      setScrapeLogs,
+      () => {
+        triggerNotification('Webscraping complete — menu data updated');
+        router.refresh();
+      }
+    );
+  };
+
+  const handleStartMatching = () => {
+    startSseProcess(
+      `/api/events/${event.id}/match`,
+      setMatchStatus,
+      setMatchLogs,
+      () => {
+        triggerNotification('Matching complete — refreshing results…');
+        router.refresh();
+      }
+    );
+  };
+
   const handleDeleteEvent = async () => {
     const res = await fetch(`/api/events/${event.id}`, { method: 'DELETE' });
     const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -204,7 +335,9 @@ export default function OverviewDashboard({
   };
 
   const sortedRestaurants = useMemo(() => {
-    const list = [...restaurants];
+    const list = showOnlyWithMenus
+      ? restaurants.filter((r) => r.menuItemCount > 0)
+      : [...restaurants];
     if (sortBy === 'closest') return list.sort((a, b) => a.distanceMiles - b.distanceMiles);
     return list.sort((a, b) => {
       const aEligible = Number(a.withinRadius && a.withinBudget);
@@ -212,7 +345,7 @@ export default function OverviewDashboard({
       if (aEligible !== bEligible) return bEligible - aEligible;
       return b.matchPercentage - a.matchPercentage;
     });
-  }, [restaurants, sortBy]);
+  }, [restaurants, sortBy, showOnlyWithMenus]);
 
   return (
     <div className="dashboard-layout" id="dashboard-layout" data-theme={hostTheme}>
@@ -236,19 +369,33 @@ export default function OverviewDashboard({
 
       <main className="main-content">
         <header className="main-header">
-          {/* Back link + action row */}
-          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center mb-5">
-            <Link
-              href="/events"
-              id="btn-back-to-events"
-              className="group inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xs border border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs font-heading font-semibold text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs self-start"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-translate-x-0.5" />
-              <span>Back to My Events</span>
-            </Link>
+          {/* Typographic Asymmetry: natural line breaks, off-baseline action, no small-caps bullet eyebrow */}
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-baseline">
+            <div className="max-w-2xl">
+              <Link
+                href="/events"
+                id="btn-back-to-events"
+                className="group inline-flex items-center gap-1.5 mb-2.5 py-1.5 px-3 rounded-xs border border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] text-xs font-heading font-semibold text-[var(--dash-text-soft)] transition-all hover:border-[var(--dash-accent)] hover:bg-[var(--dash-surface-hover)] hover:text-[var(--dash-text)] cursor-pointer shadow-2xs"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 text-[var(--dash-accent)] stroke-[1.75] transition-transform group-hover:-translate-x-0.5" />
+                <span>Back to My Events</span>
+              </Link>
+              {activeNavId !== 'overview' && (
+                <p className="font-serif italic text-xs text-[var(--dash-accent)] mb-1">
+                  {activeNavId === 'shortlisted'
+                    ? 'Shortlisted venues for review'
+                    : activeNavId === 'responses'
+                      ? 'Guest dietary roster & constraints'
+                      : 'Venue radius & map'}
+                </p>
+              )}
+              <h1 className="font-heading text-3xl sm:text-4xl font-bold text-[var(--dash-text)] leading-[1.14] tracking-[-0.038em] text-balance">
+                {eventDetails.name}
+              </h1>
+            </div>
 
-            {/* Action buttons */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Asymmetric bespoke action: bare icon, artisan tactile link/button, no box-in-a-box */}
+            <div className="flex flex-wrap items-center gap-2 self-start md:self-baseline">
               <EventPeoplePopover
                 eventId={event.id}
                 isOwner={isOwner}
@@ -283,43 +430,32 @@ export default function OverviewDashboard({
             </div>
           </div>
 
-          {/* Large orange event hero banner — matches front page .remix-cta-card */}
-          <div className="bg-[#D7531F] rounded-3xl px-6 py-6 md:px-8 md:py-7 shadow-lg mb-4">
-            {activeNavId !== 'overview' && (
-              <p className="font-serif italic text-xs text-white/70 mb-1">
-                {activeNavId === 'shortlisted'
-                  ? 'Shortlisted venues for review'
-                  : activeNavId === 'responses'
-                    ? 'Guest dietary roster & constraints'
-                    : 'Venue radius & map'}
-              </p>
-            )}
-            <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white leading-[1.14] tracking-[-0.038em] text-balance mb-4">
-              {eventDetails.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/80">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-white/70 shrink-0" />
-                <span className="font-serif">{eventDetails.address}</span>
+          {/* Broken grid metadata bar: varied shapes, bare text, stamped seal, judged spacing */}
+          <div className="mt-4 pt-3.5 pb-2.5 border-t border-b border-dashed border-[var(--dash-border)] flex flex-wrap items-baseline justify-between gap-y-2 gap-x-6 text-xs text-[var(--dash-text-soft)]">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 text-[var(--dash-accent)] shrink-0 stroke-[1.75]" />
+              <span className="font-serif font-medium text-[var(--dash-text)] text-[13px]">{eventDetails.address}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 text-xs font-serif">
+              <span className="ink-stamp px-2 py-0.5 text-[9.5px] font-bold text-[var(--dash-accent-deep)] border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] shadow-2xs">
+                ${eventDetails.budgetPerPerson}/person budget
               </span>
-              <span className="rounded-full bg-white/20 px-3 py-1 font-mono text-xs font-bold text-white">
-                ${eventDetails.budgetPerPerson}/person
+              <span className="text-[var(--dash-text-muted)]">
+                within <strong className="font-mono text-[11px] text-[var(--dash-text)] font-semibold">{eventDetails.maxDistanceRadius}</strong>
               </span>
-              <span className="font-serif text-white/80">
-                within <strong className="font-mono text-[13px] text-white font-semibold">{eventDetails.maxDistanceRadius}</strong>
+              <span className="text-[var(--dash-text-soft)] italic">
+                <strong className="font-serif not-italic font-semibold text-[var(--dash-text)]">{eventDetails.expectedHeadcount}</strong> expected banquet guests
               </span>
-              <span className="font-serif text-white/80">
-                <strong className="font-serif not-italic font-semibold text-white">{eventDetails.expectedHeadcount}</strong> expected guests
-              </span>
-                <button
-                  type="button"
-                  onClick={() => setIsEventDetailsOpen((prev) => !prev)}
-                  aria-expanded={isEventDetailsOpen}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/20 hover:bg-white/30 px-3 py-1 font-serif text-xs text-white transition-colors cursor-pointer"
-                >
-                  Event details
-                  {isEventDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </button>
+              <button
+                type="button"
+                onClick={() => setIsEventDetailsOpen((prev) => !prev)}
+                aria-expanded={isEventDetailsOpen}
+                className="inline-flex items-center gap-1 rounded-xs border border-dashed border-[var(--dash-border-strong)] px-2 py-0.5 font-serif text-[11px] text-[var(--dash-text-soft)] transition-colors hover:border-[var(--dash-accent)] hover:text-[var(--dash-text)] cursor-pointer"
+              >
+                Event details
+                {isEventDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </button>
             </div>
           </div>
 
@@ -398,6 +534,11 @@ export default function OverviewDashboard({
               shortlistedIds={shortlistedIds}
               onToggleShortlist={handleToggleShortlist}
               onSelectResponse={handleSelectResponseById}
+              eventId={event.id}
+              onMenuUploaded={() => {
+                triggerNotification('Menu PDF uploaded — refreshing…');
+                router.refresh();
+              }}
             />
           )}
 
@@ -415,30 +556,53 @@ export default function OverviewDashboard({
             <>
               <div className="space-y-4">
                 {sharePanel}
+
+                {/* Pipeline control panels */}
+                <div className="space-y-3">
+                  <ProcessPanel
+                    label="Webscrape Menus"
+                    description="Crawl restaurant websites to discover menu pages, PDFs, and extract menu items"
+                    icon="globe"
+                    status={scrapeStatus}
+                    logs={scrapeLogs}
+                    onStart={handleStartWebscrape}
+                  />
+                  <ProcessPanel
+                    label="Run Matching"
+                    description="Compute dietary compatibility scores using guest responses and discovered menu data"
+                    icon="sparkles"
+                    status={matchStatus}
+                    logs={matchLogs}
+                    disabled={scrapeStatus === 'running'}
+                    disabledReason={scrapeStatus === 'running' ? 'Wait for webscraping to finish first' : undefined}
+                    onStart={handleStartMatching}
+                  />
+                </div>
+
                 <ZeroMatchPanel alerts={match.zero_matches} />
               </div>
 
               {responses.length === 0 ? (
-                <div className="rounded-md border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-10 text-center shadow-xs">
+                <div className="rounded-md border border-dashed border-[var(--dash-border-strong)] bg-[var(--dash-surface-raised)] p-6 text-center shadow-xs">
                   <h3 className="mb-1 font-heading text-lg font-bold text-[var(--dash-text)]">No responses yet</h3>
                   <p className="mx-auto max-w-md text-xs text-[var(--dash-text-muted)] font-serif italic">
-                    Share the guest intake link above. Restaurant rankings appear once the first response is recorded.
+                    Share the guest intake link above. Rankings fill in once the first response is recorded — you can still browse and filter restaurants below.
                   </p>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-3" id="overview-chart-container">
-                    <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="flex items-center gap-2 text-xs font-semibold text-[var(--dash-text-soft)] font-serif">
-                        <PieChart className="h-3.5 w-3.5 text-[#eab308]" />
-                        Guest constraint breakdown ({responses.length} responses)
-                      </span>
-                    </div>
-                    <section className="overview-top-row">
-                      <DonutChart segments={severity.segments} audienceLabel="RESPONSES" audienceValue={`${responses.length}`} />
-                      <AudienceStatsCard metrics={severity.metrics} title="Constraint Severity" />
-                    </section>
+                <div className="space-y-3" id="overview-chart-container">
+                  <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="flex items-center gap-2 text-xs font-semibold text-[var(--dash-text-soft)] font-serif">
+                      <PieChart className="h-3.5 w-3.5 text-[#eab308]" />
+                      Guest constraint breakdown ({responses.length} responses)
+                    </span>
                   </div>
+                  <section className="overview-top-row">
+                    <DonutChart segments={severity.segments} audienceLabel="RESPONSES" audienceValue={`${responses.length}`} />
+                    <AudienceStatsCard metrics={severity.metrics} title="Constraint Severity" />
+                  </section>
+                </div>
+              )}
 
                   <div className="flex flex-col gap-3 border-t border-[var(--dash-border)] pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="font-heading text-xl font-bold tracking-tight text-[var(--dash-text)]">
@@ -514,14 +678,27 @@ export default function OverviewDashboard({
                         >
                           <MapPin className="h-3.5 w-3.5 text-[var(--dash-accent)]" /> Closest
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowOnlyWithMenus((v) => !v)}
+                          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-heading text-xs font-semibold transition-all cursor-pointer ${
+                            showOnlyWithMenus
+                              ? 'border-[var(--dash-accent)] bg-[var(--dash-accent)] text-white shadow-xs'
+                              : 'border-[var(--dash-border)] bg-[var(--dash-surface-raised)] text-[var(--dash-text-soft)] hover:border-[var(--dash-border-strong)] hover:text-[var(--dash-text)]'
+                          }`}
+                          title="Show only restaurants with scraped menu items"
+                        >
+                          <Utensils className="h-3.5 w-3.5" /> Has menu
+                        </button>
                       </div>
                     </div>
                   </div>
 
                   {sortedRestaurants.length === 0 && (
                     <p className="rounded-md border border-dashed border-[var(--dash-border)] px-4 py-6 text-center font-serif text-sm italic text-[var(--dash-text-muted)]">
-                      No restaurants found near this event&apos;s address yet. Try a larger radius or a more specific
-                      address in Edit Event.
+                      {showOnlyWithMenus
+                        ? 'No restaurants with scraped menu items yet. Run webscraping, or turn off the Has menu filter.'
+                        : "No restaurants found near this event's address yet. Try a larger radius or a more specific address in Edit Event."}
                     </p>
                   )}
 
@@ -554,8 +731,6 @@ export default function OverviewDashboard({
                       ))}
                     </section>
                   )}
-                </>
-              )}
             </>
           )}
         </div>
@@ -598,6 +773,11 @@ export default function OverviewDashboard({
           setSelectedRestaurant(null);
         }}
         onSelectResponse={handleSelectResponseById}
+        eventId={event.id}
+        onMenuUploaded={() => {
+          triggerNotification('Menu PDF uploaded — refreshing…');
+          router.refresh();
+        }}
       />
     </div>
   );
