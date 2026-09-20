@@ -504,6 +504,22 @@ Return ONLY JSON:
 // Fetching
 // ---------------------------------------------------------------------------
 
+function isSocialHost(hostname: string): boolean {
+  const host = hostname.replace(/^www\./, "").toLowerCase();
+  return (
+    host === "facebook.com" ||
+    host === "instagram.com" ||
+    host === "twitter.com" ||
+    host === "x.com" ||
+    host === "tiktok.com"
+  );
+}
+
+function isAntiBotStatus(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /HTTP (401|403|429|503)\b/.test(msg);
+}
+
 async function fetchWithFallback(
   name: string,
   url: string,
@@ -515,23 +531,38 @@ async function fetchWithFallback(
     u.hash = "";
     u.search = "";
     if (u.href !== url) variants.push(u.href);
-    const origin = `${u.protocol}//${u.hostname}/`;
-    if (!variants.includes(origin)) variants.push(origin);
+    // Stripping a Facebook listing down to facebook.com/ just 400s.
+    if (!isSocialHost(u.hostname)) {
+      const origin = `${u.protocol}//${u.hostname}/`;
+      if (!variants.includes(origin)) variants.push(origin);
+    }
   } catch {
     /* ignore */
   }
 
+  let lastErr: unknown;
   for (const attempt of variants) {
     try {
       if (attempt !== url) log(`  [${name}] retry: ${attempt}`);
       const html = await fetchHtml(attempt);
       return { html, finalUrl: attempt };
     } catch (err) {
-      if (attempt === variants[variants.length - 1]) {
-        log(`  ⚠ [${name}] Fetch failed: ${err instanceof Error ? err.message : err}`);
-      }
+      lastErr = err;
     }
   }
+
+  // Cloudflare/Akamai often 403 Node's fetch but will serve a real browser.
+  if (isAntiBotStatus(lastErr)) {
+    try {
+      log(`  ⚡ [${name}] Fetch blocked (${lastErr instanceof Error ? lastErr.message : lastErr}) — rendering with browser…`);
+      const rendered = await renderWithBrowser(url);
+      if (rendered.html.trim()) return { html: rendered.html, finalUrl: url };
+    } catch (err) {
+      log(`  ⚠ Browser render failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  log(`  ⚠ [${name}] Fetch failed: ${lastErr instanceof Error ? lastErr.message : lastErr}`);
   return null;
 }
 

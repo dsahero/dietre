@@ -5,7 +5,9 @@ import { ensureEventRestaurants } from "@/backend/lib/restaurantDiscovery";
 import { scrapeRestaurantMenus } from "@/backend/lib/menuScraper";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const runtime = "nodejs";
+/** Pro/Enterprise: up to 300s. Hobby plans cap lower — still set high for when available. */
+export const maxDuration = 300;
 
 export async function POST(
   _request: Request,

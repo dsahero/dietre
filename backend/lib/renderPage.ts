@@ -11,6 +11,9 @@
  *   4. Caller continues with the rendered HTML.
  */
 
+import { existsSync, readdirSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import * as cheerio from "cheerio";
 
 // ---------------------------------------------------------------------------
@@ -97,12 +100,130 @@ export function detectSpaSignals(rawHtml: string): SpaSignals {
 
 let browserPromise: ReturnType<typeof launchBrowser> | null = null;
 
+const PUPPETEER_CHROME_RELATIVE = [
+  ["chrome-win64", "chrome.exe"],
+  ["chrome-win32", "chrome.exe"],
+  ["chrome-linux64", "chrome"],
+  ["chrome-linux", "chrome"],
+  [
+    "chrome-mac-x64",
+    "Google Chrome for Testing.app",
+    "Contents",
+    "MacOS",
+    "Google Chrome for Testing",
+  ],
+  [
+    "chrome-mac-arm64",
+    "Google Chrome for Testing.app",
+    "Contents",
+    "MacOS",
+    "Google Chrome for Testing",
+  ],
+];
+
+function puppeteerCacheRoots(): string[] {
+  return [
+    process.env.PUPPETEER_CACHE_DIR,
+    path.join(os.homedir(), ".cache", "puppeteer"),
+    process.env.LOCALAPPDATA
+      ? path.join(process.env.LOCALAPPDATA, "puppeteer")
+      : undefined,
+  ].filter((p): p is string => Boolean(p));
+}
+
+function findPuppeteerCachedChrome(): string | undefined {
+  for (const root of puppeteerCacheRoots()) {
+    const chromeRoot = path.join(root, "chrome");
+    if (!existsSync(chromeRoot)) continue;
+    let versions: string[] = [];
+    try {
+      versions = readdirSync(chromeRoot);
+    } catch {
+      continue;
+    }
+    for (const version of versions) {
+      for (const rel of PUPPETEER_CHROME_RELATIVE) {
+        const candidate = path.join(chromeRoot, version, ...rel);
+        if (existsSync(candidate)) return candidate;
+      }
+    }
+  }
+  return undefined;
+}
+
+function systemChromeCandidates(): string[] {
+  const local = process.env.LOCALAPPDATA ?? "";
+  const pf = process.env["ProgramFiles"] ?? "C:\\Program Files";
+  const pf86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+  return [
+    path.join(pf, "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
+    local ? path.join(local, "Google", "Chrome", "Application", "chrome.exe") : "",
+    path.join(pf, "Microsoft", "Edge", "Application", "msedge.exe"),
+    path.join(pf86, "Microsoft", "Edge", "Application", "msedge.exe"),
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/snap/bin/chromium",
+  ].filter(Boolean);
+}
+
+/** True on Vercel / Lambda — no system Chrome; use @sparticuz/chromium-min. */
+export function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.FUNCTION_NAME,
+  );
+}
+
+/**
+ * Remote Chromium pack for @sparticuz/chromium-min on Vercel.
+ * Override with CHROMIUM_REMOTE_URL if GitHub downloads are blocked/slow.
+ */
+export const DEFAULT_CHROMIUM_REMOTE_URL =
+  "https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.x64.tar";
+
+/** Resolve a Chrome/Edge binary for puppeteer-core (local/dev). Exported for tests. */
+export function resolveChromePath(): string {
+  const fromEnv = process.env.CHROME_PATH?.trim();
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+
+  // Prefer the installed browser over a puppeteer cache copy — versions can drift.
+  for (const candidate of systemChromeCandidates()) {
+    if (existsSync(candidate)) return candidate;
+  }
+
+  const cached = findPuppeteerCachedChrome();
+  if (cached) return cached;
+
+  throw new Error(
+    "Chrome not found. Install Chrome or Edge, set CHROME_PATH, or run: npx @puppeteer/browsers install chrome",
+  );
+}
+
 async function launchBrowser() {
   const puppeteer = await import("puppeteer-core");
 
-  // Find Chrome: puppeteer cache, common install paths, or CHROME_PATH env
-  const executablePath =
-    process.env.CHROME_PATH ?? findChrome();
+  if (isServerlessRuntime()) {
+    const chromium = (await import("@sparticuz/chromium-min")).default;
+    // Menu scrape does not need WebGL — skip swiftshader and save /tmp + RAM.
+    chromium.setGraphicsMode = false;
+    const remote =
+      process.env.CHROMIUM_REMOTE_URL?.trim() || DEFAULT_CHROMIUM_REMOTE_URL;
+
+    return puppeteer.default.launch({
+      args: chromium.args,
+      defaultViewport: { width: 1280, height: 720 },
+      executablePath: await chromium.executablePath(remote),
+      headless: true,
+    });
+  }
+
+  const executablePath = resolveChromePath();
 
   return puppeteer.default.launch({
     headless: true,
@@ -116,44 +237,13 @@ async function launchBrowser() {
   });
 }
 
-function findChrome(): string {
-  const { execSync } = require("child_process");
-
-  // Check puppeteer's cache first (from `npx puppeteer browsers install chrome`)
-  try {
-    const out = execSync("npx puppeteer browsers list", {
-      encoding: "utf8",
-      timeout: 10_000,
-    });
-    const chromeLine = out
-      .split("\n")
-      .find((l: string) => l.includes("chrome") && !l.includes("headless"));
-    if (chromeLine) {
-      const path = chromeLine.split(" ").pop()?.trim();
-      if (path) return path;
-    }
-  } catch {
-    /* fallthrough */
-  }
-
-  // Common Windows paths
-  const candidates = [
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
-  ];
-  const fs = require("fs");
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-
-  throw new Error(
-    "Chrome not found. Set CHROME_PATH or run: npx puppeteer browsers install chrome",
-  );
-}
-
 async function getBrowser() {
-  if (!browserPromise) browserPromise = launchBrowser();
+  if (!browserPromise) {
+    browserPromise = launchBrowser().catch((err) => {
+      browserPromise = null;
+      throw err;
+    });
+  }
   return browserPromise;
 }
 

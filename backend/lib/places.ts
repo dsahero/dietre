@@ -595,6 +595,22 @@ Return ONLY JSON:
 // Fetching
 // ---------------------------------------------------------------------------
 
+function isSocialHost(hostname: string): boolean {
+  const host = hostname.replace(/^www\./, "").toLowerCase();
+  return (
+    host === "facebook.com" ||
+    host === "instagram.com" ||
+    host === "twitter.com" ||
+    host === "x.com" ||
+    host === "tiktok.com"
+  );
+}
+
+function isAntiBotStatus(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /HTTP (401|403|429|503)\b/.test(msg);
+}
+
 async function fetchWithFallback(
   name: string,
   url: string,
@@ -606,12 +622,15 @@ async function fetchWithFallback(
     u.hash = "";
     u.search = "";
     if (u.href !== url) variants.push(u.href);
-    const origin = `${u.protocol}//${u.hostname}/`;
-    if (!variants.includes(origin)) variants.push(origin);
+    if (!isSocialHost(u.hostname)) {
+      const origin = `${u.protocol}//${u.hostname}/`;
+      if (!variants.includes(origin)) variants.push(origin);
+    }
   } catch {
     /* ignore */
   }
 
+  let lastErr: unknown;
   for (const attempt of variants) {
     try {
       if (attempt !== url) console.log(`[${name}]   retry: ${attempt}`);
@@ -619,11 +638,23 @@ async function fetchWithFallback(
       if (attempt !== url) console.log(`[${name}]   ✓ worked`);
       return { html, finalUrl: attempt };
     } catch (err) {
-      if (attempt === variants[variants.length - 1]) {
-        console.log(`[${name}] fetch failed:`, err instanceof Error ? err.message : err);
-      }
+      lastErr = err;
     }
   }
+
+  if (isAntiBotStatus(lastErr)) {
+    try {
+      console.log(
+        `[${name}] fetch blocked (${lastErr instanceof Error ? lastErr.message : lastErr}) — rendering with browser`,
+      );
+      const rendered = await renderWithBrowser(url);
+      if (rendered.html.trim()) return { html: rendered.html, finalUrl: url };
+    } catch (err) {
+      console.log(`[${name}] browser render failed:`, err instanceof Error ? err.message : err);
+    }
+  }
+
+  console.log(`[${name}] fetch failed:`, lastErr instanceof Error ? lastErr.message : lastErr);
   return null;
 }
 
