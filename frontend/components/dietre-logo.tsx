@@ -1,10 +1,16 @@
 import React from "react";
 
+/** Shared top-left chrome size for events list + host event dashboard. */
+export const DIETRE_CHROME_LOGO_CLASS = "h-7 w-auto";
+
 export interface DietreLogoProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
 }
 
-export const DietreLogo: React.FC<DietreLogoProps> = ({ className = "h-7 w-auto", ...props }) => {
+export const DietreLogo: React.FC<DietreLogoProps> = ({
+  className = DIETRE_CHROME_LOGO_CLASS,
+  ...props
+}) => {
   return (
     <svg
       viewBox="0 0 183.77246 78.561302"
