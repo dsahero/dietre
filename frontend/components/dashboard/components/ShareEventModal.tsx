@@ -31,6 +31,7 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const cacheRef = useRef(new Map<string, Suggestion[]>());
   const abortRef = useRef<AbortController | null>(null);
 
@@ -85,6 +86,7 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
     setSending(true);
     setError(null);
     setNotice(null);
+    setWarning(null);
     try {
       const res = await fetch(`/api/events/${eventId}/share`, {
         method: 'POST',
@@ -98,11 +100,13 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
       };
       if (!res.ok) throw new Error(data.error || 'Could not send the invite.');
       onInvited({ email: target, invited_by_name: inviterName, invited_at: new Date().toISOString() });
-      setNotice(
-        data.email_sent
-          ? `Invitation emailed to ${target}. They'll see it as a notification when they log in.`
-          : `Invitation saved for ${target}, but the email wasn't sent${data.email_note ? ` (${data.email_note})` : ''}. They'll still see it when they log in.`
-      );
+      if (data.email_sent) {
+        setNotice(`Invitation emailed to ${target}. They'll see it as a notification when they log in.`);
+      } else {
+        setWarning(
+          `Invitation saved for ${target}, but the email was NOT sent. ${data.email_note ?? ''} They'll still see the invitation when they log in.`
+        );
+      }
       setEmail('');
       setSuggestions([]);
     } catch (err) {
@@ -155,6 +159,7 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
                 setShowSuggestions(true);
                 setError(null);
                 setNotice(null);
+                setWarning(null);
               }}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
@@ -190,6 +195,9 @@ export const ShareEventModal: React.FC<ShareEventModalProps> = ({
           </p>
 
           {error && <p className="rounded-xs border border-[#ef4444]/40 bg-[#ef4444]/10 p-2 text-xs text-[#c24134]">{error}</p>}
+          {warning && (
+            <p className="rounded-xs border border-[#f59e0b]/50 bg-[#f59e0b]/10 p-2 text-xs text-[var(--dash-text)]">{warning}</p>
+          )}
           {notice && (
             <p className="flex items-start gap-1.5 rounded-xs border border-[#22c55e]/40 bg-[#22c55e]/10 p-2 text-xs text-[var(--dash-text)]">
               <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#22c55e]" />

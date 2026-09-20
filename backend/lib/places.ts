@@ -56,6 +56,157 @@ type GeminiPick = {
 
 const address = "123 Main St, Anytown, USA";
 
+/** One restaurant to find a menu for. `key` is the caller's own id and becomes the menu items' restaurant_id. */
+export type ScrapePlace = {
+  key: string;
+  name: string;
+  address?: string;
+  websiteUri: string;
+};
+
+export type ScrapedMenu = {
+  key: string;
+  name: string;
+  website: string;
+  menuUrls: { kind: string; label: string; url: string }[];
+  items: import("@/backend/lib/ingredient_modeling").RawMenuItem[];
+};
+
+/**
+ * Menu discovery + parsing for a list of places (the pipeline main() used to
+ * run inline for one hard-coded spot). Restaurants that have no findable menu
+ * are simply absent from the result.
+ */
+export async function scrapeMenusForPlaces(places: ScrapePlace[]): Promise<ScrapedMenu[]> {
+  const jobs: (RestaurantJob & { key: string })[] = [];
+  for (const place of places) {
+    if (!place.websiteUri) continue;
+    let startRoot: string;
+    try {
+      startRoot = rootDomain(new URL(place.websiteUri).hostname);
+    } catch {
+      continue;
+    }
+    const locationHint = place.address?.split(",")[0]?.trim() || place.name;
+    jobs.push({
+      key: place.key,
+      // Unique per place so chains with several locations don't collide in Gemini's batch answer.
+      name: place.address ? `${place.name} — ${place.address}` : place.name,
+      locationHint,
+      startUrl: place.websiteUri,
+      startRoot,
+      visited: new Set(),
+      layerUrls: [place.websiteUri],
+      done: false,
+      found: null,
+    });
+  }
+
+  try {
+    for (let layer = 0; layer <= MAX_LAYER; layer++) {
+      const active = jobs.filter((j) => !j.done && j.layerUrls.length > 0);
+      if (active.length === 0) break;
+
+      console.log(`\n########## LAYER ${layer} — ${active.length} restaurant(s) ##########`);
+
+      // Fetch + extract links for all active jobs in parallel
+      const jobLinks = await Promise.all(
+        active.map(async (job) => {
+          console.log(`\n=== ${job.name} ===`);
+          const links = await collectFromLayer(job, layer);
+          return { job, links };
+        }),
+      );
+
+      // Gather jobs that still need Gemini (not resolved by JSON-LD)
+      const needGemini: { job: RestaurantJob; links: LinkCandidate[] }[] = [];
+      for (const { job, links } of jobLinks) {
+        if (job.done) continue; // JSON-LD resolved it
+        if (links.length === 0) {
+          console.log(`[${job.name}] no links found — done`);
+          job.done = true;
+          continue;
+        }
+        console.log(`[${job.name}] ${links.length} links for Gemini`);
+        for (const c of links.slice(0, 15)) {
+          console.log(`  #${c.id} [${c.kind}] "${c.label}" → ${c.url}`);
+        }
+        if (links.length > 15) console.log(`  ... +${links.length - 15} more`);
+        needGemini.push({ job, links });
+      }
+
+      if (needGemini.length === 0) continue;
+
+      // One batched Gemini call for all restaurants this layer
+      console.log(`\n[layer ${layer}] Gemini pick for ${needGemini.length} restaurant(s)...`);
+      const batch = await pickBatchWithGemini(
+        layer,
+        needGemini.map(({ job, links }) => ({
+          name: job.name,
+          locationHint: job.locationHint,
+          links,
+        })),
+      );
+
+      for (const { job, links } of needGemini) {
+        const pick = batch[job.name] ?? { ids: [], action: "none" as const, reason: "no pick" };
+        applyPick(job, layer, links, pick);
+      }
+    }
+
+    console.log("\n========== MENUS FOUND ==========");
+    for (const job of jobs) {
+      if (!job.found) {
+        console.log(`\n${job.name}: (none)`);
+        continue;
+      }
+      console.log(`\n${job.found.restaurant} (layer ${job.found.layer}): ${job.found.reason}`);
+      for (const m of job.found.menus) {
+        console.log(`  - [${m.kind}] ${m.label} → ${m.url}`);
+      }
+    }
+
+    const { extractMenuTextsForRestaurant, menuTextResultToJson } = await import(
+      "@/backend/lib/menuParser"
+    );
+    const { modelMenuItems } = await import("@/backend/lib/ingredient_modeling");
+
+    const scraped: ScrapedMenu[] = [];
+
+    console.log("\n========== MENU TEXT + ITEM PARSING ==========");
+    for (const job of jobs) {
+      if (!job.found?.menus.length) continue;
+
+      const menuUrls = job.found.menus.map((m) => ({ kind: m.kind, label: m.label, url: m.url }));
+      const result = await extractMenuTextsForRestaurant(job.found.restaurant, menuUrls);
+      console.log(menuTextResultToJson(result));
+
+      if (!result.combined.trim()) {
+        console.log(`[${job.found.restaurant}] no combined text — skipping item parse`);
+        continue;
+      }
+
+      const { items, stats } = await modelMenuItems(job.key, result.combined);
+      scraped.push({ key: job.key, name: job.name, website: job.startUrl, menuUrls, items });
+      console.log(
+        `\n[${job.found.restaurant}] ${stats.total} items: ` +
+        `${stats.withIngredients} with ingredients, ${stats.withoutIngredients} without`,
+      );
+      for (const item of items.slice(0, 10)) {
+        console.log(
+          `  ${item.name} — ${item.price != null ? `$${item.price}` : "(no price)"}` +
+          `\n    description: ${item.description || "(none)"}` +
+          `\n    ingredients: ${item.ingredients.join(", ") || "(none)"}`,
+        );
+      }
+      if (items.length > 10) console.log(`  ... +${items.length - 10} more items`);
+    }
+    return scraped;
+  } finally {
+    await closeBrowser();
+  }
+}
+
 async function main() {
   const data = await getRestaurant(address);
 
@@ -68,7 +219,7 @@ async function main() {
     })),
   );
 
-  const jobs: RestaurantJob[] = [];
+  const targets: ScrapePlace[] = [];
   for (const place of places) {
     const website = place.websiteUri as string | undefined;
     const name = place.displayName?.text ?? "(unnamed)";
@@ -76,139 +227,25 @@ async function main() {
       console.log(`Skip ${name}: no websiteUri`);
       continue;
     }
-    const locationHint =
-      place.formattedAddress?.split(",")[0]?.trim() ??
-      place.displayName?.text ??
-      "";
-    jobs.push({
+    targets.push({
+      key: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       name,
-      locationHint,
-      startUrl: website,
-      startRoot: rootDomain(new URL(website).hostname),
-      visited: new Set(),
-      layerUrls: [website],
-      done: false,
-      found: null,
+      address: undefined,
+      websiteUri: website,
     });
   }
 
-  for (let layer = 0; layer <= MAX_LAYER; layer++) {
-    const active = jobs.filter((j) => !j.done && j.layerUrls.length > 0);
-    if (active.length === 0) break;
+  const scraped = await scrapeMenusForPlaces(targets);
 
-    console.log(`\n########## LAYER ${layer} — ${active.length} restaurant(s) ##########`);
-
-    // Fetch + extract links for all active jobs in parallel
-    const jobLinks = await Promise.all(
-      active.map(async (job) => {
-        console.log(`\n=== ${job.name} ===`);
-        const links = await collectFromLayer(job, layer);
-        return { job, links };
-      }),
-    );
-
-    // Gather jobs that still need Gemini (not resolved by JSON-LD)
-    const needGemini: { job: RestaurantJob; links: LinkCandidate[] }[] = [];
-    for (const { job, links } of jobLinks) {
-      if (job.done) continue; // JSON-LD resolved it
-      if (links.length === 0) {
-        console.log(`[${job.name}] no links found — done`);
-        job.done = true;
-        continue;
-      }
-      console.log(`[${job.name}] ${links.length} links for Gemini`);
-      for (const c of links.slice(0, 15)) {
-        console.log(`  #${c.id} [${c.kind}] "${c.label}" → ${c.url}`);
-      }
-      if (links.length > 15) console.log(`  ... +${links.length - 15} more`);
-      needGemini.push({ job, links });
-    }
-
-    if (needGemini.length === 0) continue;
-
-    // One batched Gemini call for all restaurants this layer
-    console.log(`\n[layer ${layer}] Gemini pick for ${needGemini.length} restaurant(s)...`);
-    const batch = await pickBatchWithGemini(
-      layer,
-      needGemini.map(({ job, links }) => ({
-        name: job.name,
-        locationHint: job.locationHint,
-        links,
-      })),
-    );
-
-    for (const { job, links } of needGemini) {
-      const pick = batch[job.name] ?? { ids: [], action: "none" as const, reason: "no pick" };
-      applyPick(job, layer, links, pick);
-    }
-  }
-
-  console.log("\n========== MENUS FOUND ==========");
-  for (const job of jobs) {
-    if (!job.found) {
-      console.log(`\n${job.name}: (none)`);
-      continue;
-    }
-    console.log(`\n${job.found.restaurant} (layer ${job.found.layer}): ${job.found.reason}`);
-    for (const m of job.found.menus) {
-      console.log(`  - [${m.kind}] ${m.label} → ${m.url}`);
-    }
-  }
-
-  const { extractMenuTextsForRestaurant, menuTextResultToJson } = await import(
-    "@/backend/lib/menuParser"
-  );
-  const { modelMenuItems } = await import("@/backend/lib/ingredient_modeling");
   const { promises: fs } = await import("fs");
   const path = await import("path");
-
-  // Collect all structured data for export (raw page content only)
-  const allRestaurants: {
-    id: string;
-    name: string;
-    website: string;
-    menuUrls: { kind: string; label: string; url: string }[];
-  }[] = [];
-  const allMenuItems: import("@/backend/lib/ingredient_modeling").RawMenuItem[] = [];
-
-  console.log("\n========== MENU TEXT + ITEM PARSING ==========");
-  for (const job of jobs) {
-    if (!job.found?.menus.length) continue;
-
-    const restaurantId = job.found.restaurant.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    allRestaurants.push({
-      id: restaurantId,
-      name: job.found.restaurant,
-      website: job.startUrl,
-      menuUrls: job.found.menus.map((m) => ({ kind: m.kind, label: m.label, url: m.url })),
-    });
-
-    const result = await extractMenuTextsForRestaurant(
-      job.found.restaurant,
-      job.found.menus.map((m) => ({ kind: m.kind, label: m.label, url: m.url })),
-    );
-    console.log(menuTextResultToJson(result));
-
-    if (!result.combined.trim()) {
-      console.log(`[${job.found.restaurant}] no combined text — skipping item parse`);
-      continue;
-    }
-
-    const { items, stats } = await modelMenuItems(restaurantId, result.combined);
-    allMenuItems.push(...items);
-    console.log(
-      `\n[${job.found.restaurant}] ${stats.total} items: ` +
-      `${stats.withIngredients} with ingredients, ${stats.withoutIngredients} without`,
-    );
-    for (const item of items.slice(0, 10)) {
-      console.log(
-        `  ${item.name} — ${item.price != null ? `$${item.price}` : "(no price)"}` +
-        `\n    description: ${item.description || "(none)"}` +
-        `\n    ingredients: ${item.ingredients.join(", ") || "(none)"}`,
-      );
-    }
-    if (items.length > 10) console.log(`  ... +${items.length - 10} more items`);
-  }
+  const allRestaurants = scraped.map((s) => ({
+    id: s.key,
+    name: s.name,
+    website: s.website,
+    menuUrls: s.menuUrls,
+  }));
+  const allMenuItems = scraped.flatMap((s) => s.items);
 
   // Write raw page-content output to .data/menus.json
   const dataDir = path.join(process.cwd(), ".data");
@@ -232,11 +269,13 @@ async function main() {
   console.log(`Wrote ${outPath}`);
   console.log(`  ${output.stats.restaurants_found} restaurants, ${output.stats.total_items} items`);
   console.log(`  ${output.stats.with_ingredients} with ingredients, ${output.stats.without_ingredients} without`);
-
-  await closeBrowser();
 }
 
-main();
+// Only run the hard-coded CLI when this file is executed directly
+// (`tsx backend/lib/places.ts`); importing it from the app must not start it.
+if (/[\\/]places\.(ts|js|mjs|cjs)$/.test(process.argv[1] ?? "")) {
+  void main();
+}
 
 // ---------------------------------------------------------------------------
 // Link extraction (one Cheerio pass — deterministic, no keyword filtering)

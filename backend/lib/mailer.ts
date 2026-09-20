@@ -52,9 +52,23 @@ export async function sendCollaborationInvite(input: {
       "resend send email"
     );
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 200);
-      console.warn("[mail] Resend rejected the invite email:", res.status, detail);
-      return { sent: false, reason: `Email provider returned ${res.status}.` };
+      const raw = (await res.text().catch(() => "")).slice(0, 400);
+      let message = "";
+      try {
+        message = (JSON.parse(raw) as { message?: string }).message ?? "";
+      } catch {
+        message = raw;
+      }
+      console.warn("[mail] Resend rejected the invite email:", res.status, message || raw);
+      // Resend's shared test sender only delivers to the Resend account's own address.
+      if (/@resend\.dev\b/i.test(from) && (res.status === 403 || res.status === 422)) {
+        return {
+          sent: false,
+          reason:
+            "Resend's test sender (onboarding@resend.dev) only delivers to your own Resend account email. Verify your domain in Resend and set MAIL_FROM to an address on it.",
+        };
+      }
+      return { sent: false, reason: message || `Email provider returned ${res.status}.` };
     }
     return { sent: true };
   } catch (err) {

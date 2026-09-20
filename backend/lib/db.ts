@@ -259,8 +259,8 @@ export async function listMenuItems(): Promise<MenuItem[]> {
  * is active. Existing menu_item_ids are preserved so a repeat discovery run
  * for the same spot never wipes menu data a future pipeline attaches later.
  */
-export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void> {
-  if (!restaurants.length) return;
+export async function upsertRestaurants(restaurants: Restaurant[]): Promise<Restaurant[]> {
+  if (!restaurants.length) return [];
   const { restaurantToDoc } = await import("@/backend/lib/collections");
 
   if (useFirestore()) {
@@ -280,11 +280,10 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
 
     const toDelete: string[] = [];
     const writes: Array<{ collection: string; id: string; data: Record<string, unknown> }> = [];
+    const result: Restaurant[] = [];
     for (const restaurant of restaurants) {
       const placeId = restaurant.google_place_id;
       const old = placeId ? byPlaceId.get(placeId) : undefined;
-      if (old && old.id === restaurant.id && sameRestaurantFields(old, restaurant)) continue;
-      if (old && old.id !== restaurant.id) toDelete.push(old.id);
       // Replacing a doc must not forget its menu state.
       const merged: Restaurant = old
         ? {
@@ -294,6 +293,9 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
               restaurant.menu_checked_at ?? (typeof old.menu_checked_at === "string" ? old.menu_checked_at : undefined),
           }
         : restaurant;
+      result.push(merged);
+      if (old && old.id === restaurant.id && sameRestaurantFields(old, restaurant)) continue;
+      if (old && old.id !== restaurant.id) toDelete.push(old.id);
       writes.push({
         collection: COLLECTIONS.restaurants,
         id: restaurant.id,
@@ -302,9 +304,10 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
     }
     for (const id of toDelete) await deleteDocument(COLLECTIONS.restaurants, id);
     if (writes.length) await commitWrites(writes);
-    return;
+    return result;
   }
 
+  let jsonResult: Restaurant[] = restaurants;
   await enqueueWrite(async () => {
     const store = await readJsonStore();
     const incomingPlaceIds = new Set(restaurants.map((r) => r.google_place_id).filter(Boolean));
@@ -318,21 +321,20 @@ export async function upsertRestaurants(restaurants: Restaurant[]): Promise<void
       }
       return true;
     });
-    store.restaurants = [
-      ...kept,
-      ...restaurants.map((restaurant) => {
-        const old = previous.get(restaurant.google_place_id ?? restaurant.id);
-        return old
-          ? {
-              ...restaurant,
-              menu_status: restaurant.menu_status ?? old.menu_status,
-              menu_checked_at: restaurant.menu_checked_at ?? old.menu_checked_at,
-            }
-          : restaurant;
-      }),
-    ];
+    jsonResult = restaurants.map((restaurant) => {
+      const old = previous.get(restaurant.google_place_id ?? restaurant.id);
+      return old
+        ? {
+            ...restaurant,
+            menu_status: restaurant.menu_status ?? old.menu_status,
+            menu_checked_at: restaurant.menu_checked_at ?? old.menu_checked_at,
+          }
+        : restaurant;
+    });
+    store.restaurants = [...kept, ...jsonResult];
     await persistJson(store);
   });
+  return jsonResult;
 }
 
 /**
