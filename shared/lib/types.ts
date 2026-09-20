@@ -83,6 +83,9 @@ export type DietreEvent = {
   // This event's own restaurant list (ids into the restaurants collection),
   // generated from its confirmed address + radius. Undefined on legacy events.
   candidate_restaurant_ids?: string[];
+  // Which restaurant-discovery algorithm built candidate_restaurant_ids; lists
+  // from an older version are rebuilt once (see RESTAURANTS_VERSION).
+  restaurants_version?: number;
   // Sharing: people who were invited and accepted (same permissions as the
   // owner except removing the owner / deleting the event), and invites not yet
   // answered. Emails are lowercased. collaborator_emails is a flat copy used

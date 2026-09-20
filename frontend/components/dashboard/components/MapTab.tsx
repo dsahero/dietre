@@ -67,8 +67,12 @@ function frameCircle(map: L.Map, circle: L.Circle, panelOpen: boolean, animate: 
   });
 }
 
+function formatMiles(miles: number): string {
+  return Number.isInteger(miles) ? String(miles) : miles.toFixed(2).replace(/0+$/, '');
+}
+
 function radiusLabelIcon(radiusMiles: number): L.DivIcon {
-  const label = `${Number.isInteger(radiusMiles) ? radiusMiles : radiusMiles.toFixed(2).replace(/0+$/, '')} mi radius`;
+  const label = `${formatMiles(radiusMiles)} mi radius`;
   return L.divIcon({
     className: 'radius-label',
     html: `<span style="display:inline-block;transform:translate(-50%,-120%);white-space:nowrap;font:600 11px sans-serif;padding:1px 6px;border-radius:3px;background:rgba(255,255,255,0.85);color:#333;border:1px solid rgba(0,0,0,0.2)">${label}</span>`,
@@ -141,6 +145,11 @@ export const MapTab: React.FC<MapTabProps> = ({
 
   // Only venues within the event radius plus a reasonable buffer, so the
   // map isn't cluttered with places nobody could realistically travel to.
+  const farthestMiles = useMemo(() => {
+    const inside = restaurants.filter((r) => r.withinRadius).map((r) => r.distanceMiles);
+    return inside.length ? Math.max(...inside) : null;
+  }, [restaurants]);
+
   const inRange = useMemo(
     () => restaurants.filter((r) => r.distanceMiles <= event.radiusMiles * 1.5 + 1),
     [restaurants, event.radiusMiles]
@@ -461,7 +470,8 @@ export const MapTab: React.FC<MapTabProps> = ({
               <Menu className="h-4 w-4" />
             </button>
             <span className="text-xs text-[var(--dash-text-muted)]">
-              {inRange.length} restaurant{inRange.length === 1 ? '' : 's'} near {event.name}
+              {inRange.length} restaurant{inRange.length === 1 ? '' : 's'} within {formatMiles(event.radiusMiles)} mi
+              {farthestMiles !== null && ` · farthest ${farthestMiles} mi`}
             </span>
           </div>
 

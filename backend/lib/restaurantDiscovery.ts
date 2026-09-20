@@ -1,5 +1,6 @@
+import { DEMO_EVENT_ID, SEED_EVENT_2_ID, SEED_EVENT_3_ID } from "@/backend/data/seed";
 import { discoverNearbyRestaurants, hasPlacesApiKey } from "@/backend/lib/placesDiscovery";
-import { listRestaurantsForEvent, updateEvent, upsertRestaurants } from "@/backend/lib/db";
+import { listRestaurantsForEvent, patchEventLean, upsertRestaurants } from "@/backend/lib/db";
 import { acquireMenusInBackground } from "@/backend/lib/menuAcquisition";
 import { haversineMiles } from "@/shared/lib/places";
 import type { DietreEvent, Restaurant } from "@/shared/lib/types";
@@ -59,19 +60,32 @@ export async function discoverAndUpsertRestaurants(
   }
 }
 
+// Bump when discovery changes so existing events rebuild their lists once.
+// v2: tiled search that covers the whole radius (earlier lists were only the
+// nearest ~40 places, clustered around the centre).
+export const RESTAURANTS_VERSION = 2;
+
 const backfillAttempted = new Set<string>();
 
 /**
- * Restaurants for one event. Legacy events with no list of their own get one
- * generated once per process from their saved location, then saved on the event.
+ * Restaurants for one event. Events with no list, or one built by an older
+ * discovery version, get a fresh list generated once per process from their
+ * saved location and radius, then saved on the event.
  */
 export async function ensureEventRestaurants(event: DietreEvent): Promise<Restaurant[]> {
-  if (!event.candidate_restaurant_ids?.length && !backfillAttempted.has(event.id)) {
+  // The seeded demo events keep their curated restaurant lists.
+  const isDemo = event.id === DEMO_EVENT_ID || event.id === SEED_EVENT_2_ID || event.id === SEED_EVENT_3_ID;
+  const outdated = !isDemo && (event.restaurants_version ?? 0) < RESTAURANTS_VERSION;
+  if ((!event.candidate_restaurant_ids?.length || outdated) && !backfillAttempted.has(event.id)) {
     backfillAttempted.add(event.id);
     const { ids } = await discoverAndUpsertRestaurants({ lat: event.lat, lng: event.lng }, event.radius);
     if (ids.length) {
-      await updateEvent(event.id, { candidate_restaurant_ids: ids });
-      event = { ...event, candidate_restaurant_ids: ids };
+      const saved = await patchEventLean(event.id, {
+        candidate_restaurant_ids: ids,
+        restaurants_version: RESTAURANTS_VERSION,
+      });
+      event = { ...event, candidate_restaurant_ids: ids, restaurants_version: RESTAURANTS_VERSION };
+      void saved;
     }
   }
   const list = await listRestaurantsForEvent(event);

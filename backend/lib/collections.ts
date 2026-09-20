@@ -177,6 +177,7 @@ export function eventToDoc(event: DietreEvent, restaurantIds: string[] = []): Re
     collaborators: event.collaborators ?? [],
     pending_invites: event.pending_invites ?? [],
     collaborator_emails: event.collaborator_emails ?? [],
+    restaurants_version: event.restaurants_version ?? 0,
   };
 }
 
@@ -244,6 +245,7 @@ export function docToEvent(id: string, doc: Record<string, unknown>): DietreEven
           }))
       : [],
     collaborator_emails: asStringArray(doc.collaborator_emails),
+    restaurants_version: typeof doc.restaurants_version === "number" ? doc.restaurants_version : 0,
   };
 }
 
@@ -270,6 +272,7 @@ export function eventPatchToDoc(
       | "collaborators"
       | "pending_invites"
       | "collaborator_emails"
+      | "restaurants_version"
     >
   >
 ): Record<string, unknown> {
@@ -300,6 +303,7 @@ export function eventPatchToDoc(
   if (patch.collaborators !== undefined) data.collaborators = patch.collaborators;
   if (patch.pending_invites !== undefined) data.pending_invites = patch.pending_invites;
   if (patch.collaborator_emails !== undefined) data.collaborator_emails = patch.collaborator_emails;
+  if (patch.restaurants_version !== undefined) data.restaurants_version = patch.restaurants_version;
   return data;
 }
 

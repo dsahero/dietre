@@ -19,7 +19,11 @@ import {
 import { matchEvent } from "@/backend/lib/matching";
 import { attachStoredScores } from "@/backend/lib/scoreConfidence";
 import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
-import { discoverAndUpsertRestaurants, ensureEventRestaurants } from "@/backend/lib/restaurantDiscovery";
+import {
+  discoverAndUpsertRestaurants,
+  ensureEventRestaurants,
+  RESTAURANTS_VERSION,
+} from "@/backend/lib/restaurantDiscovery";
 import type { BudgetRange, MenuItem } from "@/shared/lib/types";
 
 export async function GET(
@@ -159,6 +163,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     discoveredKey = key;
     const { ids } = await discoverAndUpsertRestaurants({ lat, lng }, radius);
     patch.candidate_restaurant_ids = ids;
+    patch.restaurants_version = RESTAURANTS_VERSION;
     patch.checklist_notes_by_restaurant = {};
     patch.complex_notes_by_restaurant = {};
     patch.complex_notes_signature = "";

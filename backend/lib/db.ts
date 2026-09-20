@@ -715,6 +715,7 @@ export async function updateEvent(
       | "collaborators"
       | "pending_invites"
       | "collaborator_emails"
+      | "restaurants_version"
     >
   >
 ): Promise<DietreEvent | null> {
@@ -743,7 +744,12 @@ export async function updateEvent(
 /** Patch an event without the restaurant/menu scrub updateEvent runs (one write, no extra reads). */
 export async function patchEventLean(
   id: string,
-  patch: Partial<Pick<DietreEvent, "collaborators" | "pending_invites" | "collaborator_emails">>
+  patch: Partial<
+    Pick<
+      DietreEvent,
+      "collaborators" | "pending_invites" | "collaborator_emails" | "candidate_restaurant_ids" | "restaurants_version"
+    >
+  >
 ): Promise<DietreEvent | null> {
   if (useFirestore()) {
     const updated = await patchDocument(COLLECTIONS.events, id, eventPatchToDoc(patch));

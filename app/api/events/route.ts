@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/backend/lib/auth";
 import { createEvent, listEventsByHost } from "@/backend/lib/db";
 import { resolveEventLocation } from "@/backend/lib/placesDiscovery";
-import { discoverAndUpsertRestaurants } from "@/backend/lib/restaurantDiscovery";
+import { discoverAndUpsertRestaurants, RESTAURANTS_VERSION } from "@/backend/lib/restaurantDiscovery";
 import type { BudgetRange, DietreEvent } from "@/shared/lib/types";
 
 export async function GET() {
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     created_at: new Date().toISOString(),
     google_place_id: googlePlaceId,
     candidate_restaurant_ids: candidateIds,
+    restaurants_version: RESTAURANTS_VERSION,
   };
 
   await createEvent(event);

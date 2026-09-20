@@ -313,9 +313,14 @@ export function cuisineFromTypes(types: string[] | undefined): string {
   return word.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const MAX_DISCOVERED = 120;
+const MAX_DISCOVERED = 250;
 const METERS_PER_MILE = 1609.344;
-const TYPE_GROUPS = [["restaurant"], ["cafe", "bakery", "fast_food_restaurant"]];
+const MAX_SEARCH_CALLS = 40;
+const MIN_CELL_METERS = 150;
+const DISCOVERY_BUDGET_MS = 25_000;
+const SEARCH_PAGE_SIZE = 20;
+
+type Cell = { center: { lat: number; lng: number }; radius: number };
 
 function offsetPoint(center: { lat: number; lng: number }, meters: number, bearingRad: number) {
   const dLat = (meters * Math.cos(bearingRad)) / 111320;
@@ -323,37 +328,70 @@ function offsetPoint(center: { lat: number; lng: number }, meters: number, beari
   return { lat: center.lat + dLat, lng: center.lng + dLng };
 }
 
-// searchNearby returns at most 20 per call, nearest first, so a single call
-// only covers a small inner disc in dense areas. For larger radii, sample the
-// circle with the center plus a ring of sub-circles, merge by place id, then
-// keep only places truly inside the requested radius.
+function metersBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  return haversineMiles(a, b) * METERS_PER_MILE;
+}
+
+/**
+ * Finds the restaurants inside the whole radius, not just the nearest few.
+ * Nearby Search returns at most 20 places per call, nearest first. A search
+ * that comes back full ("saturated") has only covered the disc out to its
+ * farthest result, so the uncovered ring beyond that is searched again with a
+ * ring of smaller circles, recursively, until every cell is complete, cells
+ * get tiny, or the call/time budget runs out. Results are de-duplicated by
+ * place id and clipped to the exact radius.
+ */
 export async function discoverNearbyRestaurants(
   center: { lat: number; lng: number },
   radiusMiles: number,
   maxResultCount = MAX_DISCOVERED
 ): Promise<DiscoveredRestaurant[]> {
   const radiusMeters = Math.max(0.1, radiusMiles) * METERS_PER_MILE;
-  const samples: Array<{ center: { lat: number; lng: number }; radius: number }> = [
-    { center, radius: Math.min(50000, radiusMeters) },
-  ];
-  if (radiusMiles > 0.75) {
-    const subRadius = radiusMeters * 0.55;
-    for (let i = 0; i < 6; i++) {
-      samples.push({
-        center: offsetPoint(center, radiusMeters * 0.6, (i * Math.PI) / 3),
-        radius: Math.min(50000, subRadius),
-      });
-    }
+  const found = new Map<string, DiscoveredRestaurant>();
+  const deadline = Date.now() + DISCOVERY_BUDGET_MS;
+  let calls = 0;
+
+  let level: Cell[] = [{ center, radius: Math.min(50000, radiusMeters) }];
+  while (level.length > 0 && calls < MAX_SEARCH_CALLS && Date.now() < deadline) {
+    const batch = level.slice(0, MAX_SEARCH_CALLS - calls);
+    calls += batch.length;
+    const results = await Promise.all(batch.map((cell) => searchNearbyOnce(cell.center, cell.radius, ["restaurant"])));
+
+    const next: Cell[] = [];
+    results.forEach((result, index) => {
+      const cell = batch[index];
+      for (const restaurant of result.items) found.set(restaurant.googlePlaceId, restaurant);
+      if (result.rawCount < SEARCH_PAGE_SIZE) return; // complete: nothing left in this cell
+
+      // Covered so far: the disc out to the farthest result. Search the ring beyond it.
+      const covered = Math.max(0, ...result.items.map((item) => metersBetween(cell.center, item)));
+      const ringWidth = cell.radius - covered;
+      if (ringWidth < MIN_CELL_METERS) return;
+      const offset = covered + ringWidth / 2;
+      const subRadius = Math.max((ringWidth / 2) * 1.2, offset * 0.55);
+      if (subRadius < MIN_CELL_METERS) return;
+      for (let i = 0; i < 6; i++) {
+        next.push({
+          center: offsetPoint(cell.center, offset, (i * Math.PI) / 3),
+          radius: Math.min(50000, subRadius),
+        });
+      }
+    });
+    level = next;
   }
 
-  const results = await Promise.all(
-    samples.flatMap((sample) => TYPE_GROUPS.map((types) => searchNearbyOnce(sample.center, sample.radius, types)))
-  );
-  const seen = new Set<string>();
+  // One extra sweep for cafes / bakeries / fast food over the whole radius.
+  if (Date.now() < deadline) {
+    const extra = await searchNearbyOnce(center, Math.min(50000, radiusMeters), [
+      "cafe",
+      "bakery",
+      "fast_food_restaurant",
+    ]);
+    for (const restaurant of extra.items) if (!found.has(restaurant.googlePlaceId)) found.set(restaurant.googlePlaceId, restaurant);
+  }
+
   const inside: Array<DiscoveredRestaurant & { distance: number }> = [];
-  for (const restaurant of results.flat()) {
-    if (seen.has(restaurant.googlePlaceId)) continue;
-    seen.add(restaurant.googlePlaceId);
+  for (const restaurant of found.values()) {
     const distance = haversineMiles(center, restaurant);
     if (distance <= radiusMiles) inside.push({ ...restaurant, distance });
   }
@@ -371,14 +409,14 @@ export async function discoverNearbyRestaurants(
       websiteUri: entry.websiteUri,
     }));
 }
-
 async function searchNearbyOnce(
   center: { lat: number; lng: number },
   radiusMeters: number,
   includedTypes: string[]
-): Promise<DiscoveredRestaurant[]> {
+): Promise<{ items: DiscoveredRestaurant[]; rawCount: number }> {
+  const none = { items: [] as DiscoveredRestaurant[], rawCount: 0 };
   const apiKey = process.env.PLACES_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) return none;
   try {
     const res = await withTimeout(
       fetch(NEARBY_URL, {
@@ -411,7 +449,7 @@ async function searchNearbyOnce(
       6000,
       "places nearby search"
     );
-    if (!res.ok) return [];
+    if (!res.ok) return none;
     const data = (await res.json()) as {
       places?: Array<{
         id?: string;
@@ -438,8 +476,8 @@ async function searchNearbyOnce(
         websiteUri: p.websiteUri,
       });
     }
-    return out;
+    return { items: out, rawCount: places.length };
   } catch {
-    return [];
+    return none;
   }
 }
